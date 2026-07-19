@@ -1,0 +1,17 @@
+export { default as CalandarIcon } from './calandar.svg';
+export { default as SelectArrowIcon } from './select-arrow.svg';
+export { default as SearchIcon } from './search.svg';
+export { default as MenuIcon } from './menu.svg';
+export { default as FilterIcon } from './filter.svg';
+export { default as CloseIcon } from './close.svg';
+export { default as BackIcon } from './back.svg';
+export { default as OptionIcon } from './option.svg';
+export { default as DeleteIcon } from './delete.svg';
+export { default as AlignLeftIcon } from './align-left.svg';
+export { default as AlignCenterIcon } from './align-center.svg';
+export { default as AlignRightIcon } from './align-right.svg';
+export { default as ImageIcon } from './image.svg';
+export { default as ClockIcon } from './clock.svg';
+export { default as WriteIcon } from './write.svg';
+export { default as AddBigIcon } from './add-big.svg';
+export { default as NextBigIcon } from './next-big.svg';

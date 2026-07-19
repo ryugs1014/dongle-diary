@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "o-memo",
+    "name": "dongle-diary",
     "slug": "o-memo",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -8,16 +8,24 @@
     "scheme": "omemo",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "backgroundColor": "#000000",
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.ryugs.o-memo",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "일기장 잠금을 해제하기 위해 Face ID를 사용합니다."
+      }
     },
+    "backgroundColor": "#000000",
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#000000",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.ryugs.omemo"
     },
     "web": {
       "output": "static",
@@ -32,11 +40,22 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
-      ]
+      ],
+      "expo-sharing",
+      "expo-web-browser",
+      "@react-native-community/datetimepicker",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "218b9026-948e-4dc5-be7d-37cfcdcffc9f"
+      }
+    },
+    "owner": "ryugss-team"
   }
 }
