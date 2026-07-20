@@ -150,6 +150,19 @@ export default function WriteScreen() {
     }
   }, [editId, selectedDate]);
 
+  const handleEditorInit = () => {
+    if (editId) {
+      const existingDiary = diaries.find((d) => d.id === editId);
+      if (existingDiary) {
+        // 이미지가 디코딩되고 그려질 시간을 충분히(0.5초) 준 뒤 기존 내용을 한 번 더 세팅합니다.
+        // 이 과정에서 DOM이 업데이트되며 에디터가 잘려있던 이미지 높이를 다시 정상적으로 계산합니다.
+        setTimeout(() => {
+          richText.current?.setContentHTML(existingDiary.content || '');
+        }, 500);
+      }
+    }
+  };
+
   const handleEmotionToggle = (emoji: string) => {
     if (selectedEmotions.includes(emoji)) {
       setSelectedEmotions(selectedEmotions.filter((e) => e !== emoji));
@@ -216,7 +229,14 @@ export default function WriteScreen() {
 
     if (!result.canceled && result.assets[0].base64) {
       const base64Data = `data:image/jpeg;base64,${result.assets[0].base64}`;
-      richText.current?.insertImage(base64Data);
+
+      // 💡 수정된 부분: insertImage 대신 insertHTML 사용
+      // 이미지 삽입 후 빈 줄(<br><br>)을 추가해 강제로 에디터 높이 갱신 유도
+      richText.current?.insertHTML(`
+        <br />
+        <img src="${base64Data}" alt="attached" />
+        <br /><br />
+      `);
     }
   };
 
@@ -359,6 +379,7 @@ export default function WriteScreen() {
               ref={richText}
               style={styles.richEditor}
               initialContentHTML={content}
+              editorInitializedCallback={handleEditorInit}
               onChange={(html) => setContent(html)}
               placeholder="오늘 하루는 어땠나요?"
               scrollEnabled={false} // 💡 해결 4: 이중 스크롤 방지를 위해 에디터 내부 스크롤 비활성화
@@ -374,7 +395,19 @@ export default function WriteScreen() {
                 color: isDark ? '#ffffff' : '#000000',
                 placeholderColor: '#bbbbbb',
                 // 💡 해결 2: 폰트 스타일 설정 (시스템 폰트는 즉시 반영됩니다)
-                contentCSSText: `font-size: ${currentFontSize}px; font-family: ${diaryFontFamily}; line-height: 1.5; padding-bottom: 50px;`,
+                contentCSSText: `
+                  font-size: ${currentFontSize}px; 
+                  font-family: ${diaryFontFamily}; 
+                  line-height: 1.5; 
+                  padding-bottom: 50px;
+                  img { 
+                    max-width: 100%; 
+                    height: auto; 
+                    display: block; 
+                    border-radius: 8px; 
+                    margin-top: 10px;
+                  }
+                `,
               }}
               useContainer={true}
             />
