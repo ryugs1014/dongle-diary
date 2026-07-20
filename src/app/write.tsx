@@ -191,7 +191,13 @@ export default function WriteScreen() {
       return;
     }
 
-    const plainText = content.replace(/<[^>]*>?/gm, '').trim();
+    // const plainText = content.replace(/<[^>]*>?/gm, '').trim();
+    const plainText = content
+      .replace(/<[^>]*>?/gm, '')
+      .replace(/&#8203;/g, '')
+      .replace(/\u200B/g, '')
+      .trim();
+
     const hasImage = content.includes('<img');
 
     if (plainText.length === 0 && !hasImage) {
@@ -390,27 +396,72 @@ export default function WriteScreen() {
               />
             )}
 
+            {/* 💡 1. 에디터와 커스텀 Placeholder를 겹치기 위해 View로 감쌉니다. */}
             <RichEditor
               ref={richText}
               style={styles.richEditor}
+
+              // 💡 1. 초기값은 원래 content 상태를 유지합니다. (비어있으면 기본 Placeholder 노출)
               initialContentHTML={content}
+
+              editorInitializedCallback={handleEditorInit}
+
+              // 💡 2. 터치해서 입력 모드가 될 때, 비어있다면 투명 공백을 깔아줍니다.
               onFocus={() => {
-                if (
-                  Platform.OS === 'android' &&
-                  (!content || content.length === 0)
-                ) {
-                  // 눈에 보이지 않는 공백(&#8203;)을 넣어 안드로이드 키보드의 첫 글자 기준점을 잡아줍니다.
-                  richText.current?.insertHTML('&#8203;');
+                if (Platform.OS === 'android') {
+                  const isEmpty =
+                    !content || content === '&#8203;' || content === '<br>';
+                  if (isEmpty) {
+                    richText.current?.setContentHTML('&#8203;');
+                    setContent('&#8203;');
+                  }
                 }
               }}
-              editorInitializedCallback={handleEditorInit}
-              onChange={(html) => setContent(html)}
+
+              // 💡 3. 키보드를 내리거나 포커스를 잃었을 때, 비어있다면 다시 완전히 비워서 Placeholder를 살립니다.
+              onBlur={() => {
+                if (Platform.OS === 'android') {
+                  if (
+                    content === '&#8203;' ||
+                    content === '<br>' ||
+                    content === '<div><br></div>'
+                  ) {
+                    richText.current?.setContentHTML('');
+                    setContent('');
+                  }
+                }
+              }}
+
+              onChange={(html) => {
+                if (Platform.OS === 'android') {
+                  // 백스페이스로 내용이 다 지워졌을 때 나타나는 HTML 패턴들
+                  const isEmptyHTML =
+                    html === '' ||
+                    html === '<br>' ||
+                    html === '<div><br></div>' ||
+                    html === '<p></p>';
+
+                  // 💡 4. 작성 중 다 지웠을 때는 무조건 투명 공백을 유지하여 버그를 막습니다!
+                  if (isEmptyHTML) {
+                    richText.current?.setContentHTML('&#8203;');
+                    setContent('&#8203;');
+                    return;
+                  }
+                }
+                setContent(html);
+              }}
+
+              // 💡 기본 Placeholder를 편하게 사용하세요!
               placeholder="오늘 하루는 어땠나요?"
+
               scrollEnabled={false}
               onCursorPosition={(scrollY) => {
-                // 💡 해결 3: 타이핑할 때 커서 위치를 따라 부모 ScrollView가 자동으로 내려가도록 처리
                 scrollViewRef.current?.scrollTo({
-                  y: scrollY - 50,
+                  // 상단 타이틀/날짜 영역의 높이만큼 넉넉하게 여유(offset)를 줍니다.
+                  y: Math.max(0, scrollY - 120),
+
+                  // Native TextInput처럼 타이핑 시 즉각적으로 반응하도록 false로 설정합니다.
+                  // (만약 너무 딱딱하게 느껴진다면 다시 true로 돌리셔도 됩니다)
                   animated: true,
                 });
               }}
@@ -418,11 +469,8 @@ export default function WriteScreen() {
                 backgroundColor: isDark ? '#111111' : '#ffffff',
                 color: isDark ? '#ffffff' : '#000000',
                 placeholderColor: '#bbbbbb',
-
-                // 💡 해결의 핵심: @font-face와 전역 이미지 스타일은 initialCSSText에 넣습니다. (웹뷰 <head>에 주입됨)
                 initialCSSText: `
                   ${getWebFontCss(diaryFontFamily)}
-                  
                   img { 
                     max-width: 100% !important; 
                     height: auto !important; 
@@ -431,13 +479,13 @@ export default function WriteScreen() {
                     margin-top: 10px !important;
                   }
                 `,
-
-                // 💡 글자 크기, 폰트 적용은 contentCSSText에 넣습니다. (에디터 내부에 적용됨)
                 contentCSSText: `
                   font-size: ${currentFontSize}px !important; 
                   font-family: ${diaryFontFamily === 'System' ? 'sans-serif' : `'${diaryFontFamily}', sans-serif`} !important; 
                   line-height: 1.5 !important; 
+                  padding: 0;
                   padding-bottom: 50px !important;
+                  caret-color: ${isDark ? '#ffffff' : '#000000'} !important;
                 `,
               }}
               useContainer={true}
@@ -761,5 +809,12 @@ const styles = StyleSheet.create({
   richEditor: {
     minHeight: 300,
     width: '100%',
+  },
+
+  customPlaceholder: {
+    position: 'absolute',
+    top: 3, // 기기에 따라 에디터 기본 여백과 안 맞으면 이 수치를 조절하세요 (예: 5~10)
+    left: 0, // 마찬가지로 가로 여백 조절용입니다
+    zIndex: 1,
   },
 });
