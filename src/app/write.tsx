@@ -406,25 +406,13 @@ export default function WriteScreen() {
                 });
               }}
               editorStyle={{
-                // 💡 배경색 및 글자색은 이 속성이 정상적으로 제어하도록 둡니다.
                 backgroundColor: isDark ? '#111111' : '#ffffff',
                 color: isDark ? '#ffffff' : '#000000',
                 placeholderColor: '#bbbbbb',
 
-                // 💡 수정된 부분: body 대신 #editor (실제 글이 써지는 영역)를 직접 타겟팅합니다.
-                contentCSSText: `
+                // 💡 해결의 핵심: @font-face와 전역 이미지 스타일은 initialCSSText에 넣습니다. (웹뷰 <head>에 주입됨)
+                initialCSSText: `
                   ${getWebFontCss(diaryFontFamily)}
-                  
-                  #editor {
-                    font-size: ${currentFontSize}px !important; 
-                    font-family: ${diaryFontFamily === 'System' ? 'sans-serif' : `'${diaryFontFamily}', sans-serif`} !important; 
-                    line-height: 1.5 !important; 
-                    padding-bottom: 50px !important;
-                  }
-                  
-                  #editor * {
-                    font-family: ${diaryFontFamily === 'System' ? 'sans-serif' : `'${diaryFontFamily}', sans-serif`} !important; 
-                  }
                   
                   img { 
                     max-width: 100% !important; 
@@ -433,6 +421,14 @@ export default function WriteScreen() {
                     border-radius: 8px !important; 
                     margin-top: 10px !important;
                   }
+                `,
+
+                // 💡 글자 크기, 폰트 적용은 contentCSSText에 넣습니다. (에디터 내부에 적용됨)
+                contentCSSText: `
+                  font-size: ${currentFontSize}px !important; 
+                  font-family: ${diaryFontFamily === 'System' ? 'sans-serif' : `'${diaryFontFamily}', sans-serif`} !important; 
+                  line-height: 1.5 !important; 
+                  padding-bottom: 50px !important;
                 `,
               }}
               useContainer={true}
