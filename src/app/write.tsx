@@ -405,7 +405,7 @@ export default function WriteScreen() {
                   animated: true,
                 });
               }}
-              ditorStyle={{
+              editorStyle={{
                 backgroundColor: isDark ? '#111111' : '#ffffff',
                 color: isDark ? '#ffffff' : '#000000',
                 placeholderColor: '#bbbbbb',
