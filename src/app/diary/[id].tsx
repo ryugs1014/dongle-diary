@@ -22,7 +22,7 @@ import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import { useDiaryStore } from '../../store/useDiaryStore';
 import { BackIcon, OptionIcon } from '../../../assets/icons';
-import RenderHtml from 'react-native-render-html';
+import RenderHtml, { defaultSystemFonts } from 'react-native-render-html';
 
 const FONT_SIZES = {
   1: 10,
@@ -114,6 +114,10 @@ export default function DiaryDetailScreen() {
   const activeFontFamily =
     diaryFontFamily === 'System' ? undefined : diaryFontFamily;
 
+  const systemFonts = activeFontFamily
+    ? [activeFontFamily, ...defaultSystemFonts]
+    : defaultSystemFonts;
+
   return (
     <SafeAreaView
       edges={['top', 'left', 'right', 'bottom']}
@@ -182,6 +186,7 @@ export default function DiaryDetailScreen() {
               <RenderHtml
                 contentWidth={width - 40}
                 source={{ html: diary.content }}
+                systemFonts={systemFonts}
                 enableExperimentalMarginCollapsing={true}
                 baseStyle={{
                   fontSize: currentFontSize,

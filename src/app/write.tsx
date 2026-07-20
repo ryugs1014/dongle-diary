@@ -277,6 +277,33 @@ export default function WriteScreen() {
     richText.current?.sendAction(command, 'result');
   };
 
+  const getWebFontCss = (fontFamily: string) => {
+    switch (fontFamily) {
+      case 'NanumSquareRound':
+        return `@font-face { 
+        font-family: 'NanumSquareRound'; 
+        src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_two@1.0/NanumSquareRound.woff') format('woff'); 
+      }`;
+      case 'KyoboHandwriting':
+        return `@font-face { 
+        font-family: 'KyoboHandwriting'; 
+        src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2604-1@1.1/KyoboHandwriting2025lyb.woff2') format('woff2'); 
+      }`;
+      case 'GowunBatang':
+        return `@font-face { 
+        font-family: 'GowunBatang'; 
+        src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2108@1.1/GowunBatang-Regular.woff') format('woff'); 
+      }`;
+      case 'IsYun':
+        return `@font-face { 
+        font-family: 'IsYun'; 
+        src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2202-2@1.0/LeeSeoyun.woff') format('woff'); 
+      }`;
+      default:
+        return '';
+    }
+  };
+
   return (
     <SafeAreaView
       edges={['left', 'right']}
@@ -382,11 +409,11 @@ export default function WriteScreen() {
               editorInitializedCallback={handleEditorInit}
               onChange={(html) => setContent(html)}
               placeholder="오늘 하루는 어땠나요?"
-              scrollEnabled={false} // 💡 해결 4: 이중 스크롤 방지를 위해 에디터 내부 스크롤 비활성화
+              scrollEnabled={false}
               onCursorPosition={(scrollY) => {
                 // 💡 해결 3: 타이핑할 때 커서 위치를 따라 부모 ScrollView가 자동으로 내려가도록 처리
                 scrollViewRef.current?.scrollTo({
-                  y: scrollY - 50, // 감정/날짜/제목 영역의 대략적인 높이만큼 오프셋 추가
+                  y: scrollY - 50,
                   animated: true,
                 });
               }}
@@ -394,12 +421,14 @@ export default function WriteScreen() {
                 backgroundColor: isDark ? '#111111' : '#ffffff',
                 color: isDark ? '#ffffff' : '#000000',
                 placeholderColor: '#bbbbbb',
-                // 💡 해결 2: 폰트 스타일 설정 (시스템 폰트는 즉시 반영됩니다)
                 contentCSSText: `
+                  ${getWebFontCss(diaryFontFamily)}
+                  
                   font-size: ${currentFontSize}px; 
-                  font-family: ${diaryFontFamily}; 
+                  font-family: ${diaryFontFamily === 'System' ? 'sans-serif' : `'${diaryFontFamily}', sans-serif`}; 
                   line-height: 1.5; 
                   padding-bottom: 50px;
+                  
                   img { 
                     max-width: 100%; 
                     height: auto; 
