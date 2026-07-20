@@ -1,13 +1,13 @@
 import React, { useRef, useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   Modal,
   ScrollView,
   Image,
   useColorScheme,
+  useWindowDimensions,
 } from 'react-native';
 import AppText from '@/components/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -22,9 +22,7 @@ import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import { useDiaryStore } from '../../store/useDiaryStore';
 import { BackIcon, OptionIcon } from '../../../assets/icons';
-import { RichEditor } from 'react-native-pell-rich-editor';
 import RenderHtml from 'react-native-render-html';
-import { useWindowDimensions } from 'react-native';
 
 const FONT_SIZES = {
   1: 10,
@@ -34,12 +32,10 @@ const FONT_SIZES = {
   5: 18,
 };
 
-// 화면 너비에 맞춰 텍스트와 이미지가 자동 줄바꿈/리사이징 됩니다.
-const { width } = useWindowDimensions();
-
 export default function DiaryDetailScreen() {
   const { id } = useLocalSearchParams();
   const navigation = useNavigation();
+  const { width } = useWindowDimensions(); // 컴포넌트 내부로 이동 (안전성 확보)
 
   const {
     diaries,
@@ -59,9 +55,6 @@ export default function DiaryDetailScreen() {
 
   const [menuVisible, setMenuVisible] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-
-  // 💡 여유 있는 기본 높이 할당
-  const [editorHeight, setEditorHeight] = useState(200);
 
   const dateObj = new Date(selectedDate);
   const year = dateObj.getFullYear();
@@ -118,28 +111,8 @@ export default function DiaryDetailScreen() {
   };
 
   const currentFontSize = FONT_SIZES[diaryFontSize as keyof typeof FONT_SIZES];
-
-  // 💡 [핵심 해결 방법] 1x1 투명 이미지를 삽입해 onload 이벤트를 실행시키고,
-  // 4초(0.4초 간격 10번) 동안 강제로 DOM을 건드려 에디터가 사진의 높이를 다시 재도록 유도합니다.
-  const trackingPixel = `
-    <img 
-      src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" 
-      style="display:none;" 
-      onload="var c=0; var id=setInterval(function(){var d=document.createElement('div');document.body.appendChild(d);document.body.removeChild(d);c++;if(c>10)clearInterval(id);}, 400);" 
-    />
-  `;
-
-  const injectedHTML = diary.content
-    ? `
-      <style>
-        body { padding: 0; margin: 0; padding-bottom: 40px; display: flow-root; }
-        img { width: 100% !important; height: auto !important; display: block; border-radius: 8px; margin: 15px 0; }
-        * { max-width: 100% !important; word-wrap: break-word; }
-      </style>
-      ${trackingPixel}
-      ${diary.content}
-    `
-    : '';
+  const activeFontFamily =
+    diaryFontFamily === 'System' ? undefined : diaryFontFamily;
 
   return (
     <SafeAreaView
@@ -187,7 +160,6 @@ export default function DiaryDetailScreen() {
               <AppText style={styles.date}>
                 {`${year}년 ${month}월 ${day}일`}
               </AppText>
-
               <AppText style={styles.day}>{dayOfWeek}요일</AppText>
             </View>
           </View>
@@ -197,30 +169,42 @@ export default function DiaryDetailScreen() {
               style={[
                 styles.title,
                 isDark && styles.darkText,
-                {
-                  fontFamily:
-                    diaryFontFamily === 'System' ? undefined : diaryFontFamily,
-                },
+                { fontFamily: activeFontFamily },
               ]}
             >
               {diary.title}
             </AppText>
           )}
 
+          {/* 변경된 부분: View로 감싸서 width 100% 강제 적용 */}
           {diary.content !== undefined ? (
-            <RenderHtml
-              contentWidth={width - 40} // 좌우 패딩을 제외한 너비
-              source={{ html: diary.content }}
-              baseStyle={{
-                fontSize: currentFontSize,
-                fontFamily: diaryFontFamily,
-                color: isDark ? '#ffffff' : '#000000',
-              }}
-              tagsStyles={{
-                img: { borderRadius: 8, marginVertical: 15 },
-              }}
-            />
+            <View style={{ width: '100%' }}>
+              <RenderHtml
+                contentWidth={width - 40}
+                source={{ html: diary.content }}
+                enableExperimentalMarginCollapsing={true}
+                baseStyle={{
+                  fontSize: currentFontSize,
+                  fontFamily: activeFontFamily,
+                  color: isDark ? '#ffffff' : '#000000',
+                  lineHeight: currentFontSize * 1.5,
+                }}
+                tagsStyles={{
+                  img: {
+                    // width: '100%', // 가로 넓이 꽉 채우기
+                    // height: 250, // 말씀하신 대로 높이 250 고정
+                    // objectFit: 'cover', // 높이를 고정해도 사진이 찌그러지지 않게 덮기
+                    borderRadius: 8,
+                    marginVertical: 15,
+                  },
+                  p: {
+                    marginVertical: 4,
+                  },
+                }}
+              />
+            </View>
           ) : (
+            // 기존 fallback 코드 동일하게 유지
             diary.blocks?.map((block) =>
               block.type === 'image' ? (
                 <Image
@@ -237,10 +221,7 @@ export default function DiaryDetailScreen() {
                     {
                       fontSize: currentFontSize,
                       lineHeight: currentFontSize * 1.5,
-                      fontFamily:
-                        diaryFontFamily === 'System'
-                          ? undefined
-                          : diaryFontFamily,
+                      fontFamily: activeFontFamily,
                     },
                   ]}
                 >
