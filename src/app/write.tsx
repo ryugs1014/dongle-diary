@@ -280,25 +280,13 @@ export default function WriteScreen() {
   const getWebFontCss = (fontFamily: string) => {
     switch (fontFamily) {
       case 'NanumSquareRound':
-        return `@font-face { 
-        font-family: 'NanumSquareRound'; 
-        src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_two@1.0/NanumSquareRound.woff') format('woff'); 
-      }`;
+        return "@font-face { font-family: 'NanumSquareRound'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_two@1.0/NanumSquareRound.woff') format('woff'); font-weight: normal; font-style: normal; font-display: swap; }";
       case 'KyoboHandwriting':
-        return `@font-face { 
-        font-family: 'KyoboHandwriting'; 
-        src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2604-1@1.1/KyoboHandwriting2025lyb.woff2') format('woff2'); 
-      }`;
+        return "@font-face { font-family: 'KyoboHandwriting'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2604-1@1.1/KyoboHandwriting2025lyb.woff2') format('woff2'); font-weight: normal; font-style: normal; font-display: swap; }";
       case 'GowunBatang':
-        return `@font-face { 
-        font-family: 'GowunBatang'; 
-        src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2108@1.1/GowunBatang-Regular.woff') format('woff'); 
-      }`;
+        return "@font-face { font-family: 'GowunBatang'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2108@1.1/GowunBatang-Regular.woff') format('woff'); font-weight: normal; font-style: normal; font-display: swap; }";
       case 'IsYun':
-        return `@font-face { 
-        font-family: 'IsYun'; 
-        src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2202-2@1.0/LeeSeoyun.woff') format('woff'); 
-      }`;
+        return "@font-face { font-family: 'IsYun'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2202-2@1.0/LeeSeoyun.woff') format('woff'); font-weight: normal; font-style: normal; font-display: swap; }";
       default:
         return '';
     }
@@ -417,24 +405,27 @@ export default function WriteScreen() {
                   animated: true,
                 });
               }}
-              editorStyle={{
+              ditorStyle={{
                 backgroundColor: isDark ? '#111111' : '#ffffff',
                 color: isDark ? '#ffffff' : '#000000',
                 placeholderColor: '#bbbbbb',
+
                 contentCSSText: `
                   ${getWebFontCss(diaryFontFamily)}
                   
-                  font-size: ${currentFontSize}px; 
-                  font-family: ${diaryFontFamily === 'System' ? 'sans-serif' : `'${diaryFontFamily}', sans-serif`}; 
-                  line-height: 1.5; 
-                  padding-bottom: 50px;
+                  body {
+                    font-size: ${currentFontSize}px !important; 
+                    font-family: ${diaryFontFamily === 'System' ? 'sans-serif' : `'${diaryFontFamily}', sans-serif`} !important; 
+                    line-height: 1.5 !important; 
+                    padding-bottom: 50px !important;
+                  }
                   
                   img { 
-                    max-width: 100%; 
-                    height: auto; 
-                    display: block; 
-                    border-radius: 8px; 
-                    margin-top: 10px;
+                    max-width: 100% !important; 
+                    height: auto !important; 
+                    display: block !important; 
+                    border-radius: 8px !important; 
+                    margin-top: 10px !important;
                   }
                 `,
               }}
