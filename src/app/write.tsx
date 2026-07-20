@@ -394,6 +394,15 @@ export default function WriteScreen() {
               ref={richText}
               style={styles.richEditor}
               initialContentHTML={content}
+              onFocus={() => {
+                if (
+                  Platform.OS === 'android' &&
+                  (!content || content.length === 0)
+                ) {
+                  // 눈에 보이지 않는 공백(&#8203;)을 넣어 안드로이드 키보드의 첫 글자 기준점을 잡아줍니다.
+                  richText.current?.insertHTML('&#8203;');
+                }
+              }}
               editorInitializedCallback={handleEditorInit}
               onChange={(html) => setContent(html)}
               placeholder="오늘 하루는 어땠나요?"

@@ -42,7 +42,7 @@ export default function BackupSettingsScreen() {
     iosClientId:
       '434139943-ushi0r2tj7bg1vaqern9o3ou7akouvq5.apps.googleusercontent.com',
     androidClientId:
-      '434139943-ushi0r2tj7bg1vaqern9o3ou7akouvq5.apps.googleusercontent.com',
+      '434139943-lfeb2uadgr2vu0hl75fe2q7iqndv3s08.apps.googleusercontent.com',
     scopes: ['https://www.googleapis.com/auth/drive.appdata', 'email'],
   });
 
