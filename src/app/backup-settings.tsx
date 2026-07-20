@@ -17,6 +17,7 @@ import * as Google from 'expo-auth-session/providers/google';
 import * as FileSystem from 'expo-file-system';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { useDiaryStore } from '../store/useDiaryStore';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -38,25 +39,41 @@ export default function BackupSettingsScreen() {
 
   const [isLoading, setIsLoading] = useState(false);
 
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    iosClientId:
-      '434139943-ushi0r2tj7bg1vaqern9o3ou7akouvq5.apps.googleusercontent.com',
-    androidClientId:
-      '434139943-lfeb2uadgr2vu0hl75fe2q7iqndv3s08.apps.googleusercontent.com',
-    scopes: ['https://www.googleapis.com/auth/drive.appdata', 'email'],
-  });
-
+  // 🔥 초기 설정: 웹 클라이언트 ID와 필요한 구글드라이브 스코프 지정
   useEffect(() => {
+    GoogleSignin.configure({
+      scopes: ['https://www.googleapis.com/auth/drive.appdata'],
+      webClientId:
+        '434139943-o0glst1t2lk89bgokhcpg3r5ags0eqgp.apps.googleusercontent.com',
+      // 💡 아래 값을 본인의 Google Cloud Console iOS Client ID로 바꿔주세요
+      iosClientId:
+        '434139943-ushi0r2tj7bg1vaqern9o3ou7akouvq5.apps.googleusercontent.com',
+    });
+
     if (googleToken) {
       verifyAndLoadGoogleData(googleToken);
     }
   }, []);
 
-  useEffect(() => {
-    if (response?.type === 'success' && response.authentication?.accessToken) {
-      verifyAndLoadGoogleData(response.authentication.accessToken);
+  const handleGoogleLogin = async () => {
+    setIsLoading(true);
+    try {
+      await GoogleSignin.hasPlayServices();
+      // 구글 로그인 창 표시
+      await GoogleSignin.signIn();
+      // 성공 시 토큰 가져오기
+      const tokens = await GoogleSignin.getTokens();
+
+      if (tokens.accessToken) {
+        verifyAndLoadGoogleData(tokens.accessToken);
+      }
+    } catch (error: any) {
+      console.log('Google Native Login Error:', error);
+      Alert.alert('로그인 실패', '구글 로그인 중 오류가 발생했습니다.');
+    } finally {
+      setIsLoading(false);
     }
-  }, [response]);
+  };
 
   const verifyAndLoadGoogleData = async (token: string) => {
     setIsLoading(true);
@@ -287,10 +304,10 @@ export default function BackupSettingsScreen() {
             style={{ marginTop: 20 }}
           />
         ) : !googleToken ? (
+          // 🔥 onPress에 네이티브 로그인 함수 매핑
           <TouchableOpacity
             style={[styles.btn, styles.googleBtn]}
-            onPress={() => promptAsync()}
-            disabled={!request}
+            onPress={handleGoogleLogin}
           >
             <Ionicons name="logo-google" size={20} color="#fff" />
             <AppText style={styles.btnText}>구글 계정으로 연결하기</AppText>
@@ -345,7 +362,9 @@ export default function BackupSettingsScreen() {
 
             <TouchableOpacity
               style={styles.changeAccountBtn}
-              onPress={() => {
+              onPress={async () => {
+                // 로그아웃 처리도 네이티브에 맞게 수행
+                await GoogleSignin.signOut();
                 setGoogleAuth(null, null);
                 setLastBackupDate(null);
               }}

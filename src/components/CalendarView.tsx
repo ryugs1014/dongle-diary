@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, StyleSheet, TouchableOpacity, Text, Modal } from 'react-native';
 import AppText from '@/components/AppText';
 import { router } from 'expo-router';
@@ -151,12 +151,93 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
     return map;
   }, [diaries]);
 
+  const markedDates = useMemo(() => {
+    const marks: Record<string, any> = {};
+
+    Object.keys(diariesMap).forEach((dateStr) => {
+      const d = diariesMap[dateStr];
+      marks[dateStr] = {
+        hasDiary: true,
+        emotion:
+          d.emotions && d.emotions.length > 0 ? d.emotions[0] : d.emotion || '',
+      };
+    });
+
+    if (marks[selectedDate]) {
+      marks[selectedDate] = { ...marks[selectedDate], selected: true };
+    } else {
+      marks[selectedDate] = { selected: true };
+    }
+
+    return marks;
+  }, [diariesMap, selectedDate]);
+
   const handleMonthSelect = (month: number) => {
     const newDateStr = `${pickerYear}-${String(month).padStart(2, '0')}-01`;
     setSelectedDate(newDateStr);
     setDisplayedMonth(newDateStr);
     setDatePickerVisible(false);
   };
+
+  // 💡 날짜 클릭 핸들러도 분리하여 참조를 유지합니다.
+  const handleDayPress = useCallback(
+    (dateStr: string, hasDiary: boolean) => {
+      setSelectedDate(dateStr);
+      if (hasDiary) router.push('/diary-list');
+    },
+    [setSelectedDate],
+  );
+
+  // 💡 [성능 최적화 2] 렌더링 함수를 useCallback으로 감싸고, 의존성 배열에서 selectedDate를 제거합니다.
+  // 이렇게 하면 달력의 모든 날짜가 불필요하게 리렌더링되지 않고, 변경된 날짜만 똑똑하게 업데이트됩니다.
+  const renderDay = useCallback(
+    ({ date, state, marking }: any) => {
+      const dateStr = date?.dateString || '';
+      const hasDiary = !!marking?.hasDiary;
+      const isSelected = !!marking?.selected;
+      const displayEmotion = marking?.emotion || '';
+
+      const dateObj = new Date(
+        date?.year || 2024,
+        (date?.month || 1) - 1,
+        date?.day || 1,
+      );
+      const isSunday = dateObj.getDay() === 0;
+      const isFuture = dateStr > localTodayStr;
+
+      return (
+        <TouchableOpacity
+          activeOpacity={1}
+          disabled={state === 'disabled' || isFuture}
+          onPress={() => handleDayPress(dateStr, hasDiary)}
+          style={[
+            styles.dayCell,
+            isSelected && !isFuture && !hasDiary && styles.selectedCell,
+            isDark &&
+              isSelected &&
+              !isFuture &&
+              !hasDiary &&
+              styles.selectedCellDark,
+          ]}
+        >
+          <AppText
+            style={[
+              styles.dayText,
+              isDark && styles.darkDayText,
+              isSunday && styles.sundayText,
+              isFuture &&
+                (isDark ? styles.darkDisabledText : styles.disabledText),
+              isSelected && !isFuture && styles.selectedText,
+              hasDiary && { fontSize: 24 },
+            ]}
+          >
+            {hasDiary ? displayEmotion : date?.day}
+          </AppText>
+        </TouchableOpacity>
+      );
+    },
+    [isDark, handleDayPress],
+  ); // selectedDate가 빠진 것이 핵심입니다!
 
   return (
     <View style={styles.container}>
@@ -230,7 +311,7 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
         <CalendarList
           current={selectedDate}
           pastScrollRange={60}
-          futureScrollRange={60}
+          futureScrollRange={12}
           horizontal={false}
           pagingEnabled={true}
           calendarHeight={330}
@@ -240,6 +321,8 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
             if (months && months.length > 0)
               setDisplayedMonth(months[0].dateString);
           }}
+          markedDates={markedDates} // 💡 위에서 묶은 markedDates를 넘겨줍니다.
+          dayComponent={renderDay} // 💡 인라인 함수 대신 안정적인 useCallback 함수를 넘겨줍니다.
           theme={{
             calendarBackground: 'transparent',
             dayTextColor: isDark ? '#ffffff' : '#212529',
@@ -251,73 +334,6 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
                 color: 'transparent',
               },
             },
-          }}
-          dayComponent={({ date, state }) => {
-            const dateStr = date?.dateString || '';
-
-            // const dayDiaries = diaries.filter((d) => d.date === dateStr);
-            const todayDiary = diariesMap[dateStr];
-
-            // const hasDiary = dayDiaries.length > 0;
-            const hasDiary = !!todayDiary;
-            const isSelected = dateStr === selectedDate;
-
-            const dateObj = new Date(
-              date?.year || 2024,
-              (date?.month || 1) - 1,
-              date?.day || 1,
-            );
-            const isSunday = dateObj.getDay() === 0;
-            const isFuture = dateStr > localTodayStr;
-
-            let displayEmotion = '';
-            // if (hasDiary) {
-            //   const lastDiary = dayDiaries[dayDiaries.length - 1];
-            //   displayEmotion =
-            //     lastDiary.emotions && lastDiary.emotions.length > 0
-            //       ? lastDiary.emotions[0]
-            //       : lastDiary.emotion || '';
-            // }
-            if (hasDiary) {
-              displayEmotion =
-                todayDiary.emotions && todayDiary.emotions.length > 0
-                  ? todayDiary.emotions[0]
-                  : todayDiary.emotion || '';
-            }
-
-            return (
-              <TouchableOpacity
-                activeOpacity={1}
-                disabled={state === 'disabled' || isFuture}
-                onPress={() => {
-                  setSelectedDate(dateStr);
-                  if (hasDiary) router.push('/diary-list');
-                }}
-                style={[
-                  styles.dayCell,
-                  isSelected && !isFuture && !hasDiary && styles.selectedCell,
-                  isDark &&
-                    isSelected &&
-                    !isFuture &&
-                    !hasDiary &&
-                    styles.selectedCellDark,
-                ]}
-              >
-                <AppText
-                  style={[
-                    styles.dayText,
-                    isDark && styles.darkDayText,
-                    isSunday && styles.sundayText,
-                    isFuture &&
-                      (isDark ? styles.darkDisabledText : styles.disabledText),
-                    isSelected && !isFuture && styles.selectedText,
-                    hasDiary && { fontSize: 24 },
-                  ]}
-                >
-                  {hasDiary ? displayEmotion : date?.day}
-                </AppText>
-              </TouchableOpacity>
-            );
           }}
         />
       </View>

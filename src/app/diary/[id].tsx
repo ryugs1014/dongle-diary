@@ -22,7 +22,11 @@ import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import { useDiaryStore } from '../../store/useDiaryStore';
 import { BackIcon, OptionIcon } from '../../../assets/icons';
-import RenderHtml, { defaultSystemFonts } from 'react-native-render-html';
+import RenderHtml, {
+  defaultSystemFonts,
+  HTMLContentModel, // 💡 추가
+  HTMLElementModel, // 💡 추가
+} from 'react-native-render-html';
 
 const FONT_SIZES = {
   1: 10,
@@ -30,6 +34,17 @@ const FONT_SIZES = {
   3: 14,
   4: 16,
   5: 18,
+};
+
+const customHTMLElementModels = {
+  aligncenter: HTMLElementModel.fromCustomModel({
+    tagName: 'aligncenter',
+    contentModel: HTMLContentModel.phrasing, // 💡 중요: 뷰가 아닌 '순수 텍스트' 모델로 강제 지정
+  }),
+  alignright: HTMLElementModel.fromCustomModel({
+    tagName: 'alignright',
+    contentModel: HTMLContentModel.phrasing,
+  }),
 };
 
 export default function DiaryDetailScreen() {
@@ -114,9 +129,59 @@ export default function DiaryDetailScreen() {
   const activeFontFamily =
     diaryFontFamily === 'System' ? undefined : diaryFontFamily;
 
+  useEffect(() => {
+    if (diary?.content) {
+      console.log('--- 렌더링될 HTML 콘텐츠 ---');
+      console.log(processHtmlContent(diary.content));
+      console.log('---------------------------');
+    }
+  }, [diary?.content]);
+
   const systemFonts = activeFontFamily
     ? [activeFontFamily, ...defaultSystemFonts]
     : defaultSystemFonts;
+
+  const renderers = {
+    img: ({ tnode }: any) => {
+      const { src } = tnode.attributes;
+      return (
+        <Image
+          source={{ uri: src }}
+          style={{
+            width: '100%',
+            height: 250,
+            borderRadius: 12,
+            marginVertical: 15,
+          }}
+          resizeMode="cover"
+        />
+      );
+    },
+  };
+
+  const processHtmlContent = (html: string) => {
+    if (!html) return '';
+
+    // 1. 구식 align 속성 스타일로 변환
+    let processed = html.replace(
+      /align=(['"])(left|center|right|justify)\1/gi,
+      'style="text-align: $2;"',
+    );
+
+    processed = processed.replace(
+      /style=["']text-align:\s*center;?["']/gi,
+      'class="app-align-center"',
+    );
+    processed = processed.replace(
+      /style=["']text-align:\s*right;?["']/gi,
+      'class="app-align-right"',
+    );
+    processed = processed.replace(
+      /style=["']text-align:\s*left;?["']/gi,
+      'class="app-align-left"',
+    );
+    return processed;
+  };
 
   return (
     <SafeAreaView
@@ -182,17 +247,36 @@ export default function DiaryDetailScreen() {
 
           {/* 변경된 부분: View로 감싸서 width 100% 강제 적용 */}
           {diary.content !== undefined ? (
-            <View style={{ width: '100%' }}>
+            <View style={[styles.renderHtmlWrapper]}>
               <RenderHtml
                 contentWidth={width - 40}
-                source={{ html: diary.content }}
+                source={{ html: processHtmlContent(diary.content) }}
+                // source={{ html: diary.content }}
                 systemFonts={systemFonts}
+                renderers={renderers}
+
+                classesStyles={{
+                  'app-align-center': {
+                    textAlign: 'center',
+                  },
+                  'app-align-right': {
+                    textAlign: 'right',
+                  },
+                  'app-align-left': {
+                    textAlign: 'left',
+                  },
+                }}
+
                 enableExperimentalMarginCollapsing={true}
+                defaultTextProps={{
+                  maxFontSizeMultiplier: 1.5,
+                }}
                 baseStyle={{
                   fontSize: currentFontSize,
                   fontFamily: activeFontFamily,
                   color: isDark ? '#ffffff' : '#000000',
                   lineHeight: currentFontSize * 1.5,
+                  width: '100%',
                 }}
                 tagsStyles={{
                   img: {
@@ -205,7 +289,14 @@ export default function DiaryDetailScreen() {
                   p: {
                     marginVertical: 4,
                   },
+                  div: {
+                    marginVertical: 4,
+                  },
+                  body: {
+                    width: '100%',
+                  },
                 }}
+                computeEmbeddedFlexStyles={(style) => style}
               />
             </View>
           ) : (
@@ -348,7 +439,7 @@ const styles = StyleSheet.create({
   scrollContainer: {
     paddingVertical: 24,
     paddingHorizontal: 20,
-    alignItems: 'center',
+    // alignItems: 'center',
     gap: 30,
   },
 
@@ -361,7 +452,12 @@ const styles = StyleSheet.create({
   date: { fontSize: 14 },
   day: { fontSize: 14, color: '#666' },
 
-  title: { fontSize: 24 },
+  title: { fontSize: 24, textAlign: 'center' },
+
+  renderHtmlWrapper: {
+    width: '100%',
+    textAlign: 'center',
+  },
 
   attachedImage: {
     width: '100%',

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "dongle-diary",
+    "name": "o-memo",
     "slug": "o-memo",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -45,7 +45,22 @@
       "expo-sharing",
       "expo-web-browser",
       "@react-native-community/datetimepicker",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ],
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosClientId": "434139943-ushi0r2tj7bg1vaqern9o3ou7akouvq5.apps.googleusercontent.com",
+          "iosUrlScheme": "com.googleusercontent.apps.434139943-ushi0r2tj7bg1vaqern9o3ou7akouvq5"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
