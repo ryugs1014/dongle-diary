@@ -27,14 +27,8 @@ import RenderHtml, {
   HTMLContentModel, // 💡 추가
   HTMLElementModel, // 💡 추가
 } from 'react-native-render-html';
-
-const FONT_SIZES = {
-  1: 10,
-  2: 12,
-  3: 14,
-  4: 16,
-  5: 18,
-};
+import { EMOTION_IMAGE_MAP } from '@/constants/emotions';
+import { FONT_SIZES } from '@/constants/font';
 
 const customHTMLElementModels = {
   aligncenter: HTMLElementModel.fromCustomModel({
@@ -219,11 +213,34 @@ export default function DiaryDetailScreen() {
       >
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           <View style={styles.infoArea}>
-            <AppText style={styles.emotion}>
-              {diary.emotions && diary.emotions.length > 0
-                ? diary.emotions.join(' ')
-                : diary.emotion}
-            </AppText>
+            <View style={styles.emotionsContainer}>
+              {diary.emotions && diary.emotions.length > 0 ? (
+                diary.emotions.map((emotionId, index) =>
+                  EMOTION_IMAGE_MAP[emotionId] ? (
+                    <Image
+                      key={`${diary.id}-${emotionId}-${index}`}
+                      source={EMOTION_IMAGE_MAP[emotionId]}
+                      style={styles.emotionImage}
+                      resizeMode="contain"
+                    />
+                  ) : (
+                    <AppText key={index} style={styles.fallbackEmotionText}>
+                      {emotionId}
+                    </AppText>
+                  ),
+                )
+              ) : diary.emotion && EMOTION_IMAGE_MAP[diary.emotion] ? (
+                <Image
+                  source={EMOTION_IMAGE_MAP[diary.emotion]}
+                  style={styles.emotionImage}
+                  resizeMode="contain"
+                />
+              ) : (
+                <AppText style={styles.fallbackEmotionText}>
+                  {diary.emotion}
+                </AppText>
+              )}
+            </View>
 
             <View style={styles.dateBox}>
               <AppText style={styles.date}>
@@ -447,12 +464,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
-  emotion: { fontSize: 50 },
+  emotionsContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: 50,
+  },
+  emotionImage: {
+    width: 50, // 상세 화면이므로 크기를 조금 더 크게 줍니다
+    height: 50,
+  },
+  fallbackEmotionText: {
+    fontSize: 16,
+  },
   dateBox: { alignItems: 'center', gap: 4 },
   date: { fontSize: 14 },
   day: { fontSize: 14, color: '#666' },
 
-  title: { fontSize: 24, textAlign: 'center' },
+  title: {
+    fontSize: 24,
+    textAlign: 'center',
+    fontWeight: 'bold',
+    lineHeight: 32,
+  },
 
   renderHtmlWrapper: {
     width: '100%',

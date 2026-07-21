@@ -12,25 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useDiaryStore } from '../store/useDiaryStore';
-import { useFonts } from 'expo-font';
-
-// 앱에 적용할 서체 목록
-const FONTS = [
-  // { id: 'System', label: '시스템 기본 서체' },
-  { id: 'NanumSquareRound', label: '나눔스퀘어라운드' },
-  { id: 'KyoboHandwriting', label: '교보문고 손글씨' },
-  { id: 'GowunBatang', label: '고운바탕' },
-  { id: 'IsYun', label: '이서윤체' },
-];
-
-// 1~5단계에 따른 실제 글꼴 픽셀(px) 매핑
-const FONT_SIZES = {
-  1: 10,
-  2: 12,
-  3: 14, // 기본값
-  4: 16,
-  5: 18,
-};
+import { FONT_SIZES, FONTS } from '@/constants/font';
 
 export default function FontSettingsScreen() {
   const {

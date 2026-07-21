@@ -13,6 +13,7 @@ import { router } from 'expo-router';
 import { useDiaryStore } from '../store/useDiaryStore';
 import { BackIcon, SearchIcon, FilterIcon } from '../../assets/icons';
 import SvgDashedLine from '@/components/SvgDashedLine';
+import { EMOTION_IMAGE_MAP } from '@/constants/emotions';
 
 interface DiaryListViewProps {
   isDark: boolean;
@@ -161,11 +162,35 @@ export default function DiaryListView({
               onPress={() => router.push(`/diary/${item.id}`)}
             >
               <View style={styles.cardHeader}>
-                <AppText style={styles.emotion}>
-                  {item.emotions && item.emotions.length > 0
-                    ? item.emotions.join(' ')
-                    : item.emotion}
-                </AppText>
+                {/* 💡 텍스트 이모티콘 대신 배열을 순회하며 이미지를 렌더링합니다. */}
+                <View style={styles.emotionsContainer}>
+                  {item.emotions && item.emotions.length > 0 ? (
+                    item.emotions.map((emotionId, index) =>
+                      EMOTION_IMAGE_MAP[emotionId] ? (
+                        <Image
+                          key={`${item.id}-${emotionId}-${index}`}
+                          source={EMOTION_IMAGE_MAP[emotionId]}
+                          style={styles.emotionImage}
+                          resizeMode="contain"
+                        />
+                      ) : (
+                        <AppText key={index} style={styles.fallbackEmotionText}>
+                          {emotionId}
+                        </AppText>
+                      ),
+                    )
+                  ) : item.emotion && EMOTION_IMAGE_MAP[item.emotion] ? (
+                    <Image
+                      source={EMOTION_IMAGE_MAP[item.emotion]}
+                      style={styles.emotionImage}
+                      resizeMode="contain"
+                    />
+                  ) : (
+                    <AppText style={styles.fallbackEmotionText}>
+                      {item.emotion}
+                    </AppText>
+                  )}
+                </View>
 
                 <View style={styles.dateBox}>
                   <AppText
@@ -351,7 +376,17 @@ const styles = StyleSheet.create({
     gap: 10,
   },
 
-  emotion: { fontSize: 40 },
+  emotionsContainer: {
+    flexDirection: 'row',
+    gap: 4, // 다중 감정 선택 시 이미지 사이 간격
+    alignItems: 'center',
+  },
+  emotionImage: {
+    width: 40,
+    height: 40,
+  },
+
+  fallbackEmotionText: { fontSize: 16 },
   dateBox: { gap: 4 },
   date: { fontSize: 14 },
   day: { fontSize: 14, color: '#666' },
@@ -364,7 +399,8 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 150,
     borderRadius: 8,
-    marginVertical: 5,
+    marginTop: 5,
+    marginBottom: 10,
     resizeMode: 'cover',
   },
 

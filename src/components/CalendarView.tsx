@@ -1,5 +1,12 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, StyleSheet, TouchableOpacity, Text, Modal } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  Text,
+  Modal,
+  Image,
+} from 'react-native';
 import AppText from '@/components/AppText';
 import { router } from 'expo-router';
 import { CalendarList, LocaleConfig } from 'react-native-calendars';
@@ -12,90 +19,14 @@ import {
   MenuIcon,
   AddBigIcon,
 } from '../../assets/icons';
+import { EMOTION_IMAGE_MAP } from '@/constants/emotions';
+import {
+  setupCalendarLocales,
+  EN_CALENDAR_LOCALE,
+  KR_CALENDAR_LOCALE,
+} from '@/constants/calendar';
 
-LocaleConfig.locales['kr'] = {
-  monthNames: [
-    '1월',
-    '2월',
-    '3월',
-    '4월',
-    '5월',
-    '6월',
-    '7월',
-    '8월',
-    '9월',
-    '10월',
-    '11월',
-    '12월',
-  ],
-  monthNamesShort: [
-    '1월',
-    '2월',
-    '3월',
-    '4월',
-    '5월',
-    '6월',
-    '7월',
-    '8월',
-    '9월',
-    '10월',
-    '11월',
-    '12월',
-  ],
-  dayNames: [
-    '일요일',
-    '월요일',
-    '화요일',
-    '수요일',
-    '목요일',
-    '금요일',
-    '토요일',
-  ],
-  dayNamesShort: ['일', '월', '화', '수', '목', '금', '토'],
-  today: '오늘',
-};
-
-LocaleConfig.locales['en'] = {
-  monthNames: [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-  ],
-  monthNamesShort: [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ],
-  dayNames: [
-    'Sunday',
-    'Monday',
-    'Tuesday',
-    'Wednesday',
-    'Thursday',
-    'Friday',
-    'Saturday',
-  ],
-  dayNamesShort: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-  today: 'Today',
-};
+setupCalendarLocales();
 
 // (LocaleConfig 설정은 index.tsx나 RootLayout 등 최상단에서 한 번만 해주는 것이 좋지만 편의상 유지합니다)
 const getLocalToday = () => {
@@ -127,20 +58,19 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
 
   const dispYear = displayedMonth.split('-')[0];
   const dispMonth = displayedMonth.split('-')[1];
+
+  // 💡 1. monthIndex 변수를 선언해 줍니다. (문자열 '07' 등을 숫자 인덱스 6으로 변환)
+  const monthIndex = parseInt(dispMonth, 10) - 1;
+
   // 1. 연도 (한국어/영어 모두 숫자만 필요하므로 dispYear만 넣습니다)
   const headerYear = t(`${dispYear}`, `${dispYear}`);
 
   // 2. 월 (한국어는 '7월', 영어는 'JULY')
   const headerMonth = t(
-    // `${parseInt(dispMonth, 10)}월`,
-    // .toUpperCase() 를 붙이면 'July'가 대문자 'JULY'로 변환됩니다.
-    `${LocaleConfig.locales['en'].monthNames[parseInt(dispMonth, 10) - 1].toUpperCase()}`,
-    `${LocaleConfig.locales['en'].monthNames[parseInt(dispMonth, 10) - 1].toUpperCase()}`,
+    // `${KR_CALENDAR_LOCALE.monthNames[monthIndex]}`,
+    `${EN_CALENDAR_LOCALE.monthNames[monthIndex].toUpperCase()}`,
+    `${EN_CALENDAR_LOCALE.monthNames[monthIndex].toUpperCase()}`,
   );
-  const weekDays = t(
-    LocaleConfig.locales['kr'].dayNamesShort,
-    LocaleConfig.locales['en'].dayNamesShort,
-  ) as string[];
 
   const diariesMap = useMemo(() => {
     const map: Record<string, any> = {};
@@ -220,19 +150,27 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
               styles.selectedCellDark,
           ]}
         >
-          <AppText
-            style={[
-              styles.dayText,
-              isDark && styles.darkDayText,
-              isSunday && styles.sundayText,
-              isFuture &&
-                (isDark ? styles.darkDisabledText : styles.disabledText),
-              isSelected && !isFuture && styles.selectedText,
-              hasDiary && { fontSize: 24 },
-            ]}
-          >
-            {hasDiary ? displayEmotion : date?.day}
-          </AppText>
+          {/* 💡 일기가 있고 감정 ID가 존재하면 이미지 렌더링, 아니면 날짜 숫자 렌더링 */}
+          {hasDiary && displayEmotion && EMOTION_IMAGE_MAP[displayEmotion] ? (
+            <Image
+              source={EMOTION_IMAGE_MAP[displayEmotion]}
+              style={{ width: 32, height: 32 }} // 셀 크기(40x40) 안에 알맞게 들어오도록 조절
+              resizeMode="contain"
+            />
+          ) : (
+            <AppText
+              style={[
+                styles.dayText,
+                isDark && styles.darkDayText,
+                isSunday && styles.sundayText,
+                isFuture &&
+                  (isDark ? styles.darkDisabledText : styles.disabledText),
+                isSelected && !isFuture && styles.selectedText,
+              ]}
+            >
+              {date?.day}
+            </AppText>
+          )}
         </TouchableOpacity>
       );
     },

@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   useColorScheme,
   ScrollView,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -14,21 +15,7 @@ import { Stack, router } from 'expo-router';
 import { useDiaryStore } from '../store/useDiaryStore';
 import { BackIcon } from '../../assets/icons';
 import { NextBigIcon } from '@/components/NextBigIcon';
-
-const EMOTIONS = [
-  '😀',
-  '🥰',
-  '😂',
-  '🥲',
-  '😡',
-  '😭',
-  '😎',
-  '😴',
-  '🥳',
-  '🤯',
-  '😱',
-  '🤩',
-];
+import { EMOTIONS_DATA } from '@/constants/emotions';
 
 export default function EmotionSelectScreen() {
   // 💡 단수(selectedEmotion) 대신 다중 선택이 가능한 배열(selectedEmotions)을 사용합니다.
@@ -43,19 +30,19 @@ export default function EmotionSelectScreen() {
     setSelectedEmotions([]);
   }, []);
 
-  const handleEmotionToggle = (emoji: string) => {
-    if (selectedEmotions.includes(emoji)) {
+  const handleEmotionToggle = (id: string) => {
+    if (selectedEmotions.includes(id)) {
       // 이미 선택된 감정을 다시 누르면 해제
-      setSelectedEmotions(selectedEmotions.filter((e) => e !== emoji));
+      setSelectedEmotions(selectedEmotions.filter((e) => e !== id));
     } else {
       if (selectedEmotions.length >= 4) {
         // 💡 4개를 이미 선택한 상태에서 새로운 감정을 누르면, 경고창 없이 4번째 감정을 교체합니다.
         const newEmotions = [...selectedEmotions];
-        newEmotions[3] = emoji;
+        newEmotions[3] = id;
         setSelectedEmotions(newEmotions);
       } else {
         // 4개 미만일 때는 자연스럽게 추가
-        setSelectedEmotions([...selectedEmotions, emoji]);
+        setSelectedEmotions([...selectedEmotions, id]);
       }
     }
   };
@@ -93,18 +80,20 @@ export default function EmotionSelectScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.grid}>
-          {EMOTIONS.map((emoji) => {
-            const isSelected = selectedEmotions.includes(emoji);
+          {EMOTIONS_DATA.map((emotion) => {
+            const isSelected = selectedEmotions.includes(emotion.id);
             return (
-              <View key={emoji} style={styles.gridItem}>
+              <View key={emotion.id} style={styles.gridItem}>
                 <TouchableOpacity
-                  style={[
-                    styles.emojiBtn,
-                    isSelected && styles.selectedBtn, // 💡 배열 안에 해당 감정이 있으면 하이라이트
-                  ]}
-                  onPress={() => handleEmotionToggle(emoji)}
+                  style={[styles.emojiBtn, isSelected && styles.selectedBtn]}
+                  onPress={() => handleEmotionToggle(emotion.id)}
                 >
-                  <AppText style={styles.emojiText}>{emoji}</AppText>
+                  {/* 💡 텍스트 대신 이미지를 렌더링합니다. */}
+                  <Image
+                    source={emotion.source}
+                    style={styles.emotionImage}
+                    resizeMode="contain"
+                  />
                 </TouchableOpacity>
               </View>
             );
@@ -209,7 +198,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'center',
     gap: 40,
-    maxWidth: 215,
+    maxWidth: 230,
     paddingTop: 54,
     paddingBottom: 124,
   },
@@ -218,12 +207,17 @@ const styles = StyleSheet.create({
   gridItem: {},
 
   emojiBtn: {
-    width: 45,
-    height: 45,
+    width: 50,
+    height: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 35,
-    backgroundColor: '#f0f0f0',
+    borderRadius: 100,
+    // backgroundColor: '#f0f0f0',
+  },
+
+  emotionImage: {
+    width: 50,
+    height: 50,
   },
 
   selectedBtn: {

@@ -11,6 +11,7 @@ import {
   ScrollView,
   Alert,
   useColorScheme,
+  Image,
 } from 'react-native';
 import AppText from '@/components/AppText';
 import AppTextInput from '@/components/AppTextInput';
@@ -31,16 +32,8 @@ import {
   WriteIcon,
 } from '../../assets/icons';
 import { actions, RichEditor } from 'react-native-pell-rich-editor';
-
-const EMOTIONS = ['😀', '🥰', '😂', '🥲', '😡', '😭', '😎', '😴'];
-
-const FONT_SIZES = {
-  1: 10,
-  2: 12,
-  3: 14,
-  4: 16,
-  5: 18,
-};
+import { EMOTIONS_DATA, EMOTION_IMAGE_MAP } from '@/constants/emotions';
+import { FONT_SIZES } from '@/constants/font';
 
 // 💡 지워지지 않는 기본 블록 상수화 (좌측 정렬 + 빈 줄)
 const BASE_BLOCK = '<div style="text-align: left;"><br></div>';
@@ -80,12 +73,12 @@ export default function WriteScreen() {
   const [editorHeight, setEditorHeight] = useState(300);
 
   // 💡 커스텀 Placeholder의 표시 여부를 관리하는 State
-  const [isPlaceholderVisible, setIsPlaceholderVisible] = useState(true);
+  const [isPlaceholderVisible, setIsPlaceholderVisible] = useState(!editId);
 
   const titleInputRef = useRef<TextInput>(null);
   const richText = useRef<RichEditor>(null);
   const scrollViewRef = useRef<ScrollView>(null);
-  const isInitializingRef = useRef(false);
+  const isInitializingRef = useRef(!!editId);
   const isEditorFocusedRef = useRef(false);
 
   const dateObj = new Date(selectedDate);
@@ -205,15 +198,20 @@ export default function WriteScreen() {
     }
   };
 
-  const handleEmotionToggle = (emoji: string) => {
-    if (selectedEmotions.includes(emoji)) {
-      setSelectedEmotions(selectedEmotions.filter((e) => e !== emoji));
+  const handleEmotionToggle = (id: string) => {
+    if (selectedEmotions.includes(id)) {
+      // 이미 선택된 감정을 다시 누르면 해제
+      setSelectedEmotions(selectedEmotions.filter((e) => e !== id));
     } else {
       if (selectedEmotions.length >= 4) {
-        Alert.alert('알림', '감정은 최대 4개까지만 선택할 수 있습니다.');
-        return;
+        // 💡 경고창(Alert)을 띄우지 않고, 4번째 감정을 새로운 감정으로 교체합니다.
+        const newEmotions = [...selectedEmotions];
+        newEmotions[3] = id;
+        setSelectedEmotions(newEmotions);
+      } else {
+        // 4개 미만일 때는 자연스럽게 추가
+        setSelectedEmotions([...selectedEmotions, id]);
       }
-      setSelectedEmotions([...selectedEmotions, emoji]);
     }
   };
 
@@ -422,13 +420,35 @@ export default function WriteScreen() {
         >
           <View style={styles.contentWrapper}>
             <View style={styles.infoArea}>
-              <TouchableOpacity onPress={() => setEmotionModalVisible(true)}>
-                <AppText style={styles.emotion}>
-                  {selectedEmotions.length > 0
-                    ? selectedEmotions.join(' ')
-                    : '➕'}
-                </AppText>
+              <TouchableOpacity
+                // onPress={() => setEmotionModalVisible(true)}
+                onPress={() => {
+                  // 💡 모달을 열기 전에 키보드를 내리고 에디터 포커스를 완벽히 해제합니다.
+                  Keyboard.dismiss();
+                  richText.current?.blurContentEditor();
+
+                  // 약간의 딜레이를 주어 키보드가 내려간 후 모달이 뜨도록 처리
+                  setTimeout(() => {
+                    setEmotionModalVisible(true);
+                  }, 100);
+                }}
+
+                style={styles.selectedEmotionsContainer}
+              >
+                {selectedEmotions.length > 0 ? (
+                  selectedEmotions.map((emotionId) => (
+                    <Image
+                      key={emotionId}
+                      source={EMOTION_IMAGE_MAP[emotionId]}
+                      style={styles.topEmotionImage}
+                      resizeMode="contain"
+                    />
+                  ))
+                ) : (
+                  <AppText style={styles.emotionFallback}>➕</AppText>
+                )}
               </TouchableOpacity>
+
               <View style={styles.dateBox}>
                 <AppText
                   style={styles.date}
@@ -495,6 +515,8 @@ export default function WriteScreen() {
                       // 에디터와 동일하게 줄간격 1.5배 적용
                       lineHeight: currentFontSize * 1.5,
                       color: isDark ? '#666666' : '#bbbbbb', // 다크모드에 맞춰 자연스럽게 변경
+                      // 💡 에디터의 정렬 상태(left, center, right)를 그대로 따라가게 합니다!
+                      textAlign: textAlign,
                     }}
                   >
                     오늘 하루는 어땠나요?
@@ -538,6 +560,8 @@ export default function WriteScreen() {
                 }}
 
                 onChange={(html) => {
+                  if (isInitializingRef.current) return;
+
                   // 1. Placeholder 가시성 업데이트 로직
                   setIsPlaceholderVisible(checkIsEmptyText(html));
 
@@ -675,20 +699,34 @@ export default function WriteScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.emotionBox}>
             <AppText style={styles.modalTitle}>오늘의 기분 (최대 4개)</AppText>
-            <View style={styles.grid}>
-              {EMOTIONS.map((emoji) => {
-                const isSelected = selectedEmotions.includes(emoji);
-                return (
-                  <TouchableOpacity
-                    key={emoji}
-                    style={[styles.emojiBtn, isSelected && styles.selectedBtn]}
-                    onPress={() => handleEmotionToggle(emoji)}
-                  >
-                    <AppText style={styles.emojiText}>{emoji}</AppText>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+            <ScrollView
+              style={styles.emotionScrollView}
+              contentContainerStyle={styles.emotionScrollContent}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.grid}>
+                {EMOTIONS_DATA.map((emotion) => {
+                  const isSelected = selectedEmotions.includes(emotion.id);
+                  return (
+                    <TouchableOpacity
+                      key={emotion.id}
+                      style={[
+                        styles.emojiBtn,
+                        isSelected && styles.selectedBtn,
+                      ]}
+                      onPress={() => handleEmotionToggle(emotion.id)}
+                    >
+                      <Image
+                        source={emotion.source}
+                        style={styles.modalEmotionImage}
+                        resizeMode="contain"
+                      />
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </ScrollView>
+
             <TouchableOpacity
               style={styles.closeModalBtn}
               onPress={() => setEmotionModalVisible(false)}
@@ -734,28 +772,48 @@ const styles = StyleSheet.create({
     gap: 0,
   },
   infoArea: { alignItems: 'center', gap: 10 },
+  // 💡 선택된 감정들을 나란히 보여주기 위한 래퍼
+  selectedEmotionsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    minHeight: 50,
+  },
+  // 💡 화면 상단 정보 영역에 보여지는 감정 이미지
+  topEmotionImage: {
+    width: 50,
+    height: 50,
+  },
+  emotionFallback: {
+    fontSize: 16,
+  },
+
   emotion: { fontSize: 50 },
   dateBox: { alignItems: 'center', gap: 4 },
   date: { fontSize: 14 },
   day: { fontSize: 14, color: '#666' },
   addTitleBtn: {
     height: 32,
-    marginVertical: 30,
+    marginTop: 24,
+    marginBottom: 43,
+    // marginVertical: 39,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
   },
   addTitleText: { fontSize: 14, color: '#666', fontWeight: '600' },
   darkAddTitleText: { color: '#cccccc' },
   titleInput: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
-    lineHeight: 24,
+    lineHeight: 32,
     minHeight: 32,
     textAlign: 'center',
     width: '100%',
-    paddingBottom: 30,
-    marginTop: 34,
+    paddingBottom: 40,
+    marginTop: 24,
+    paddingHorizontal: 10,
   },
 
   // 💡 Placeholder 래퍼 추가
@@ -768,6 +826,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 10, // 💡 기기별로 텍스트 시작 높이(웹뷰 기본 패딩)가 다를 수 있으니 이 수치를 미세조정(예: 8~14) 하세요.
     left: 10, // 💡 좌측 여백 미세조정
+    right: 10,
     zIndex: 1,
   },
 
@@ -805,20 +864,40 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: 'center',
   },
+
+  // 💡 새롭게 추가된 스크롤 뷰 스타일
+  emotionScrollView: {
+    maxHeight: 300, // 모달의 최대 높이를 제한하여 화면을 꽉 채우지 않게 합니다.
+    width: '100%',
+  },
+  emotionScrollContent: {
+    alignItems: 'center',
+    paddingBottom: 10,
+  },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: 15,
+    gap: 40,
+    maxWidth: 230,
+    paddingTop: 54,
+    paddingBottom: 124,
+    marginHorizontal: 'auto',
   },
+
   emojiBtn: {
-    width: 60,
-    height: 60,
+    width: 50,
+    height: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 30,
+    borderRadius: 100,
     backgroundColor: '#f0f0f0',
   },
+  modalEmotionImage: {
+    width: 50,
+    height: 50,
+  },
+
   selectedBtn: {
     backgroundColor: '#FFD700',
     borderWidth: 2,
@@ -866,5 +945,8 @@ const styles = StyleSheet.create({
   },
   alertBtnCol: { paddingVertical: 15, alignItems: 'center' },
   alertBtnText: { fontSize: 16, color: '#333' },
-  richEditor: { minHeight: 300, width: '100%' },
+  richEditor: {
+    minHeight: 300,
+    width: '100%',
+  },
 });
