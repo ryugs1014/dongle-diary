@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import AppTouchableOpacity from '@/components/AppTouchableOpacity';
 import AppText from '@/components/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
@@ -12,7 +13,7 @@ export default function ThemeSettingsScreen() {
   const OptionItem = ({ label, value }: { label: string; value: AppTheme }) => {
     const isSelected = theme === value;
     return (
-      <TouchableOpacity
+      <AppTouchableOpacity
         style={styles.optionItem}
         onPress={() => setTheme(value)}
       >
@@ -20,7 +21,7 @@ export default function ThemeSettingsScreen() {
           {label}
         </AppText>
         {isSelected && <Ionicons name="checkmark" size={24} color="#FF6F61" />}
-      </TouchableOpacity>
+      </AppTouchableOpacity>
     );
   };
 

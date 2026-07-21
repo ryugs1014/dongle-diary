@@ -9,15 +9,14 @@ export type DiaryBlock = {
 export interface DiaryEntry {
   id: string;
   date: string;
-  emotion?: string; // 💡 과거 데이터 호환성 유지용
-  emotions: string[]; // 💡 다중 감정 선택을 위한 배열
+  emotion?: string;
+  emotions: string[];
   title?: string;
   content: string;
   blocks?: DiaryBlock[];
   timestamp: number;
 }
 
-// 💡 임시저장 데이터 타입
 export interface DraftEntry {
   date: string;
   emotions: string[];
@@ -32,11 +31,7 @@ export type AppTheme = 'system' | 'light' | 'dark';
 interface DiaryStore {
   diaries: DiaryEntry[];
   selectedDate: string;
-
-  // 💡 다중 감정을 위한 배열 상태로 변경
   selectedEmotions: string[];
-
-  // 💡 임시저장 데이터 상태 추가
   draft: DraftEntry | null;
 
   isLockEnabled: boolean;
@@ -54,13 +49,12 @@ interface DiaryStore {
   diaryFontFamily: string;
 
   setSelectedDate: (date: string) => void;
-  setSelectedEmotions: (emotions: string[]) => void; // 💡 변경됨
+  setSelectedEmotions: (emotions: string[]) => void;
 
   addDiary: (diary: Omit<DiaryEntry, 'id' | 'timestamp'>) => void;
   updateDiary: (id: string, updated: Partial<DiaryEntry>) => void;
   deleteDiary: (id: string) => void;
 
-  // 💡 임시저장 제어 함수 추가
   saveDraft: (draft: DraftEntry) => void;
   clearDraft: () => void;
 
@@ -93,8 +87,8 @@ defaultAlarmTime.setHours(22, 0, 0, 0);
 export const useDiaryStore = create<DiaryStore>((set) => ({
   diaries: [],
   selectedDate: today,
-  selectedEmotions: [], // 💡 초기값 빈 배열
-  draft: null, // 💡 초기 임시저장 없음
+  selectedEmotions: [],
+  draft: null,
 
   isLockEnabled: false,
   pinCode: null,

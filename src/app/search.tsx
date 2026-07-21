@@ -1,21 +1,34 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
-  Text,
   TextInput,
   StyleSheet,
   FlatList,
-  TouchableOpacity,
+  ScrollView,
   useColorScheme,
+  Keyboard,
 } from 'react-native';
+import AppTouchableOpacity from '@/components/AppTouchableOpacity';
 import AppTextInput from '@/components/AppTextInput';
 import AppText from '@/components/AppText';
-import { Stack, router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Stack, router, useNavigation } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Image } from 'expo-image';
 import { useDiaryStore } from '../store/useDiaryStore';
+import {
+  OrderIcon,
+  SearchIcon,
+  DeleteIcon,
+  BackIcon,
+} from '../../assets/icons';
+import SvgDashedLine from '@/components/SvgDashedLine';
+import { EMOTIONS_DATA } from '@/constants/emotions';
+import DiaryCard from '@/components/DiaryCard';
+import SortBottomSheet from '@/components/SortBottomSheet';
 
 export default function SearchScreen() {
   const { diaries, theme } = useDiaryStore();
+  const navigation = useNavigation();
 
   const systemColorScheme = useColorScheme();
   const isDark =
@@ -24,232 +37,320 @@ export default function SearchScreen() {
   const [searchText, setSearchText] = useState('');
   const [submittedText, setSubmittedText] = useState('');
 
+  const [selectedEmotions, setSelectedEmotions] = useState<string[]>([]);
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+
+  const [isSortModalVisible, setIsSortModalVisible] = useState(false);
+
   const searchInputRef = useRef<TextInput>(null);
+  const isBackAllowed = useRef(false);
+  const isSortAllowed = useRef(false);
 
   useEffect(() => {
+    navigation.setOptions({ gestureEnabled: false });
+
+    const allowBackTimer = setTimeout(() => {
+      isBackAllowed.current = true;
+      navigation.setOptions({ gestureEnabled: true });
+    }, 1000);
+
     const focusTimeout = setTimeout(() => {
       searchInputRef.current?.focus();
     }, 750);
 
-    return () => clearTimeout(focusTimeout);
-  }, []);
+    const allowSortTimer = setTimeout(() => {
+      isSortAllowed.current = true;
+    }, 1000);
 
-  // 💡 검색 로직 업데이트: 신규 에디터(content), 제목(title), 과거 블록(blocks) 모두 검색
-  const filteredDiaries = diaries.filter((diary) => {
-    if (submittedText.trim() === '') return false;
+    return () => {
+      clearTimeout(allowBackTimer);
+      clearTimeout(focusTimeout);
+      clearTimeout(allowSortTimer);
+    };
+  }, [navigation]);
 
-    const term = submittedText.toLowerCase();
-
-    // 1. 날짜로 검색
-    if (diary.date.includes(term)) return true;
-
-    // 2. 제목으로 검색
-    if (diary.title && diary.title.toLowerCase().includes(term)) return true;
-
-    // 3. 신규 에디터 방식 (content) 본문 검색 - HTML 태그 제거 후 텍스트만 비교
-    if (diary.content) {
-      const plainText = diary.content.replace(/<[^>]*>?/gm, ' ').toLowerCase();
-      if (plainText.includes(term)) return true;
+  const toggleEmotion = (id: string) => {
+    if (selectedEmotions.includes(id)) {
+      setSelectedEmotions(selectedEmotions.filter((e) => e !== id));
+    } else {
+      setSelectedEmotions([...selectedEmotions, id]);
     }
-    // 4. 과거 데이터 방식 (blocks) 본문 검색
-    else if (diary.blocks) {
-      return diary.blocks.some(
-        (block) =>
-          block.type === 'text' && block.value.toLowerCase().includes(term),
-      );
-    }
+  };
 
-    return false;
-  });
+  const isSearchActive =
+    submittedText.trim() !== '' || selectedEmotions.length > 0;
+
+  const filteredDiaries = isSearchActive
+    ? diaries
+        .filter((diary) => {
+          let textMatch = true;
+          if (submittedText.trim() !== '') {
+            const term = submittedText.toLowerCase();
+
+            const termNoSpace = term.replace(/\s+/g, '');
+            const [year, month, day] = diary.date.split('-');
+            const m = parseInt(month, 10);
+            const d = parseInt(day, 10);
+
+            const dateFormats = [
+              diary.date,
+              diary.date.replace(/-/g, ''),
+              `${year}년${m}월${d}일`,
+              `${m}월${d}일`,
+              `${month}월${day}일`,
+            ];
+
+            const matchDate = dateFormats.some((df) =>
+              df.includes(termNoSpace),
+            );
+
+            const matchTitle =
+              diary.title && diary.title.toLowerCase().includes(term);
+            const matchContent =
+              diary.content &&
+              diary.content
+                .replace(/<[^>]*>?/gm, ' ')
+                .toLowerCase()
+                .includes(term);
+            const matchBlocks =
+              diary.blocks &&
+              diary.blocks.some(
+                (block) =>
+                  block.type === 'text' &&
+                  block.value.toLowerCase().includes(term),
+              );
+
+            if (!matchDate && !matchTitle && !matchContent && !matchBlocks) {
+              textMatch = false;
+            }
+          }
+
+          let emotionMatch = true;
+          if (selectedEmotions.length > 0) {
+            const diaryEmotions =
+              diary.emotions || (diary.emotion ? [diary.emotion] : []);
+            emotionMatch = selectedEmotions.some((e) =>
+              diaryEmotions.includes(e),
+            );
+          }
+
+          return textMatch && emotionMatch;
+        })
+        .sort((a, b) => {
+          if (sortOrder === 'desc') return b.date.localeCompare(a.date);
+          return a.date.localeCompare(b.date);
+        })
+    : [];
 
   const handleClear = () => {
     setSearchText('');
-    setSubmittedText(''); // 검색 결과 초기화
+    setSubmittedText('');
     searchInputRef.current?.focus();
   };
 
   const handleSearchSubmit = () => {
     setSubmittedText(searchText);
+    Keyboard.dismiss();
   };
 
   return (
-    <View style={[styles.container, isDark && styles.darkContainer]}>
-      <Stack.Screen
-        options={{ headerTitle: '일기 검색', headerBackTitle: '뒤로' }}
-      />
+    <SafeAreaView
+      edges={['top', 'left', 'right']}
+      style={[styles.container, isDark && styles.darkContainer]}
+    >
+      <Stack.Screen options={{ headerShown: false }} />
 
-      <View style={styles.searchRow}>
-        <View
-          style={[styles.searchContainer, isDark && styles.darkSearchContainer]}
-        >
-          <Ionicons name="search" size={20} color={isDark ? '#aaa' : '#888'} />
-          <AppTextInput
-            ref={searchInputRef}
-            style={[styles.searchInput, isDark && styles.darkText]}
-            placeholder="검색어 또는 날짜 입력"
-            placeholderTextColor={isDark ? '#666' : '#999'}
-            value={searchText}
-            onChangeText={setSearchText}
-            returnKeyType="search"
-            onSubmitEditing={handleSearchSubmit}
-          />
-          {searchText.length > 0 && (
-            <TouchableOpacity onPress={handleClear} style={styles.clearBtn}>
-              <Ionicons
-                name="close-circle"
-                size={20}
-                color={isDark ? '#aaa' : '#888'}
-              />
-            </TouchableOpacity>
-          )}
+      <View style={[styles.customHeader, isDark && styles.darkCustomHeader]}>
+        <View style={styles.leftIconsWrapper}>
+          <AppTouchableOpacity
+            onPress={() => {
+              if (!isBackAllowed.current) return;
+              router.back();
+            }}
+          >
+            <BackIcon
+              width={28}
+              height={28}
+              color={isDark ? 'white' : 'black'}
+            />
+          </AppTouchableOpacity>
         </View>
 
-        {/* 💡 검색하기 버튼 추가 */}
-        <TouchableOpacity style={styles.submitBtn} onPress={handleSearchSubmit}>
-          <AppText style={styles.submitBtnText}>검색</AppText>
-        </TouchableOpacity>
+        <View style={styles.searchRow}>
+          <View
+            style={[
+              styles.searchContainer,
+              isDark && styles.darkSearchContainer,
+            ]}
+          >
+            <AppTextInput
+              ref={searchInputRef}
+              style={[styles.searchInput, isDark && styles.darkText]}
+              placeholder="일기 또는 날짜 검색"
+              placeholderTextColor={isDark ? '#666' : '#999'}
+              cursorColor={isDark ? '#fff' : '#000'}
+              selectionColor={isDark ? '#fff' : '#000'}
+              value={searchText}
+              onChangeText={setSearchText}
+              returnKeyType="search"
+              onSubmitEditing={handleSearchSubmit}
+            />
+            {searchText.length > 0 && (
+              <AppTouchableOpacity
+                onPress={handleClear}
+                style={styles.clearBtn}
+              >
+                <DeleteIcon
+                  width={24}
+                  height={24}
+                  color={isDark ? 'white' : 'black'}
+                />
+              </AppTouchableOpacity>
+            )}
+          </View>
+
+          <AppTouchableOpacity
+            style={styles.submitBtn}
+            onPress={handleSearchSubmit}
+          >
+            <SearchIcon
+              width={28}
+              height={28}
+              color={isDark ? 'white' : 'black'}
+            />
+          </AppTouchableOpacity>
+
+          <AppTouchableOpacity
+            style={styles.filterBtn}
+            onPress={() => {
+              if (!isSortAllowed.current) return;
+              setIsSortModalVisible(true);
+            }}
+          >
+            <OrderIcon
+              width={28}
+              height={28}
+              color={isDark ? 'white' : 'black'}
+            />
+          </AppTouchableOpacity>
+        </View>
+      </View>
+
+      <AppText style={[styles.emotionFilterTitle, isDark && styles.darkText]}>
+        감정 골라보기
+      </AppText>
+
+      <View style={styles.emotionFilterWrapper}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.emotionFilterScroll}
+        >
+          {EMOTIONS_DATA.map((emotion) => {
+            const isSelected = selectedEmotions.includes(emotion.id);
+            return (
+              <AppTouchableOpacity
+                key={emotion.id}
+                style={[
+                  styles.emotionChip,
+                  isSelected && styles.emotionChipSelected,
+                  isDark && !isSelected && styles.darkEmotionChip,
+                ]}
+                onPress={() => toggleEmotion(emotion.id)}
+              >
+                <Image
+                  source={
+                    isSelected && emotion.animatedSource
+                      ? emotion.animatedSource
+                      : emotion.source
+                  }
+                  style={[
+                    styles.chipEmotionImage,
+                    isSelected && styles.selectedEmotionImage,
+                  ]}
+                  contentFit="contain"
+                />
+              </AppTouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </View>
 
       <FlatList
         data={filteredDiaries}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ padding: 20, gap: 15 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
+        ItemSeparatorComponent={() => <SvgDashedLine />}
         ListEmptyComponent={
-          submittedText.trim() !== '' ? (
+          isSearchActive ? (
             <AppText style={[styles.emptyText, isDark && styles.darkSubText]}>
-              '{submittedText}'에 대한 검색 결과가 없습니다.
+              검색 조건에 맞는 일기가 없습니다.
             </AppText>
-          ) : (
-            <AppText style={[styles.emptyText, isDark && styles.darkSubText]}>
-              검색어를 입력하고 검색을 눌러주세요.
-            </AppText>
-          )
+          ) : null
         }
-        renderItem={({ item }) => {
-          // 💡 다중 감정 호환 처리
-          const displayEmotion =
-            item.emotions && item.emotions.length > 0
-              ? item.emotions.join(' ')
-              : item.emotion || '📝';
-
-          // 💡 본문 미리보기 추출 로직 (HTML 태그 제거)
-          let previewText = '사진이 있는 일기';
-          if (item.content) {
-            const plainContent = item.content
-              .replace(/<[^>]*>?/gm, ' ')
-              .replace(/\s+/g, ' ')
-              .trim();
-            if (plainContent) previewText = plainContent;
-          } else if (item.blocks) {
-            const textBlock = item.blocks.find((b) => b.type === 'text');
-            if (textBlock) previewText = textBlock.value;
-          }
-
-          return (
-            <TouchableOpacity
-              style={[styles.card, isDark && styles.darkCard]}
-              onPress={() => router.push(`/diary/${item.id}`)}
-            >
-              <View style={styles.cardHeader}>
-                <AppText style={styles.emotion}>{displayEmotion}</AppText>
-                <AppText style={[styles.date, isDark && styles.darkSubText]}>
-                  {item.date}
-                </AppText>
-              </View>
-
-              {item.title && (
-                <AppText style={[styles.title, isDark && styles.darkText]}>
-                  {item.title}
-                </AppText>
-              )}
-
-              <AppText
-                style={[styles.content, isDark && styles.darkSubText]}
-                numberOfLines={2}
-              >
-                {previewText}
-              </AppText>
-            </TouchableOpacity>
-          );
-        }}
+        renderItem={({ item }) => <DiaryCard item={item} />}
       />
-    </View>
+
+      <SortBottomSheet
+        visible={isSortModalVisible}
+        onClose={() => setIsSortModalVisible(false)}
+        sortOrder={sortOrder}
+        setSortOrder={setSortOrder}
+        isDark={isDark}
+      />
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8f9fa' },
+  container: { flex: 1, backgroundColor: '#ffffff' },
   darkContainer: { backgroundColor: '#111111' },
 
-  searchRow: {
+  customHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    marginTop: 20,
-    marginBottom: 10,
+    height: 50,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(33, 37, 41, 0.2)',
+  },
+  darkCustomHeader: {
+    backgroundColor: '#121212',
+    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  leftIconsWrapper: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
     gap: 10,
   },
 
+  searchRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
   searchContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    paddingHorizontal: 15,
-    borderRadius: 10,
     height: 50,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
   },
-  darkSearchContainer: { backgroundColor: '#1e1e1e' },
-
-  searchInput: { flex: 1, marginLeft: 10, fontSize: 16 },
+  searchInput: { flex: 1, marginLeft: 10, fontSize: 14, lineHeight: 16 },
   darkText: { color: '#fff' },
   darkSubText: { color: '#aaa' },
-
   clearBtn: { padding: 5 },
+  submitBtn: { justifyContent: 'center', alignItems: 'center' },
+  filterBtn: { justifyContent: 'center', alignItems: 'center' },
 
-  submitBtn: {
-    backgroundColor: '#FF6F61',
-    height: 50,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  submitBtnText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
+  emotionFilterTitle: { fontSize: 14, paddingHorizontal: 20, paddingTop: 20 },
+  emotionFilterWrapper: { height: 60 },
+  emotionFilterScroll: { paddingHorizontal: 20, gap: 10 },
+  emotionChip: { flexDirection: 'row', alignItems: 'center' },
+  chipEmotionImage: { width: 40, height: 40 },
+  selectedEmotionImage: { transform: [{ scale: 1.3 }] },
 
-  emptyText: { textAlign: 'center', color: '#888', marginTop: 40 },
-
-  card: {
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  darkCard: { backgroundColor: '#1e1e1e' },
-
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-    gap: 10,
-  },
-  emotion: { fontSize: 24 },
-  date: { fontSize: 14, color: '#666', fontWeight: '500' },
-  title: { fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 5 },
-  content: { fontSize: 15, color: '#333', lineHeight: 22 },
+  emptyText: { textAlign: 'center', color: '#888', marginTop: 60 },
 });

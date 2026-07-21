@@ -1,15 +1,17 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import {
   View,
   StyleSheet,
-  TouchableOpacity,
   Modal,
   ScrollView,
-  Image,
   useColorScheme,
   useWindowDimensions,
+  Pressable,
 } from 'react-native';
+import AppTouchableOpacity from '@/components/AppTouchableOpacity';
+import AppConfirmModal from '@/components/AppConfirmModal';
 import AppText from '@/components/AppText';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   useLocalSearchParams,
@@ -24,21 +26,42 @@ import { useDiaryStore } from '../../store/useDiaryStore';
 import { BackIcon, OptionIcon } from '../../../assets/icons';
 import RenderHtml, {
   defaultSystemFonts,
-  HTMLContentModel, // 💡 추가
-  HTMLElementModel, // 💡 추가
+  HTMLContentModel,
+  HTMLElementModel,
 } from 'react-native-render-html';
-import { EMOTION_IMAGE_MAP } from '@/constants/emotions';
+import {
+  EMOTION_IMAGE_MAP,
+  ANIMATED_EMOTION_IMAGE_MAP,
+} from '@/constants/emotions';
 import { FONT_SIZES } from '@/constants/font';
 
 const customHTMLElementModels = {
   aligncenter: HTMLElementModel.fromCustomModel({
     tagName: 'aligncenter',
-    contentModel: HTMLContentModel.phrasing, // 💡 중요: 뷰가 아닌 '순수 텍스트' 모델로 강제 지정
+    contentModel: HTMLContentModel.phrasing, // 뷰가 아닌 '순수 텍스트' 모델로 강제 지정
   }),
   alignright: HTMLElementModel.fromCustomModel({
     tagName: 'alignright',
     contentModel: HTMLContentModel.phrasing,
   }),
+};
+
+const customRenderers = {
+  img: ({ tnode }: any) => {
+    const { src } = tnode.attributes;
+    return (
+      <Image
+        source={{ uri: src }}
+        style={{
+          width: '100%',
+          height: 250,
+          borderRadius: 12,
+          marginVertical: 15,
+        }}
+        contentFit="cover"
+      />
+    );
+  },
 };
 
 export default function DiaryDetailScreen() {
@@ -77,13 +100,13 @@ export default function DiaryDetailScreen() {
       navigation.setOptions({
         headerTitle: diary.date,
         headerRight: () => (
-          <TouchableOpacity onPress={() => setMenuVisible(true)}>
+          <AppTouchableOpacity onPress={() => setMenuVisible(true)}>
             <Ionicons
               name="ellipsis-horizontal"
               size={24}
               color={isDark ? '#fff' : '#000'}
             />
-          </TouchableOpacity>
+          </AppTouchableOpacity>
         ),
       });
     }
@@ -92,7 +115,7 @@ export default function DiaryDetailScreen() {
   if (!diary)
     return (
       <View style={[styles.fallback, isDark && styles.darkFallback]}>
-        <AppText style={isDark && styles.darkText}>
+        <AppText useDiaryFont style={isDark && styles.darkText}>
           일기를 찾을 수 없습니다.
         </AppText>
       </View>
@@ -123,13 +146,13 @@ export default function DiaryDetailScreen() {
   const activeFontFamily =
     diaryFontFamily === 'System' ? undefined : diaryFontFamily;
 
-  useEffect(() => {
-    if (diary?.content) {
-      console.log('--- 렌더링될 HTML 콘텐츠 ---');
-      console.log(processHtmlContent(diary.content));
-      console.log('---------------------------');
-    }
-  }, [diary?.content]);
+  // useEffect(() => {
+  //   if (diary?.content) {
+  //     console.log('--- 렌더링될 HTML 콘텐츠 ---');
+  //     console.log(processHtmlContent(diary.content));
+  //     console.log('---------------------------');
+  //   }
+  // }, [diary?.content]);
 
   const systemFonts = activeFontFamily
     ? [activeFontFamily, ...defaultSystemFonts]
@@ -147,7 +170,7 @@ export default function DiaryDetailScreen() {
             borderRadius: 12,
             marginVertical: 15,
           }}
-          resizeMode="cover"
+          contentFit="cover"
         />
       );
     },
@@ -177,6 +200,54 @@ export default function DiaryDetailScreen() {
     return processed;
   };
 
+  const memoizedHtml = useMemo(() => {
+    if (diary.content === undefined) return null;
+
+    return (
+      <View style={[styles.renderHtmlWrapper]}>
+        <RenderHtml
+          contentWidth={width - 40}
+          source={{ html: processHtmlContent(diary.content) }}
+          systemFonts={systemFonts}
+          renderers={customRenderers}
+          classesStyles={{
+            'app-align-center': { textAlign: 'center' },
+            'app-align-right': { textAlign: 'right' },
+            'app-align-left': { textAlign: 'left' },
+          }}
+          enableExperimentalMarginCollapsing={true}
+          defaultTextProps={{
+            maxFontSizeMultiplier: 1.5,
+          }}
+          baseStyle={{
+            fontSize: currentFontSize,
+            fontFamily: activeFontFamily,
+            color: isDark ? '#ffffff' : '#000000',
+            lineHeight: currentFontSize * 1.5,
+            width: '100%',
+          }}
+          tagsStyles={{
+            img: {
+              borderRadius: 8,
+              marginVertical: 15,
+            },
+            p: { marginVertical: 4 },
+            div: { marginVertical: 4 },
+            body: { width: '100%' },
+          }}
+          computeEmbeddedFlexStyles={(style) => style}
+        />
+      </View>
+    );
+  }, [
+    diary.content,
+    width,
+    currentFontSize,
+    activeFontFamily,
+    isDark,
+    systemFonts,
+  ]);
+
   return (
     <SafeAreaView
       edges={['top', 'left', 'right', 'bottom']}
@@ -186,23 +257,23 @@ export default function DiaryDetailScreen() {
 
       <View style={[styles.customHeader, isDark && styles.darkCustomHeader]}>
         <View style={styles.leftIconsWrapper}>
-          <TouchableOpacity onPress={() => router.back()}>
+          <AppTouchableOpacity onPress={() => router.back()}>
             <BackIcon
               width={28}
               height={28}
               color={isDark ? 'white' : 'black'}
             />
-          </TouchableOpacity>
+          </AppTouchableOpacity>
         </View>
 
         <View style={styles.rightIconsWrapper}>
-          <TouchableOpacity onPress={() => setMenuVisible(true)}>
+          <AppTouchableOpacity onPress={() => setMenuVisible(true)}>
             <OptionIcon
               width={28}
               height={28}
               color={isDark ? 'white' : 'black'}
             />
-          </TouchableOpacity>
+          </AppTouchableOpacity>
         </View>
       </View>
 
@@ -216,12 +287,16 @@ export default function DiaryDetailScreen() {
             <View style={styles.emotionsContainer}>
               {diary.emotions && diary.emotions.length > 0 ? (
                 diary.emotions.map((emotionId, index) =>
+                  ANIMATED_EMOTION_IMAGE_MAP[emotionId] ||
                   EMOTION_IMAGE_MAP[emotionId] ? (
                     <Image
                       key={`${diary.id}-${emotionId}-${index}`}
-                      source={EMOTION_IMAGE_MAP[emotionId]}
+                      source={
+                        ANIMATED_EMOTION_IMAGE_MAP[emotionId] ||
+                        EMOTION_IMAGE_MAP[emotionId]
+                      }
                       style={styles.emotionImage}
-                      resizeMode="contain"
+                      contentFit="contain"
                     />
                   ) : (
                     <AppText key={index} style={styles.fallbackEmotionText}>
@@ -231,9 +306,12 @@ export default function DiaryDetailScreen() {
                 )
               ) : diary.emotion && EMOTION_IMAGE_MAP[diary.emotion] ? (
                 <Image
-                  source={EMOTION_IMAGE_MAP[diary.emotion]}
+                  source={
+                    ANIMATED_EMOTION_IMAGE_MAP[diary.emotion] ||
+                    EMOTION_IMAGE_MAP[diary.emotion]
+                  }
                   style={styles.emotionImage}
-                  resizeMode="contain"
+                  contentFit="contain"
                 />
               ) : (
                 <AppText style={styles.fallbackEmotionText}>
@@ -243,15 +321,18 @@ export default function DiaryDetailScreen() {
             </View>
 
             <View style={styles.dateBox}>
-              <AppText style={styles.date}>
+              <AppText useDiaryFont style={styles.date}>
                 {`${year}년 ${month}월 ${day}일`}
               </AppText>
-              <AppText style={styles.day}>{dayOfWeek}요일</AppText>
+              <AppText useDiaryFont style={styles.day}>
+                {dayOfWeek}요일
+              </AppText>
             </View>
           </View>
 
           {diary.title && (
             <AppText
+              useDiaryFont
               style={[
                 styles.title,
                 isDark && styles.darkText,
@@ -262,98 +343,43 @@ export default function DiaryDetailScreen() {
             </AppText>
           )}
 
-          {/* 변경된 부분: View로 감싸서 width 100% 강제 적용 */}
-          {diary.content !== undefined ? (
-            <View style={[styles.renderHtmlWrapper]}>
-              <RenderHtml
-                contentWidth={width - 40}
-                source={{ html: processHtmlContent(diary.content) }}
-                // source={{ html: diary.content }}
-                systemFonts={systemFonts}
-                renderers={renderers}
-
-                classesStyles={{
-                  'app-align-center': {
-                    textAlign: 'center',
-                  },
-                  'app-align-right': {
-                    textAlign: 'right',
-                  },
-                  'app-align-left': {
-                    textAlign: 'left',
-                  },
-                }}
-
-                enableExperimentalMarginCollapsing={true}
-                defaultTextProps={{
-                  maxFontSizeMultiplier: 1.5,
-                }}
-                baseStyle={{
-                  fontSize: currentFontSize,
-                  fontFamily: activeFontFamily,
-                  color: isDark ? '#ffffff' : '#000000',
-                  lineHeight: currentFontSize * 1.5,
-                  width: '100%',
-                }}
-                tagsStyles={{
-                  img: {
-                    // width: '100%', // 가로 넓이 꽉 채우기
-                    // height: 250, // 말씀하신 대로 높이 250 고정
-                    // objectFit: 'cover', // 높이를 고정해도 사진이 찌그러지지 않게 덮기
-                    borderRadius: 8,
-                    marginVertical: 15,
-                  },
-                  p: {
-                    marginVertical: 4,
-                  },
-                  div: {
-                    marginVertical: 4,
-                  },
-                  body: {
-                    width: '100%',
-                  },
-                }}
-                computeEmbeddedFlexStyles={(style) => style}
-              />
-            </View>
-          ) : (
-            // 기존 fallback 코드 동일하게 유지
-            diary.blocks?.map((block) =>
-              block.type === 'image' ? (
-                <Image
-                  key={block.id}
-                  source={{ uri: block.value }}
-                  style={styles.attachedImage}
-                />
-              ) : (
-                <AppText
-                  key={block.id}
-                  style={[
-                    styles.textBlock,
-                    isDark && styles.darkText,
-                    {
-                      fontSize: currentFontSize,
-                      lineHeight: currentFontSize * 1.5,
-                      fontFamily: activeFontFamily,
-                    },
-                  ]}
-                >
-                  {block.value}
-                </AppText>
-              ),
-            )
-          )}
+          {diary.content !== undefined
+            ? memoizedHtml
+            : diary.blocks?.map((block) =>
+                block.type === 'image' ? (
+                  <Image
+                    key={block.id}
+                    source={{ uri: block.value }}
+                    style={styles.attachedImage}
+                    contentFit="cover"
+                  />
+                ) : (
+                  <AppText
+                    key={block.id}
+                    style={[
+                      styles.textBlock,
+                      isDark && styles.darkText,
+                      {
+                        fontSize: currentFontSize,
+                        lineHeight: currentFontSize * 1.5,
+                        fontFamily: activeFontFamily,
+                      },
+                    ]}
+                  >
+                    {block.value}
+                  </AppText>
+                ),
+              )}
         </ScrollView>
       </ViewShot>
 
-      {/* 우측 상단 옵션 메뉴 모달 */}
       <Modal visible={menuVisible} transparent animationType="fade">
-        <TouchableOpacity
+        <Pressable
           style={styles.modalOverlay}
           onPress={() => setMenuVisible(false)}
         >
           <View style={[styles.menuBox, isDark && styles.darkMenuBox]}>
-            <TouchableOpacity
+            <AppTouchableOpacity
               style={[styles.menuItem, isDark && styles.darkMenuItem]}
               onPress={() => {
                 setMenuVisible(false);
@@ -363,62 +389,37 @@ export default function DiaryDetailScreen() {
               <AppText style={[styles.menuText, isDark && styles.darkText]}>
                 수정하기
               </AppText>
-            </TouchableOpacity>
-            <TouchableOpacity
+            </AppTouchableOpacity>
+            <AppTouchableOpacity
               style={[styles.menuItem, isDark && styles.darkMenuItem]}
               onPress={handleShare}
             >
               <AppText style={[styles.menuText, isDark && styles.darkText]}>
                 이미지로 공유
               </AppText>
-            </TouchableOpacity>
-            <TouchableOpacity
+            </AppTouchableOpacity>
+            <AppTouchableOpacity
               style={styles.menuItem}
               onPress={handleDeleteClick}
             >
               <AppText style={[styles.menuText, { color: '#FF6F61' }]}>
                 삭제하기
               </AppText>
-            </TouchableOpacity>
+            </AppTouchableOpacity>
           </View>
-        </TouchableOpacity>
+        </Pressable>
       </Modal>
 
-      {/* 삭제 확인 커스텀 모달 */}
-      <Modal visible={deleteModalVisible} transparent animationType="fade">
-        <View style={styles.alertOverlay}>
-          <View style={[styles.alertBox, isDark && styles.darkMenuBox]}>
-            <AppText style={[styles.alertTitle, isDark && styles.darkText]}>
-              일기 삭제
-            </AppText>
-            <AppText
-              style={[styles.alertMessage, isDark && styles.darkSubText]}
-            >
-              정말로 이 일기를 삭제하시겠습니까?{'\n'}삭제된 일기는 복구할 수
-              없습니다.
-            </AppText>
-            <View style={[styles.alertButtons, isDark && styles.darkMenuItem]}>
-              <TouchableOpacity
-                style={styles.alertBtn}
-                onPress={() => setDeleteModalVisible(false)}
-              >
-                <AppText style={styles.alertBtnText}>취소</AppText>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.alertBtn,
-                  { borderLeftWidth: 1, borderColor: isDark ? '#333' : '#eee' },
-                ]}
-                onPress={confirmDelete}
-              >
-                <AppText style={[styles.alertBtnText, { color: '#FF6F61' }]}>
-                  삭제
-                </AppText>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <AppConfirmModal
+        visible={deleteModalVisible}
+        title="일기 삭제"
+        message={'정말로 일기를 삭제할까요?\n삭제된 일기는 복구할 수 없어요.'}
+        confirmText="삭제"
+        confirmColor="#FF6F61" // 삭제니까 빨간색으로 지정
+        onCancel={() => setDeleteModalVisible(false)}
+        onConfirm={confirmDelete}
+        reverseButtons={true}
+      />
     </SafeAreaView>
   );
 }
@@ -472,15 +473,15 @@ const styles = StyleSheet.create({
     minHeight: 50,
   },
   emotionImage: {
-    width: 50, // 상세 화면이므로 크기를 조금 더 크게 줍니다
+    width: 50,
     height: 50,
   },
   fallbackEmotionText: {
     fontSize: 16,
   },
   dateBox: { alignItems: 'center', gap: 4 },
-  date: { fontSize: 14 },
-  day: { fontSize: 14, color: '#666' },
+  date: { fontSize: 14, lineHeight: 16 },
+  day: { fontSize: 14, color: '#666', lineHeight: 16 },
 
   title: {
     fontSize: 24,
@@ -498,7 +499,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 250,
     borderRadius: 12,
-    resizeMode: 'cover',
+    // resizeMode: 'cover',
   },
 
   textBlock: {
@@ -510,7 +511,7 @@ const styles = StyleSheet.create({
 
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    // backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'flex-start',
     alignItems: 'flex-end',
     paddingTop: 60,
@@ -521,7 +522,6 @@ const styles = StyleSheet.create({
     width: 160,
     borderRadius: 12,
     overflow: 'hidden',
-    shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 2 },
     elevation: 5,
@@ -530,44 +530,8 @@ const styles = StyleSheet.create({
   menuItem: {
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
     alignItems: 'center',
   },
   darkMenuItem: { borderBottomColor: '#333' },
   menuText: { fontSize: 16 },
-
-  alertOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  alertBox: {
-    width: 300,
-    backgroundColor: 'white',
-    borderRadius: 14,
-    overflow: 'hidden',
-  },
-  alertTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginTop: 20,
-  },
-  alertMessage: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    marginTop: 10,
-    marginBottom: 20,
-    paddingHorizontal: 20,
-    lineHeight: 20,
-  },
-  alertButtons: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    borderColor: '#eee',
-  },
-  alertBtn: { flex: 1, paddingVertical: 15, alignItems: 'center' },
-  alertBtnText: { fontSize: 16, color: '#007AFF' },
 });

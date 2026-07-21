@@ -3,12 +3,12 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   Switch,
   Modal,
   Alert,
   Linking,
 } from 'react-native';
+import AppTouchableOpacity from '@/components/AppTouchableOpacity';
 import AppText from '@/components/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
@@ -71,7 +71,7 @@ export default function LockSettingsScreen() {
       if (auth.success) {
         setBiometricEnabled(true);
       } else {
-        // 💡 팝업이 무시되었거나, 권한이 없어서 실패한 경우 사용자에게 설정으로 갈지 물어봅니다.
+        // 팝업이 무시되었거나, 권한이 없어서 실패한 경우 사용자에게 설정으로 갈지 물어봅니다.
         Alert.alert(
           '권한 필요',
           '생체 인식을 사용하려면 Face ID 권한이 필요합니다. 설정으로 이동하여 권한을 허용하시겠습니까?',
@@ -79,7 +79,7 @@ export default function LockSettingsScreen() {
             { text: '취소', style: 'cancel' },
             {
               text: '설정으로 이동',
-              onPress: () => Linking.openSettings(), // 💡 사용자를 아이폰의 해당 앱 설정 창으로 다이렉트로 보냅니다.
+              onPress: () => Linking.openSettings(), // 사용자를 아이폰의 해당 앱 설정 창으로 다이렉트로 보냅니다.
             },
           ],
         );
@@ -147,7 +147,7 @@ export default function LockSettingsScreen() {
           />
         </View>
 
-        <TouchableOpacity
+        <AppTouchableOpacity
           style={[styles.settingItem, !isLockEnabled && { opacity: 0.5 }]}
           disabled={!isLockEnabled}
           onPress={() => {
@@ -158,7 +158,7 @@ export default function LockSettingsScreen() {
         >
           <AppText style={styles.settingTitle}>비밀번호 변경</AppText>
           <Ionicons name="chevron-forward" size={20} color="#ccc" />
-        </TouchableOpacity>
+        </AppTouchableOpacity>
 
         <View style={[styles.settingItem, !isLockEnabled && { opacity: 0.5 }]}>
           <View>
@@ -183,9 +183,9 @@ export default function LockSettingsScreen() {
       >
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={closePinModal}>
+            <AppTouchableOpacity onPress={closePinModal}>
               <AppText style={styles.cancelText}>취소</AppText>
-            </TouchableOpacity>
+            </AppTouchableOpacity>
           </View>
 
           <View style={styles.pinArea}>
@@ -213,33 +213,32 @@ export default function LockSettingsScreen() {
             </View>
           </View>
 
-          {/* 💡 수정 2: 에러를 유발했던 인라인 주석들을 안전하게 제거했습니다. */}
           <View style={styles.keypad}>
             {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((num) => (
-              <TouchableOpacity
+              <AppTouchableOpacity
                 key={num}
                 style={styles.keypadBtn}
                 onPress={() => handleNumberPress(num)}
               >
                 <AppText style={styles.keypadText}>{num}</AppText>
-              </TouchableOpacity>
+              </AppTouchableOpacity>
             ))}
 
             <View style={styles.keypadBtn} />
 
-            <TouchableOpacity
+            <AppTouchableOpacity
               style={styles.keypadBtn}
               onPress={() => handleNumberPress('0')}
             >
               <AppText style={styles.keypadText}>0</AppText>
-            </TouchableOpacity>
+            </AppTouchableOpacity>
 
-            <TouchableOpacity
+            <AppTouchableOpacity
               style={styles.keypadBtn}
               onPress={handleDeletePress}
             >
               <Ionicons name="backspace-outline" size={28} color="#333" />
-            </TouchableOpacity>
+            </AppTouchableOpacity>
           </View>
         </SafeAreaView>
       </Modal>

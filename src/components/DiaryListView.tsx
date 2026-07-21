@@ -1,19 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  Image,
-  Modal,
-} from 'react-native';
+import { View, Text, StyleSheet, FlatList, Image, Modal } from 'react-native';
+import AppTouchableOpacity from '@/components/AppTouchableOpacity';
 import AppText from '@/components/AppText';
 import { router } from 'expo-router';
 import { useDiaryStore } from '../store/useDiaryStore';
-import { BackIcon, SearchIcon, FilterIcon } from '../../assets/icons';
+import { BackIcon, SearchIcon, OrderIcon } from '../../assets/icons';
 import SvgDashedLine from '@/components/SvgDashedLine';
 import { EMOTION_IMAGE_MAP } from '@/constants/emotions';
+import SortBottomSheet from '@/components/SortBottomSheet';
 
 interface DiaryListViewProps {
   isDark: boolean;
@@ -29,10 +23,14 @@ export default function DiaryListView({
   const { diaries, selectedDate } = useDiaryStore();
   const listRef = useRef<FlatList>(null);
 
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+  const [isSortModalVisible, setIsSortModalVisible] = useState(false);
+
   // 1. 전체 일기를 최신순으로 정렬
-  const sortedDiaries = [...diaries].sort((a, b) =>
-    b.date.localeCompare(a.date),
-  );
+  const sortedDiaries = [...diaries].sort((a, b) => {
+    if (sortOrder === 'desc') return b.date.localeCompare(a.date);
+    return a.date.localeCompare(b.date);
+  });
 
   // 2. 작성된 일기들의 '연도'만 중복 없이 추출
   const availableYears = Array.from(
@@ -54,7 +52,7 @@ export default function DiaryListView({
     d.date.startsWith(selectedYear),
   );
 
-  // 💡 달력에서 선택한 날짜(selectedDate)가 바뀔 때"만" 해당 연도로 자동 전환하도록 수정
+  // 달력에서 선택한 날짜(selectedDate)가 바뀔 때"만" 해당 연도로 자동 전환하도록 수정
   useEffect(() => {
     if (selectedDate) {
       const targetYear = selectedDate.split('-')[0];
@@ -67,22 +65,24 @@ export default function DiaryListView({
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDate]); // 👈 배열 안에 selectedDate 하나만 남겨두는 것이 핵심입니다!
+  }, [selectedDate]);
 
-  // FlatList 맨 아래에 표시될 안내 문구 및 버튼
   const renderFooter = () => {
     if (!hasMultipleYears) return null; // 연도가 1개 이하면 표시하지 않음
     return (
       <View style={styles.footerContainer}>
-        <Text style={[styles.footerText, isDark && styles.darkSubText]}>
-          다른 년도의 일기를 보시겠어요?
+        <Text
+          useDiaryFont
+          style={[styles.footerText, isDark && styles.darkSubText]}
+        >
+          연도별로 작성한 일기를 찾으시나요?
         </Text>
-        <TouchableOpacity
+        <AppTouchableOpacity
           style={styles.footerButton}
           onPress={() => setIsYearModalVisible(true)}
         >
           <Text style={styles.footerButtonText}>다른 년도 보기</Text>
-        </TouchableOpacity>
+        </AppTouchableOpacity>
       </View>
     );
   };
@@ -91,18 +91,18 @@ export default function DiaryListView({
     <View style={styles.container}>
       <View style={[styles.customHeader, isDark && styles.darkCustomHeader]}>
         <View style={styles.leftIconsWrapper}>
-          <TouchableOpacity onPress={onGoBack}>
+          <AppTouchableOpacity onPress={onGoBack}>
             <BackIcon
               width={28}
               height={28}
               color={isDark ? 'white' : 'black'}
             />
-          </TouchableOpacity>
+          </AppTouchableOpacity>
 
           <View style={{ width: 28 }} />
         </View>
 
-        <TouchableOpacity
+        <AppTouchableOpacity
           disabled={availableYears.length === 0}
           onPress={() => setIsYearModalVisible(true)}
           style={styles.headerTitleBtn}
@@ -112,23 +112,23 @@ export default function DiaryListView({
           >
             {selectedYear}
           </AppText>
-        </TouchableOpacity>
+        </AppTouchableOpacity>
 
         <View style={styles.rightIconsWrapper}>
-          <TouchableOpacity onPress={() => router.push('/search')}>
+          <AppTouchableOpacity onPress={() => router.push('/search')}>
             <SearchIcon
               width={28}
               height={28}
               color={isDark ? 'white' : 'black'}
             />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push('/')}>
-            <FilterIcon
+          </AppTouchableOpacity>
+          <AppTouchableOpacity onPress={() => setIsSortModalVisible(true)}>
+            <OrderIcon
               width={28}
               height={28}
               color={isDark ? 'white' : 'black'}
             />
-          </TouchableOpacity>
+          </AppTouchableOpacity>
         </View>
       </View>
 
@@ -156,13 +156,12 @@ export default function DiaryListView({
           const itemDayOfWeek = week[itemDateObj.getDay()];
 
           return (
-            <TouchableOpacity
+            <AppTouchableOpacity
               activeOpacity={1}
               style={[styles.card, isDark && styles.darkCard]}
               onPress={() => router.push(`/diary/${item.id}`)}
             >
               <View style={styles.cardHeader}>
-                {/* 💡 텍스트 이모티콘 대신 배열을 순회하며 이미지를 렌더링합니다. */}
                 <View style={styles.emotionsContainer}>
                   {item.emotions && item.emotions.length > 0 ? (
                     item.emotions.map((emotionId, index) =>
@@ -194,19 +193,24 @@ export default function DiaryListView({
 
                 <View style={styles.dateBox}>
                   <AppText
+                    useDiaryFont
                     style={[styles.date]}
                   >{`${itemMonth}월 ${itemDay}일`}</AppText>
-                  <AppText style={[styles.day, isDark && styles.darkSubText]}>
+                  <AppText
+                    useDiaryFont
+                    style={[styles.day, isDark && styles.darkSubText]}
+                  >
                     {itemDayOfWeek}요일
                   </AppText>
                 </View>
               </View>
 
               {item.title && (
-                <AppText style={[styles.title]}>{item.title}</AppText>
+                <AppText useDiaryFont style={[styles.title]}>
+                  {item.title}
+                </AppText>
               )}
 
-              {/* 💡 미리보기 렌더링 영역 (신규 에디터 지원 추가) */}
               {item.content ? (
                 // 1. 신규 데이터: HTML(content) 문자열 기반 렌더링
                 <View>
@@ -233,6 +237,7 @@ export default function DiaryListView({
                         )}
                         {plainText.length > 0 && (
                           <AppText
+                            useDiaryFont
                             style={[
                               styles.content,
                               isDark && styles.darkSubText,
@@ -266,14 +271,14 @@ export default function DiaryListView({
                   ),
                 )
               )}
-            </TouchableOpacity>
+            </AppTouchableOpacity>
           );
         }}
       />
 
       {/* 연도 선택 모달 */}
       <Modal visible={isYearModalVisible} transparent animationType="fade">
-        <TouchableOpacity
+        <AppTouchableOpacity
           style={styles.modalOverlay}
           activeOpacity={1}
           onPress={() => setIsYearModalVisible(false)}
@@ -287,7 +292,7 @@ export default function DiaryListView({
             </AppText>
             <View style={styles.yearGrid}>
               {availableYears.map((year) => (
-                <TouchableOpacity
+                <AppTouchableOpacity
                   key={year}
                   style={[
                     styles.yearOption,
@@ -298,7 +303,6 @@ export default function DiaryListView({
                     setSelectedYear(year);
                     setIsYearModalVisible(false);
 
-                    // 💡 년도 변경 후 리스트의 맨 위로 부드럽게 스크롤
                     setTimeout(() => {
                       listRef.current?.scrollToOffset({
                         offset: 0,
@@ -316,12 +320,20 @@ export default function DiaryListView({
                   >
                     {year}
                   </Text>
-                </TouchableOpacity>
+                </AppTouchableOpacity>
               ))}
             </View>
           </View>
-        </TouchableOpacity>
+        </AppTouchableOpacity>
       </Modal>
+
+      <SortBottomSheet
+        visible={isSortModalVisible}
+        onClose={() => setIsSortModalVisible(false)}
+        sortOrder={sortOrder}
+        setSortOrder={setSortOrder}
+        isDark={isDark}
+      />
     </View>
   );
 }
@@ -378,7 +390,7 @@ const styles = StyleSheet.create({
 
   emotionsContainer: {
     flexDirection: 'row',
-    gap: 4, // 다중 감정 선택 시 이미지 사이 간격
+    gap: 4,
     alignItems: 'center',
   },
   emotionImage: {
@@ -388,9 +400,9 @@ const styles = StyleSheet.create({
 
   fallbackEmotionText: { fontSize: 16 },
   dateBox: { gap: 4 },
-  date: { fontSize: 14 },
-  day: { fontSize: 14, color: '#666' },
-  title: { fontSize: 18, fontWeight: 'bold' },
+  date: { fontSize: 14, lineHeight: 16 },
+  day: { fontSize: 14, color: '#666', lineHeight: 16 },
+  title: { fontSize: 18 },
 
   content: { fontSize: 14, lineHeight: 24 },
 
@@ -404,7 +416,6 @@ const styles = StyleSheet.create({
     resizeMode: 'cover',
   },
 
-  // Footer (안내 문구 및 버튼) 스타일
   footerContainer: {
     alignItems: 'center',
     marginTop: 20,

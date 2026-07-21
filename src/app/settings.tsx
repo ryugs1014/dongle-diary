@@ -1,21 +1,22 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-} from 'react-native';
+import { View, StyleSheet, ScrollView, useColorScheme } from 'react-native';
+import AppTouchableOpacity from '@/components/AppTouchableOpacity';
 import AppText from '@/components/AppText';
 import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDiaryStore } from '../store/useDiaryStore';
+import { BackIcon, ArrowRightIcon } from '../../assets/icons';
+import SvgDashedLine from '@/components/SvgDashedLine';
 
 export default function SettingsScreen() {
   const { language, theme, isAlarmEnabled, alarmTime, diaryFontSize } =
     useDiaryStore();
 
-  // 현재 설정된 값을 한글로 표시하기 위한 변환기
+  const systemColorScheme = useColorScheme();
+  const isDark =
+    theme === 'system' ? systemColorScheme === 'dark' : theme === 'dark';
+
   const getLanguageText = () => {
     if (language === 'ko') return '한국어';
     if (language === 'en') return 'English';
@@ -28,7 +29,6 @@ export default function SettingsScreen() {
     return '시스템 기본값';
   };
 
-  // 💡 알람 시간 표시기 (오전/오후 포맷)
   const getAlarmText = () => {
     if (!isAlarmEnabled) return '꺼짐';
     const hours = alarmTime.getHours();
@@ -39,71 +39,119 @@ export default function SettingsScreen() {
     return `${ampm} ${formattedHours}:${formattedMinutes}`;
   };
 
-  const SettingItem = ({ icon, title, onPress, rightText }: any) => (
-    <TouchableOpacity
+  const SettingItem = ({
+    icon,
+    title,
+    onPress,
+    rightText,
+    hideChevron,
+  }: any) => (
+    <AppTouchableOpacity
       style={styles.settingItem}
       onPress={onPress}
       disabled={!onPress}
+      activeOpacity={onPress ? 0.7 : 1}
     >
       <View style={styles.settingLeft}>
         <Ionicons
           name={icon}
-          size={24}
-          color="#333"
+          size={20}
+          color={isDark ? '#fff' : '#333'}
           style={styles.settingIcon}
         />
-        <AppText style={styles.settingTitle}>{title}</AppText>
+        <AppText style={[styles.settingTitle, isDark && styles.darkText]}>
+          {title}
+        </AppText>
       </View>
       <View style={styles.settingRight}>
-        {rightText && <AppText style={styles.rightText}>{rightText}</AppText>}
-        <Ionicons name="chevron-forward" size={20} color="#ccc" />
+        {rightText && (
+          <AppText
+            style={[
+              styles.rightText,
+              isDark && styles.darkSubText,
+              hideChevron && styles.hideChevron,
+            ]}
+          >
+            {rightText}
+          </AppText>
+        )}
+        {!hideChevron && onPress && (
+          <ArrowRightIcon
+            width={28}
+            height={28}
+            color={isDark ? '#666' : '#ccc'}
+          />
+        )}
       </View>
-    </TouchableOpacity>
+    </AppTouchableOpacity>
   );
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={{ paddingBottom: 40 }}
+    <SafeAreaView
+      edges={['top', 'left', 'right']}
+      style={[styles.container, isDark && styles.darkContainer]}
     >
-      <Stack.Screen
-        options={{ headerTitle: '설정', headerBackTitle: '뒤로' }}
-      />
+      <Stack.Screen options={{ headerShown: false }} />
 
-      <View style={styles.section}>
-        <AppText style={styles.sectionTitle}>데이터 관리</AppText>
+      <View style={[styles.customHeader, isDark && styles.darkCustomHeader]}>
+        <View style={styles.leftIconsWrapper}>
+          <AppTouchableOpacity onPress={() => router.back()}>
+            <BackIcon
+              width={28}
+              height={28}
+              color={isDark ? 'white' : 'black'}
+            />
+          </AppTouchableOpacity>
+        </View>
+        <View style={styles.headerTitleWrapper}>
+          <AppText
+            style={[styles.customHeaderTitle, isDark && styles.darkText]}
+          >
+            설정
+          </AppText>
+        </View>
+
+        <View style={styles.rightIconsWrapper} />
+      </View>
+
+      <ScrollView
+        style={styles.scrollWrapper}
+        contentContainerStyle={{ paddingBottom: 40, paddingTop: 10 }}
+      >
         <SettingItem
           icon="cloud-upload-outline"
-          title="수동 백업/복구"
+          title="클라우드 백업/복구"
           onPress={() => router.push('/backup-settings')}
         />
         <SettingItem
           icon="document-text-outline"
-          title="PDF로 내보내기"
+          title="PDF 저장"
           onPress={() => router.push('/pdf-export')}
         />
-      </View>
 
-      <View style={styles.section}>
-        <AppText style={styles.sectionTitle}>보안</AppText>
+        <View style={styles.dividerWrapper}>
+          <SvgDashedLine />
+        </View>
+
         <SettingItem
           icon="lock-closed-outline"
-          title="화면 잠금 설정"
+          title="암호 잠금"
           onPress={() => router.push('/lock-settings')}
         />
         <SettingItem
           icon="notifications-outline"
-          title="일기 작성 알림"
+          title="일기 알림"
           rightText={getAlarmText()}
           onPress={() => router.push('/alarm-settings')}
         />
-      </View>
 
-      <View style={styles.section}>
-        <AppText style={styles.sectionTitle}>앱 설정</AppText>
+        <View style={styles.dividerWrapper}>
+          <SvgDashedLine />
+        </View>
+
         <SettingItem
           icon="language-outline"
-          title="언어"
+          title="언어 / Language"
           rightText={getLanguageText()}
           onPress={() => router.push('/language-settings')}
         />
@@ -115,52 +163,80 @@ export default function SettingsScreen() {
         />
         <SettingItem
           icon="text-outline"
-          title="글꼴 및 크기"
+          title="글씨체 / 크기"
           rightText={`크기 ${diaryFontSize}단계`}
           onPress={() => router.push('/font-settings')}
         />
-      </View>
 
-      <AppText style={styles.versionText}>앱 버전 1.0.0</AppText>
-    </ScrollView>
+        <View style={styles.dividerWrapper}>
+          <SvgDashedLine />
+        </View>
+
+        <SettingItem
+          icon="information-circle-outline"
+          title="버전 정보"
+          rightText="v1.0.0"
+          hideChevron={true}
+        />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8f9fa' },
-  section: {
-    marginTop: 20,
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#eee',
-  },
-  sectionTitle: {
-    fontSize: 13,
-    color: '#888',
-    fontWeight: 'bold',
+  container: { flex: 1, backgroundColor: '#ffffff' },
+  darkContainer: { backgroundColor: '#111111' },
+
+  customHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 15,
-    paddingBottom: 5,
+    height: 50,
   },
+  darkCustomHeader: {
+    backgroundColor: '#121212',
+    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  leftIconsWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+  },
+  headerTitleWrapper: {
+    flex: 2,
+    alignItems: 'center',
+  },
+  customHeaderTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  rightIconsWrapper: {
+    flex: 1,
+  },
+
   settingItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 15,
     paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    height: 50,
   },
   settingLeft: { flexDirection: 'row', alignItems: 'center' },
   settingRight: { flexDirection: 'row', alignItems: 'center' },
-  settingIcon: { marginRight: 15 },
+  settingIcon: { marginRight: 10 },
   settingTitle: { fontSize: 16, color: '#333' },
-  rightText: { fontSize: 14, color: '#888', marginRight: 8 },
-  versionText: {
-    textAlign: 'center',
-    marginTop: 30,
-    color: '#aaa',
-    fontSize: 12,
+  darkText: { color: '#fff' },
+  rightText: { fontSize: 14, color: '#888' },
+  darkSubText: { color: '#aaa' },
+  hideChevron: { fontSize: 16, marginRight: 10 },
+
+  scrollWrapper: {
+    paddingVertical: 10,
+  },
+
+  dividerWrapper: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
   },
 });

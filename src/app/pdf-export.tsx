@@ -4,11 +4,11 @@ import {
   Text,
   StyleSheet,
   FlatList,
-  TouchableOpacity,
   Alert,
   useColorScheme,
   ActivityIndicator,
 } from 'react-native';
+import AppTouchableOpacity from '@/components/AppTouchableOpacity';
 import AppText from '@/components/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
@@ -62,7 +62,7 @@ export default function PdfExportScreen() {
               .image-block { width: 100%; max-width: 500px; border-radius: 8px; margin-top: 15px; display: block; margin-left: auto; margin-right: auto; object-fit: cover; }
               .error-block { padding: 20px; background: #eee; text-align: center; color: #888; border-radius: 8px; margin-top: 15px; font-size: 14px; }
               
-              /* 💡 웹 에디터(HTML content)를 위한 스타일 추가 */
+              /* 웹 에디터(HTML content) 스타일 추가 */
               .rich-content { font-size: 16px; margin-top: 10px; line-height: 1.6; }
               .rich-content img { max-width: 100%; height: auto; display: block; margin: 15px auto; border-radius: 8px; }
             </style>
@@ -83,17 +83,13 @@ export default function PdfExportScreen() {
         htmlContent += `<div class="diary-entry">`;
         htmlContent += `<div class="header"><span class="date">${diary.date}</span><span class="emotion">${displayEmotion}</span></div>`;
 
-        // 💡 제목이 있다면 추가
         if (diary.title) {
           htmlContent += `<h2 class="diary-title">${diary.title}</h2>`;
         }
 
-        // 💡 1. 신규 에디터 방식: HTML Content를 그대로 삽입
         if (diary.content !== undefined) {
           htmlContent += `<div class="rich-content">${diary.content}</div>`;
-        }
-        // 💡 2. 과거 데이터 방식: 블록(blocks) 배열을 순회하며 변환
-        else if (diary.blocks) {
+        } else if (diary.blocks) {
           for (const block of diary.blocks) {
             if (block.type === 'text') {
               htmlContent += `<div class="text-block">${block.value}</div>`;
@@ -192,7 +188,7 @@ export default function PdfExportScreen() {
           const isThisLoading = loadingMonth === item;
 
           return (
-            <TouchableOpacity
+            <AppTouchableOpacity
               style={[
                 styles.monthCard,
                 isDark && styles.darkCard,
@@ -217,7 +213,7 @@ export default function PdfExportScreen() {
               ) : (
                 <Ionicons name="download-outline" size={24} color="#FF6F61" />
               )}
-            </TouchableOpacity>
+            </AppTouchableOpacity>
           );
         }}
       />

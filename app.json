@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "o-memo",
+    "name": "동글일기",
     "slug": "o-memo",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -9,7 +9,6 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "backgroundColor": "#000000",
-      "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.ryugs.o-memo",
       "supportsTablet": true,
       "infoPlist": {
@@ -20,10 +19,8 @@
     "backgroundColor": "#000000",
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#000000",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#FCFBFA",
+        "foregroundImage": "./assets/images/adaptive-icon.png"
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.ryugs.omemo"

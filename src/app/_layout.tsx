@@ -1,12 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  AppState,
-  useColorScheme,
-} from 'react-native';
+import { View, Text, StyleSheet, AppState, useColorScheme } from 'react-native';
+import AppTouchableOpacity from '@/components/AppTouchableOpacity';
 import AppText from '@/components/AppText';
 import { ThemeProvider, DarkTheme, DefaultTheme, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,13 +9,13 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { useDiaryStore } from '../store/useDiaryStore';
+import InitialLoadingScreen from '@/components/InitialLoadingScreen';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const { isLockEnabled, pinCode, isBiometricEnabled, theme } = useDiaryStore();
 
-  // 💡 로컬 폰트 파일 불러오기
   const [fontsLoaded] = useFonts({
     KyoboHandwriting: require('../../assets/fonts/KyoboHandwriting.ttf'),
     NanumSquareRound: require('../../assets/fonts/NanumSquareRound.ttf'),
@@ -35,6 +29,8 @@ export default function RootLayout() {
   const isDark =
     theme === 'system' ? systemColorScheme === 'dark' : theme === 'dark';
 
+  const [showCustomSplash, setShowCustomSplash] = useState(true);
+
   const [isUnlocked, setIsUnlocked] = useState(!isLockEnabled);
   const [currentInput, setCurrentInput] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -44,7 +40,16 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (fontsLoaded) {
+      // 1. 폰트 로딩이 완료되면 OS 기본 스플래시 화면을 내립니다.
       SplashScreen.hideAsync();
+
+      // 2. 커스텀 로딩 화면을 약 1.5초간 노출 후 앱으로 진입합니다.
+      // (DB 동기화 등 무거운 초기 작업이 있다면 여기서 await로 처리하면 됩니다.)
+      const timer = setTimeout(() => {
+        setShowCustomSplash(false);
+      }, 1500);
+
+      return () => clearTimeout(timer);
     }
   }, [fontsLoaded]);
 
@@ -55,6 +60,7 @@ export default function RootLayout() {
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextAppState) => {
       const store = useDiaryStore.getState();
+      // 앱이 백그라운드로 가면 즉시 잠금
       if (nextAppState === 'background') {
         if (store.isLockEnabled) {
           setIsUnlocked(false);
@@ -65,18 +71,21 @@ export default function RootLayout() {
           store.isLockEnabled &&
           store.isBiometricEnabled &&
           !isUnlockedRef.current &&
-          !isAuthenticating.current
+          !isAuthenticating.current &&
+          !showCustomSplash // 로딩 화면 중에는 생체인식을 호출하지 않음
         ) {
           handleBiometricAuth();
         }
       }
     });
 
+    // 초기 진입 시 로딩 화면이 끝난 후에만 생체인식을 호출하도록 조건 추가
     if (
       isLockEnabled &&
       isBiometricEnabled &&
       !isUnlockedRef.current &&
-      !isAuthenticating.current
+      !isAuthenticating.current &&
+      !showCustomSplash
     ) {
       handleBiometricAuth();
     }
@@ -121,7 +130,13 @@ export default function RootLayout() {
     }
   };
 
+  // 폰트가 로드되기 전까지는 아무것도 렌더링하지 않음 (기본 스플래시 유지)
   if (!fontsLoaded) return null;
+
+  // 폰트 로드 후, 지정된 시간 동안 커스텀 로딩 화면 렌더링
+  if (showCustomSplash) {
+    return <InitialLoadingScreen />;
+  }
 
   const customDarkTheme = {
     ...DarkTheme,
@@ -176,7 +191,7 @@ export default function RootLayout() {
 
           <View style={styles.keypad}>
             {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((num) => (
-              <TouchableOpacity
+              <AppTouchableOpacity
                 key={num}
                 style={styles.keypadBtn}
                 onPress={() => handleNumberPress(num)}
@@ -184,9 +199,9 @@ export default function RootLayout() {
                 <AppText style={[styles.keypadText, isDark && styles.darkText]}>
                   {num}
                 </AppText>
-              </TouchableOpacity>
+              </AppTouchableOpacity>
             ))}
-            <TouchableOpacity
+            <AppTouchableOpacity
               style={styles.keypadBtn}
               onPress={isBiometricEnabled ? handleBiometricAuth : undefined}
               disabled={!isBiometricEnabled}
@@ -194,16 +209,16 @@ export default function RootLayout() {
               {isBiometricEnabled && (
                 <Ionicons name="finger-print" size={32} color="#FF6F61" />
               )}
-            </TouchableOpacity>
-            <TouchableOpacity
+            </AppTouchableOpacity>
+            <AppTouchableOpacity
               style={styles.keypadBtn}
               onPress={() => handleNumberPress('0')}
             >
               <AppText style={[styles.keypadText, isDark && styles.darkText]}>
                 0
               </AppText>
-            </TouchableOpacity>
-            <TouchableOpacity
+            </AppTouchableOpacity>
+            <AppTouchableOpacity
               style={styles.keypadBtn}
               onPress={() => setCurrentInput((prev) => prev.slice(0, -1))}
             >
@@ -212,7 +227,7 @@ export default function RootLayout() {
                 size={28}
                 color={isDark ? '#fff' : '#333'}
               />
-            </TouchableOpacity>
+            </AppTouchableOpacity>
           </View>
         </SafeAreaView>
       )}
@@ -233,7 +248,7 @@ export default function RootLayout() {
               headerShadowVisible: false,
               // contentStyle: { backgroundColor: isDark ? '#111' : '#fcfbfa' },
 
-              // 💡 핵심: iOS 스와이프 뒤로가기 시 테두리에 생기는 그림자(하얀 선)를 제거합니다.
+              // iOS 스와이프 뒤로가기 시 테두리에 생기는 그림자(하얀 선)를 제거합니다.
               fullScreenGestureShadowEnabled: false,
 
               cardShadowEnabled: false,
@@ -242,9 +257,9 @@ export default function RootLayout() {
               gestureEnabled: true,
 
               animation: 'slide_from_right',
-              // 💡 핵심: 카드 오버레이(iOS 특유의 뒤쪽 화면 어두워짐/그림자 효과)를 강제로 끕니다.
+              // 카드 오버레이(iOS 특유의 뒤쪽 화면 어두워짐/그림자 효과)를 강제로 끕니다.
               cardOverlayEnabled: false,
-              // 💡 핵심: 스와이프 제스처 시의 배경색을 아예 다크 모드 색상으로 덮어버립니다.
+              // 스와이프 제스처 시의 배경색을 아예 다크 모드 색상으로 덮어버립니다.
               cardStyle: { backgroundColor: isDark ? '#121212' : '#ffffff' },
             }}
           >

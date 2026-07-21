@@ -1,12 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import {
-  View,
-  StyleSheet,
-  TouchableOpacity,
-  Text,
-  Modal,
-  Image,
-} from 'react-native';
+import { View, StyleSheet, Text, Modal } from 'react-native';
+import AppTouchableOpacity from '@/components/AppTouchableOpacity';
+import { Image } from 'expo-image';
 import AppText from '@/components/AppText';
 import { router } from 'expo-router';
 import { CalendarList, LocaleConfig } from 'react-native-calendars';
@@ -19,7 +14,10 @@ import {
   MenuIcon,
   AddBigIcon,
 } from '../../assets/icons';
-import { EMOTION_IMAGE_MAP } from '@/constants/emotions';
+import {
+  EMOTION_IMAGE_MAP,
+  ANIMATED_EMOTION_IMAGE_MAP,
+} from '@/constants/emotions';
 import {
   setupCalendarLocales,
   EN_CALENDAR_LOCALE,
@@ -59,13 +57,10 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
   const dispYear = displayedMonth.split('-')[0];
   const dispMonth = displayedMonth.split('-')[1];
 
-  // 💡 1. monthIndex 변수를 선언해 줍니다. (문자열 '07' 등을 숫자 인덱스 6으로 변환)
   const monthIndex = parseInt(dispMonth, 10) - 1;
 
-  // 1. 연도 (한국어/영어 모두 숫자만 필요하므로 dispYear만 넣습니다)
   const headerYear = t(`${dispYear}`, `${dispYear}`);
 
-  // 2. 월 (한국어는 '7월', 영어는 'JULY')
   const headerMonth = t(
     // `${KR_CALENDAR_LOCALE.monthNames[monthIndex]}`,
     `${EN_CALENDAR_LOCALE.monthNames[monthIndex].toUpperCase()}`,
@@ -75,7 +70,6 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
   const diariesMap = useMemo(() => {
     const map: Record<string, any> = {};
     diaries.forEach((d) => {
-      // 해당 날짜에 여러 일기가 있을 수 있으니 배열로 담거나, 마지막 일기만 덮어씌웁니다.
       map[d.date] = d;
     });
     return map;
@@ -109,7 +103,6 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
     setDatePickerVisible(false);
   };
 
-  // 💡 날짜 클릭 핸들러도 분리하여 참조를 유지합니다.
   const handleDayPress = useCallback(
     (dateStr: string, hasDiary: boolean) => {
       setSelectedDate(dateStr);
@@ -118,8 +111,6 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
     [setSelectedDate],
   );
 
-  // 💡 [성능 최적화 2] 렌더링 함수를 useCallback으로 감싸고, 의존성 배열에서 selectedDate를 제거합니다.
-  // 이렇게 하면 달력의 모든 날짜가 불필요하게 리렌더링되지 않고, 변경된 날짜만 똑똑하게 업데이트됩니다.
   const renderDay = useCallback(
     ({ date, state, marking }: any) => {
       const dateStr = date?.dateString || '';
@@ -136,7 +127,7 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
       const isFuture = dateStr > localTodayStr;
 
       return (
-        <TouchableOpacity
+        <AppTouchableOpacity
           activeOpacity={1}
           disabled={state === 'disabled' || isFuture}
           onPress={() => handleDayPress(dateStr, hasDiary)}
@@ -150,12 +141,19 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
               styles.selectedCellDark,
           ]}
         >
-          {/* 💡 일기가 있고 감정 ID가 존재하면 이미지 렌더링, 아니면 날짜 숫자 렌더링 */}
           {hasDiary && displayEmotion && EMOTION_IMAGE_MAP[displayEmotion] ? (
             <Image
-              source={EMOTION_IMAGE_MAP[displayEmotion]}
-              style={{ width: 32, height: 32 }} // 셀 크기(40x40) 안에 알맞게 들어오도록 조절
-              resizeMode="contain"
+              source={
+                isSelected && ANIMATED_EMOTION_IMAGE_MAP[displayEmotion]
+                  ? ANIMATED_EMOTION_IMAGE_MAP[displayEmotion]
+                  : EMOTION_IMAGE_MAP[displayEmotion]
+              }
+              style={[
+                styles.emotionImage,
+                isSelected && styles.selectedEmotionImage,
+              ]}
+              contentFit="contain"
+              transition={200}
             />
           ) : (
             <AppText
@@ -171,16 +169,16 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
               {date?.day}
             </AppText>
           )}
-        </TouchableOpacity>
+        </AppTouchableOpacity>
       );
     },
     [isDark, handleDayPress],
-  ); // selectedDate가 빠진 것이 핵심입니다!
+  );
 
   return (
     <View style={styles.container}>
       <View style={[styles.customHeader]}>
-        <TouchableOpacity
+        <AppTouchableOpacity
           style={styles.contentSelect}
           onPress={() => router.push('/')}
         >
@@ -194,29 +192,29 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
             height={16}
             color={isDark ? 'white' : 'black'}
           />
-        </TouchableOpacity>
+        </AppTouchableOpacity>
 
         <View style={styles.rightIconsWrapper}>
-          <TouchableOpacity onPress={() => router.push('/search')}>
+          <AppTouchableOpacity onPress={() => router.push('/search')}>
             <SearchIcon
               width={28}
               height={28}
               color={isDark ? 'white' : 'black'}
             />
-          </TouchableOpacity>
+          </AppTouchableOpacity>
 
-          <TouchableOpacity onPress={() => router.push('/settings')}>
+          <AppTouchableOpacity onPress={() => router.push('/settings')}>
             <MenuIcon
               width={28}
               height={28}
               color={isDark ? 'white' : 'black'}
             />
-          </TouchableOpacity>
+          </AppTouchableOpacity>
         </View>
       </View>
 
       <View style={[styles.fixedHeader, isDark && styles.darkFixedHeader]}>
-        <TouchableOpacity
+        <AppTouchableOpacity
           style={styles.headerTitleBtn}
           onPress={() => {
             setPickerYear(parseInt(dispYear, 10));
@@ -226,7 +224,7 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
           <AppText style={[styles.fixedYearText]}>{headerYear}</AppText>
 
           <AppText style={[styles.fixedMonthText]}>{headerMonth}</AppText>
-        </TouchableOpacity>
+        </AppTouchableOpacity>
 
         {/*<View style={styles.weekDaysContainer}>*/}
         {/*  {weekDays.map((day, idx) => (*/}
@@ -259,8 +257,8 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
             if (months && months.length > 0)
               setDisplayedMonth(months[0].dateString);
           }}
-          markedDates={markedDates} // 💡 위에서 묶은 markedDates를 넘겨줍니다.
-          dayComponent={renderDay} // 💡 인라인 함수 대신 안정적인 useCallback 함수를 넘겨줍니다.
+          markedDates={markedDates}
+          dayComponent={renderDay}
           theme={{
             calendarBackground: 'transparent',
             dayTextColor: isDark ? '#ffffff' : '#212529',
@@ -276,7 +274,7 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
         />
       </View>
 
-      <TouchableOpacity
+      <AppTouchableOpacity
         style={styles.fab}
         onPress={() => {
           if (selectedDate > localTodayStr) return;
@@ -289,11 +287,10 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
         }}
       >
         <AddBigIcon width={60} height={60} color={isDark ? 'white' : 'black'} />
-      </TouchableOpacity>
+      </AppTouchableOpacity>
 
-      {/* 년/월 선택 모달 */}
       <Modal visible={datePickerVisible} transparent animationType="fade">
-        <TouchableOpacity
+        <AppTouchableOpacity
           style={styles.alertOverlay}
           activeOpacity={1}
           onPress={() => setDatePickerVisible(false)}
@@ -303,7 +300,7 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
             onStartShouldSetResponder={() => true}
           >
             <View style={styles.pickerYearHeader}>
-              <TouchableOpacity
+              <AppTouchableOpacity
                 onPress={() => setPickerYear(pickerYear - 1)}
                 style={{ padding: 10 }}
               >
@@ -312,13 +309,13 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
                   size={24}
                   color={isDark ? '#fff' : '#333'}
                 />
-              </TouchableOpacity>
+              </AppTouchableOpacity>
               <AppText
                 style={[styles.pickerYearText, isDark && styles.darkText]}
               >
                 {pickerYear}년
               </AppText>
-              <TouchableOpacity
+              <AppTouchableOpacity
                 onPress={() => setPickerYear(pickerYear + 1)}
                 style={{ padding: 10 }}
               >
@@ -327,11 +324,11 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
                   size={24}
                   color={isDark ? '#fff' : '#333'}
                 />
-              </TouchableOpacity>
+              </AppTouchableOpacity>
             </View>
             <View style={styles.pickerMonthGrid}>
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => (
-                <TouchableOpacity
+                <AppTouchableOpacity
                   key={m}
                   style={[
                     styles.pickerMonthBtn,
@@ -344,14 +341,13 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
                   >
                     {m}월
                   </AppText>
-                </TouchableOpacity>
+                </AppTouchableOpacity>
               ))}
             </View>
           </View>
-        </TouchableOpacity>
+        </AppTouchableOpacity>
       </Modal>
 
-      {/* 경고 모달 */}
       <Modal visible={warningModalVisible} transparent animationType="fade">
         <View style={styles.alertOverlay}>
           <View style={[styles.alertBox, isDark && styles.darkAlertBox]}>
@@ -367,14 +363,14 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
               )}
             </AppText>
             <View style={[styles.alertButtons, isDark && styles.darkBorder]}>
-              <TouchableOpacity
+              <AppTouchableOpacity
                 style={styles.alertBtn}
                 onPress={() => setWarningModalVisible(false)}
               >
                 <AppText style={[styles.alertBtnText, { fontWeight: 'bold' }]}>
                   {t('확인', 'OK')}
                 </AppText>
-              </TouchableOpacity>
+              </AppTouchableOpacity>
             </View>
           </View>
         </View>
@@ -384,7 +380,6 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
 }
 
 const styles = StyleSheet.create({
-  // 💡 SafeArea나 전체 배경은 메인(index)에서 처리합니다.
   container: { flex: 1 },
 
   customHeader: {
@@ -443,6 +438,13 @@ const styles = StyleSheet.create({
   calendarWrapper: {
     height: 330,
     width: '100%',
+  },
+  emotionImage: {
+    width: 40,
+    height: 40,
+  },
+  selectedEmotionImage: {
+    transform: [{ scale: 1.25 }],
   },
   dayText: { fontSize: 12, color: '#2d4150' },
   darkDayText: { color: '#d9e1e8' },

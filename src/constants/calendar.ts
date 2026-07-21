@@ -84,7 +84,6 @@ export const EN_CALENDAR_LOCALE = {
   today: 'Today',
 };
 
-// 💡 캘린더 라이브러리에 다국어 설정을 등록하는 함수
 export const setupCalendarLocales = () => {
   LocaleConfig.locales['kr'] = KR_CALENDAR_LOCALE;
   LocaleConfig.locales['en'] = EN_CALENDAR_LOCALE;

@@ -3,7 +3,6 @@ import {
   View,
   TextInput,
   StyleSheet,
-  TouchableOpacity,
   Modal,
   KeyboardAvoidingView,
   Platform,
@@ -11,8 +10,11 @@ import {
   ScrollView,
   Alert,
   useColorScheme,
-  Image,
+  Pressable,
 } from 'react-native';
+import { Image } from 'expo-image';
+import AppTouchableOpacity from '@/components/AppTouchableOpacity';
+import AppConfirmModal from '@/components/AppConfirmModal';
 import AppText from '@/components/AppText';
 import AppTextInput from '@/components/AppTextInput';
 import {
@@ -32,10 +34,14 @@ import {
   WriteIcon,
 } from '../../assets/icons';
 import { actions, RichEditor } from 'react-native-pell-rich-editor';
-import { EMOTIONS_DATA, EMOTION_IMAGE_MAP } from '@/constants/emotions';
+import {
+  EMOTIONS_DATA,
+  EMOTION_IMAGE_MAP,
+  ANIMATED_EMOTION_IMAGE_MAP,
+} from '@/constants/emotions';
 import { FONT_SIZES } from '@/constants/font';
 
-// 💡 지워지지 않는 기본 블록 상수화 (좌측 정렬 + 빈 줄)
+// 지워지지 않는 기본 블록 상수화 (좌측 정렬 + 빈 줄)
 const BASE_BLOCK = '<div style="text-align: left;"><br></div>';
 
 export default function WriteScreen() {
@@ -64,15 +70,12 @@ export default function WriteScreen() {
   const [textAlign, setTextAlign] = useState<'left' | 'center' | 'right'>(
     'left',
   );
-
   const [emotionModalVisible, setEmotionModalVisible] = useState(false);
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
+  const [draftModalVisible, setDraftModalVisible] = useState(false);
   const [isTitleActive, setIsTitleActive] = useState(false);
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
-
   const [editorHeight, setEditorHeight] = useState(300);
-
-  // 💡 커스텀 Placeholder의 표시 여부를 관리하는 State
   const [isPlaceholderVisible, setIsPlaceholderVisible] = useState(!editId);
 
   const titleInputRef = useRef<TextInput>(null);
@@ -111,7 +114,7 @@ export default function WriteScreen() {
     };
   }, []);
 
-  // 💡 텍스트가 완전히 비어있는지 체크하는 유틸리티 함수
+  // 텍스트가 완전히 비어있는지 체크하는 유틸리티 함수
   const checkIsEmptyText = (html: string) => {
     const plainText = html
       .replace(/<[^>]*>?/gm, '')
@@ -133,46 +136,13 @@ export default function WriteScreen() {
         else if (existingDiary.emotion)
           setSelectedEmotions([existingDiary.emotion]);
 
-        // 💡 핵심: 기존 데이터가 있으면 처음에는 무조건 false로 설정합니다.
-        // 데이터가 없는 경우에만(빈 일기 등) true로 설정합니다.
         const content = existingDiary.content || '';
         const isEmpty = checkIsEmptyText(content);
         setIsPlaceholderVisible(isEmpty);
-        // 내용이 비어있는지에 따라 Placeholder 켜기/끄기
-        // setIsPlaceholderVisible(checkIsEmptyText(existingDiary.content || ''));
       }
     } else {
       if (draft && draft.date === selectedDate) {
-        Alert.alert(
-          '임시저장 불러오기',
-          '작성 중이던 일기가 있습니다. 이어서 작성하시겠습니까?',
-          [
-            {
-              text: '새로 작성',
-              style: 'cancel',
-              onPress: () => {
-                clearDraft();
-                richText.current?.setContentHTML(BASE_BLOCK);
-                setIsPlaceholderVisible(true);
-              },
-            },
-            {
-              text: '이어서 작성',
-              onPress: () => {
-                setTitle(draft.title);
-                if (draft.title) setIsTitleActive(true);
-                setSelectedEmotions(draft.emotions);
-
-                setTimeout(() => {
-                  richText.current?.setContentHTML(draft.content || BASE_BLOCK);
-                  setIsPlaceholderVisible(
-                    checkIsEmptyText(draft.content || ''),
-                  );
-                }, 100);
-              },
-            },
-          ],
-        );
+        setDraftModalVisible(true);
       }
     }
   }, [editId, selectedDate]);
@@ -183,12 +153,12 @@ export default function WriteScreen() {
     if (editId) {
       const existingDiary = diaries.find((d) => d.id === editId);
       if (existingDiary) {
-        isInitializingRef.current = true; // 💡 여기서 스크롤 잠금!
+        isInitializingRef.current = true;
 
         setTimeout(() => {
           richText.current?.setContentHTML(existingDiary.content || BASE_BLOCK);
 
-          forceLayoutReflow(true); // 💡 초기화 중임을 알려줌
+          forceLayoutReflow(true);
         }, 500);
       }
     } else {
@@ -204,7 +174,7 @@ export default function WriteScreen() {
       setSelectedEmotions(selectedEmotions.filter((e) => e !== id));
     } else {
       if (selectedEmotions.length >= 4) {
-        // 💡 경고창(Alert)을 띄우지 않고, 4번째 감정을 새로운 감정으로 교체합니다.
+        // 경고창(Alert)을 띄우지 않고, 4번째 감정을 새로운 감정으로 교체합니다.
         const newEmotions = [...selectedEmotions];
         newEmotions[3] = id;
         setSelectedEmotions(newEmotions);
@@ -240,7 +210,6 @@ export default function WriteScreen() {
 
     let currentContent = (await richText.current?.getContentHtml()) || '';
 
-    // 💡 저장 직전에 dummy_url 더미 이미지 태그를 문자열에서 완전히 삭제!
     currentContent = currentContent.replace(
       /<img[^>]*src="dummy_url"[^>]*>/gi,
       '',
@@ -318,7 +287,7 @@ export default function WriteScreen() {
 
       setIsPlaceholderVisible(false);
 
-      // 💡 이미지가 삽입된 후에도 레이아웃 강제 새로고침
+      // 이미지가 삽입된 후에도 레이아웃 강제 새로고침
       forceLayoutReflow();
 
       setTimeout(() => {
@@ -394,21 +363,23 @@ export default function WriteScreen() {
           ]}
         >
           <View style={styles.leftIconsWrapper}>
-            <TouchableOpacity onPress={() => setCancelModalVisible(true)}>
+            <AppTouchableOpacity onPress={() => setCancelModalVisible(true)}>
               <CloseIcon
                 width={28}
                 height={28}
                 color={isDark ? 'white' : 'black'}
               />
-            </TouchableOpacity>
+            </AppTouchableOpacity>
           </View>
           <View style={styles.rightIconsWrapper}>
-            <TouchableOpacity
-              onPress={handleSaveDraft}
-              style={styles.headerBtn}
-            >
-              <AppText style={styles.draftBtnText}>임시저장</AppText>
-            </TouchableOpacity>
+            {!editId && (
+              <AppTouchableOpacity
+                onPress={handleSaveDraft}
+                style={styles.headerBtn}
+              >
+                <AppText style={styles.draftBtnText}>임시저장</AppText>
+              </AppTouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -420,10 +391,10 @@ export default function WriteScreen() {
         >
           <View style={styles.contentWrapper}>
             <View style={styles.infoArea}>
-              <TouchableOpacity
+              <AppTouchableOpacity
                 // onPress={() => setEmotionModalVisible(true)}
                 onPress={() => {
-                  // 💡 모달을 열기 전에 키보드를 내리고 에디터 포커스를 완벽히 해제합니다.
+                  // 모달을 열기 전에 키보드를 내리고 에디터 포커스를 완벽히 해제합니다.
                   Keyboard.dismiss();
                   richText.current?.blurContentEditor();
 
@@ -439,26 +410,32 @@ export default function WriteScreen() {
                   selectedEmotions.map((emotionId) => (
                     <Image
                       key={emotionId}
-                      source={EMOTION_IMAGE_MAP[emotionId]}
+                      source={
+                        ANIMATED_EMOTION_IMAGE_MAP[emotionId] ||
+                        EMOTION_IMAGE_MAP[emotionId]
+                      }
                       style={styles.topEmotionImage}
-                      resizeMode="contain"
+                      contentFit="contain" // resizeMode 대신 contentFit
                     />
                   ))
                 ) : (
                   <AppText style={styles.emotionFallback}>➕</AppText>
                 )}
-              </TouchableOpacity>
+              </AppTouchableOpacity>
 
               <View style={styles.dateBox}>
                 <AppText
+                  useDiaryFont
                   style={styles.date}
                 >{`${year}년 ${month}월 ${day}일`}</AppText>
-                <AppText style={styles.day}>{dayOfWeek}요일</AppText>
+                <AppText useDiaryFont style={styles.day}>
+                  {dayOfWeek}요일
+                </AppText>
               </View>
             </View>
 
             {!isTitleActive && title.length === 0 ? (
-              <TouchableOpacity
+              <AppTouchableOpacity
                 style={[styles.addTitleBtn, isDark && styles.darkAddTitleBtn]}
                 onPress={handleTitleActivate}
               >
@@ -470,7 +447,7 @@ export default function WriteScreen() {
                 >
                   제목 +
                 </AppText>
-              </TouchableOpacity>
+              </AppTouchableOpacity>
             ) : (
               <AppTextInput
                 ref={titleInputRef}
@@ -493,14 +470,13 @@ export default function WriteScreen() {
               />
             )}
 
-            {/* 💡 에디터와 커스텀 Placeholder를 겹치기 위한 래퍼(Wrapper) */}
             <View
               style={[
                 styles.editorWrapper,
                 { minHeight: Math.max(300, editorHeight) },
               ]}
             >
-              {/* 💡 커스텀 Placeholder
+              {/* 커스텀 Placeholder
                   pointerEvents="none" 속성 덕분에
                   플레이스홀더 영역을 터치해도 그 뒤의 에디터가 정상적으로 포커스됩니다. */}
               {isPlaceholderVisible && (
@@ -512,10 +488,8 @@ export default function WriteScreen() {
                           ? undefined
                           : diaryFontFamily,
                       fontSize: currentFontSize,
-                      // 에디터와 동일하게 줄간격 1.5배 적용
                       lineHeight: currentFontSize * 1.5,
-                      color: isDark ? '#666666' : '#bbbbbb', // 다크모드에 맞춰 자연스럽게 변경
-                      // 💡 에디터의 정렬 상태(left, center, right)를 그대로 따라가게 합니다!
+                      color: isDark ? '#666666' : '#bbbbbb',
                       textAlign: textAlign,
                     }}
                   >
@@ -532,23 +506,23 @@ export default function WriteScreen() {
                 useCharacter={false}
                 androidHardwareAccelerationDisabled
 
-                // 💡 1. 에디터를 터치하면 포커스 상태 켜기
+                // 1. 에디터를 터치하면 포커스 상태 켜기
                 onFocus={() => {
                   isEditorFocusedRef.current = true;
                 }}
 
-                // 💡 2. 에디터 밖을 터치(키보드 닫힘 등)하면 포커스 끄기
+                // 2. 에디터 밖을 터치(키보드 닫힘 등)하면 포커스 끄기
                 onBlur={() => {
                   isEditorFocusedRef.current = false;
                 }}
 
-                // 💡 4. 웹뷰 내부 높이가 변할 때 React Native 부모 컴포넌트 강제 리렌더링
+                // 4. 웹뷰 내부 높이가 변할 때 React Native 부모 컴포넌트 강제 리렌더링
                 onHeightChange={(height) => {
                   // 50px 정도 여유 공간을 더해주어 하단 커서 잘림을 완벽히 방지
                   setEditorHeight(height + 50);
                 }}
 
-                // 💡 5. 공식 문서 해결책 적용: 커서 이동 시 해당 위치로 자동 스크롤
+                // 5. 공식 문서 해결책 적용: 커서 이동 시 해당 위치로 자동 스크롤
                 onCursorPosition={(scrollY) => {
                   if (isInitializingRef.current || !isEditorFocusedRef.current)
                     return;
@@ -581,7 +555,7 @@ export default function WriteScreen() {
                 editorStyle={{
                   backgroundColor: isDark ? '#111111' : '#ffffff',
                   color: isDark ? '#ffffff' : '#000000',
-                  placeholderColor: 'transparent', // 💡 기존 Placeholder는 완벽히 숨김
+                  placeholderColor: 'transparent',
                   initialCSSText: `
                     ${getWebFontCss(diaryFontFamily)}
                     img { max-width: 100% !important; height: auto !important; display: block !important; border-radius: 8px !important; margin-top: 10px !important; }
@@ -610,7 +584,10 @@ export default function WriteScreen() {
           ]}
         >
           <View style={styles.toolbar}>
-            <TouchableOpacity onPress={changeAlignment} style={styles.toolBtn}>
+            <AppTouchableOpacity
+              onPress={changeAlignment}
+              style={styles.toolBtn}
+            >
               {textAlign === 'left' && (
                 <AlignLeftIcon
                   width={28}
@@ -632,15 +609,18 @@ export default function WriteScreen() {
                   color={isDark ? 'white' : 'black'}
                 />
               )}
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleImagePress} style={styles.toolBtn}>
+            </AppTouchableOpacity>
+            <AppTouchableOpacity
+              onPress={handleImagePress}
+              style={styles.toolBtn}
+            >
               <ImageIcon
                 width={28}
                 height={28}
                 color={isDark ? 'white' : 'black'}
               />
-            </TouchableOpacity>
-            <TouchableOpacity
+            </AppTouchableOpacity>
+            <AppTouchableOpacity
               onPress={insertCurrentTime}
               style={styles.toolBtn}
             >
@@ -649,51 +629,69 @@ export default function WriteScreen() {
                 height={28}
                 color={isDark ? 'white' : 'black'}
               />
-            </TouchableOpacity>
+            </AppTouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.submitBtn} onPress={handleSave}>
+          <AppTouchableOpacity style={styles.submitBtn} onPress={handleSave}>
             <WriteIcon
               width={28}
               height={28}
               color={isDark ? 'white' : 'black'}
             />
-          </TouchableOpacity>
+          </AppTouchableOpacity>
         </View>
       </KeyboardAvoidingView>
 
-      <Modal visible={cancelModalVisible} transparent animationType="fade">
-        <View style={styles.alertOverlay}>
-          <View style={styles.alertBox}>
-            <AppText style={styles.alertTitle}>작성 중지</AppText>
-            <AppText style={styles.alertMessage}>
-              임시저장 하지 않으면, 작성한 글이 저장되지 않습니다.
-            </AppText>
-            <View style={styles.alertButtonsCol}>
-              <TouchableOpacity
-                style={styles.alertBtnCol}
-                onPress={() => setCancelModalVisible(false)}
-              >
-                <AppText style={styles.alertBtnText}>계속 작성하기</AppText>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.alertBtnCol,
-                  { borderTopWidth: 1, borderColor: '#eee' },
-                ]}
-                onPress={() => {
-                  setCancelModalVisible(false);
-                  if (router.canDismiss()) router.dismissAll();
-                  router.replace('/');
-                }}
-              >
-                <AppText style={[styles.alertBtnText, { color: 'red' }]}>
-                  나가기
-                </AppText>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <AppConfirmModal
+        visible={draftModalVisible}
+        title="임시저장 불러오기"
+        message={
+          '작성 중인 일기가 있어요.\n이어서 작성할까요?\n\n* 새로 작성시, 임시 글은 지워집니다.'
+        }
+        cancelText="새로 작성"
+        confirmText="이어서 작성"
+        onCancel={() => {
+          setDraftModalVisible(false);
+          clearDraft();
+          richText.current?.setContentHTML(BASE_BLOCK);
+          setIsPlaceholderVisible(true);
+        }}
+        onConfirm={() => {
+          setDraftModalVisible(false);
+
+          // 방어 코드: draft가 null이면 아래 코드를 실행하지 않고 즉시 종료합니다.
+          if (!draft) return;
+
+          // draft! 대신 draft? (옵셔널 체이닝)와 기본값을 사용해 안전하게 처리합니다.
+          setTitle(draft?.title || '');
+          if (draft?.title) setIsTitleActive(true);
+          setSelectedEmotions(draft?.emotions || []);
+
+          setTimeout(() => {
+            // setTimeout 내부에서도 한 번 더 안전하게 접근합니다.
+            richText.current?.setContentHTML(draft?.content || BASE_BLOCK);
+            setIsPlaceholderVisible(checkIsEmptyText(draft?.content || ''));
+          }, 100);
+        }}
+        closeOnOverlayPress={false}
+      />
+
+      <AppConfirmModal
+        visible={cancelModalVisible}
+        title="작성 취소"
+        message={
+          '일기를 그만 쓰시나요?\n작성 중인 일기가 저장되지 않아요.\n\n* 이어서 작성하려면 임시저장을 해주세요.'
+        }
+        cancelText="계속 작성하기"
+        confirmText="나가기"
+        confirmColor="#FF6F61"
+        onCancel={() => setCancelModalVisible(false)}
+        onConfirm={() => {
+          setCancelModalVisible(false);
+          if (router.canDismiss()) router.dismissAll();
+          router.replace('/');
+        }}
+        reverseButtons={true}
+      />
 
       <Modal visible={emotionModalVisible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
@@ -708,7 +706,7 @@ export default function WriteScreen() {
                 {EMOTIONS_DATA.map((emotion) => {
                   const isSelected = selectedEmotions.includes(emotion.id);
                   return (
-                    <TouchableOpacity
+                    <AppTouchableOpacity
                       key={emotion.id}
                       style={[
                         styles.emojiBtn,
@@ -717,22 +715,30 @@ export default function WriteScreen() {
                       onPress={() => handleEmotionToggle(emotion.id)}
                     >
                       <Image
-                        source={emotion.source}
-                        style={styles.modalEmotionImage}
-                        resizeMode="contain"
+                        source={
+                          isSelected && emotion.animatedSource
+                            ? emotion.animatedSource
+                            : emotion.source
+                        }
+                        style={[
+                          styles.modalEmotionImage,
+                          isSelected && styles.selectedEmotionImage,
+                        ]}
+                        contentFit="contain" // resizeMode 대신 contentFit
+                        transition={200}
                       />
-                    </TouchableOpacity>
+                    </AppTouchableOpacity>
                   );
                 })}
               </View>
             </ScrollView>
 
-            <TouchableOpacity
+            <AppTouchableOpacity
               style={styles.closeModalBtn}
               onPress={() => setEmotionModalVisible(false)}
             >
               <AppText style={{ fontWeight: 'bold' }}>선택 완료</AppText>
-            </TouchableOpacity>
+            </AppTouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -772,7 +778,6 @@ const styles = StyleSheet.create({
     gap: 0,
   },
   infoArea: { alignItems: 'center', gap: 10 },
-  // 💡 선택된 감정들을 나란히 보여주기 위한 래퍼
   selectedEmotionsContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -780,7 +785,6 @@ const styles = StyleSheet.create({
     gap: 8,
     minHeight: 50,
   },
-  // 💡 화면 상단 정보 영역에 보여지는 감정 이미지
   topEmotionImage: {
     width: 50,
     height: 50,
@@ -791,8 +795,8 @@ const styles = StyleSheet.create({
 
   emotion: { fontSize: 50 },
   dateBox: { alignItems: 'center', gap: 4 },
-  date: { fontSize: 14 },
-  day: { fontSize: 14, color: '#666' },
+  date: { fontSize: 14, lineHeight: 16 },
+  day: { fontSize: 14, color: '#666', lineHeight: 16 },
   addTitleBtn: {
     height: 32,
     marginTop: 24,
@@ -816,7 +820,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
 
-  // 💡 Placeholder 래퍼 추가
   editorWrapper: {
     position: 'relative',
     width: '100%',
@@ -824,8 +827,8 @@ const styles = StyleSheet.create({
   },
   customPlaceholder: {
     position: 'absolute',
-    top: 10, // 💡 기기별로 텍스트 시작 높이(웹뷰 기본 패딩)가 다를 수 있으니 이 수치를 미세조정(예: 8~14) 하세요.
-    left: 10, // 💡 좌측 여백 미세조정
+    top: 10,
+    left: 10,
     right: 10,
     zIndex: 1,
   },
@@ -865,9 +868,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  // 💡 새롭게 추가된 스크롤 뷰 스타일
   emotionScrollView: {
-    maxHeight: 300, // 모달의 최대 높이를 제한하여 화면을 꽉 채우지 않게 합니다.
+    maxHeight: 300,
     width: '100%',
   },
   emotionScrollContent: {
@@ -890,26 +892,21 @@ const styles = StyleSheet.create({
     height: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 100,
-    backgroundColor: '#f0f0f0',
   },
   modalEmotionImage: {
     width: 50,
     height: 50,
   },
-
-  selectedBtn: {
-    backgroundColor: '#FFD700',
-    borderWidth: 2,
-    borderColor: '#FFA500',
+  selectedEmotionImage: {
+    transform: [{ scale: 1.3 }],
   },
+
+  selectedBtn: {},
   emojiText: { fontSize: 28 },
   closeModalBtn: {
     marginTop: 20,
     alignItems: 'center',
     padding: 15,
-    backgroundColor: '#eee',
-    borderRadius: 10,
   },
   alertOverlay: {
     flex: 1,

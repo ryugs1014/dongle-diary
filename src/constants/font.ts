@@ -6,7 +6,6 @@ export const FONT_SIZES = {
   5: 18,
 } as const;
 
-// 💡 서체 목록도 이곳으로 옮겨와서 한 번에 관리합니다.
 export const FONTS = [
   // { id: 'System', label: '시스템 기본 서체' },
   { id: 'NanumSquareRound', label: '나눔스퀘어라운드' },

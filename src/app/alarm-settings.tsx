@@ -49,9 +49,7 @@ export default function AlarmSettingsScreen() {
     }
   };
 
-  // 💡 2. 최신 onValueChange 규격에 맞게 파라미터를 유연하게 받도록 수정
   const onChangeTime = (event: any, selectedDate?: Date) => {
-    // 이벤트 객체로 넘어올 수도 있고, 날짜 객체가 바로 넘어올 수도 있습니다.
     const targetDate = selectedDate || (event instanceof Date ? event : null);
 
     if (targetDate) {
@@ -120,7 +118,6 @@ export default function AlarmSettingsScreen() {
             value={new Date(alarmTime)}
             mode="time"
             display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            // 💡 2. onChange 대신 onValueChange 사용
             onValueChange={onChangeTime}
             disabled={!isAlarmEnabled}
             textColor={isDark ? '#fff' : '#000'}

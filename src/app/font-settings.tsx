@@ -3,10 +3,10 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   useColorScheme,
   ScrollView,
 } from 'react-native';
+import AppTouchableOpacity from '@/components/AppTouchableOpacity';
 import AppText from '@/components/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
@@ -39,7 +39,6 @@ export default function FontSettingsScreen() {
       />
 
       <ScrollView>
-        {/* 💡 1. 미리보기 영역 */}
         <View style={styles.previewContainer}>
           <AppText style={styles.previewLabel}>미리보기</AppText>
           <View style={[styles.previewBox, isDark && styles.darkPreviewBox]}>
@@ -57,13 +56,12 @@ export default function FontSettingsScreen() {
           </View>
         </View>
 
-        {/* 💡 2. 글자 크기 5단계 설정 (Slider 대신 직관적인 버튼 방식) */}
         <View style={[styles.section, isDark && styles.darkSection]}>
           <AppText style={[styles.sectionTitle, isDark && styles.darkSubText]}>
             일기 글자 크기 ({diaryFontSize}단계)
           </AppText>
           <View style={styles.sizeController}>
-            <TouchableOpacity
+            <AppTouchableOpacity
               onPress={() => setDiaryFontSize(Math.max(1, diaryFontSize - 1))}
             >
               <Ionicons
@@ -71,7 +69,7 @@ export default function FontSettingsScreen() {
                 size={36}
                 color={diaryFontSize === 1 ? '#ccc' : '#FF6F61'}
               />
-            </TouchableOpacity>
+            </AppTouchableOpacity>
 
             <View style={styles.dotsContainer}>
               {[1, 2, 3, 4, 5].map((level) => (
@@ -85,7 +83,7 @@ export default function FontSettingsScreen() {
               ))}
             </View>
 
-            <TouchableOpacity
+            <AppTouchableOpacity
               onPress={() => setDiaryFontSize(Math.min(5, diaryFontSize + 1))}
             >
               <Ionicons
@@ -93,11 +91,10 @@ export default function FontSettingsScreen() {
                 size={36}
                 color={diaryFontSize === 5 ? '#ccc' : '#FF6F61'}
               />
-            </TouchableOpacity>
+            </AppTouchableOpacity>
           </View>
         </View>
 
-        {/* 💡 3. 글꼴 선택기 */}
         <View
           style={[
             styles.section,
@@ -109,7 +106,7 @@ export default function FontSettingsScreen() {
             서체 변경
           </AppText>
           {FONTS.map((font, index) => (
-            <TouchableOpacity
+            <AppTouchableOpacity
               key={font.id}
               style={[
                 styles.fontItem,
@@ -132,7 +129,7 @@ export default function FontSettingsScreen() {
               {diaryFontFamily === font.id && (
                 <Ionicons name="checkmark" size={24} color="#FF6F61" />
               )}
-            </TouchableOpacity>
+            </AppTouchableOpacity>
           ))}
         </View>
       </ScrollView>
