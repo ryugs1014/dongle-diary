@@ -16,7 +16,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as ImageManipulator from 'expo-image-manipulator';
-import { Asset } from 'expo-asset'; // 🌟 Asset 추가
+import { Asset } from 'expo-asset';
 import { useDiaryStore } from '../store/useDiaryStore';
 import {
   BackIcon,
@@ -84,7 +84,7 @@ export default function PdfExportScreen() {
             <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
             <meta charset="utf-8" />
             <style>
-              /* 🌟 선택된 폰트 CSS 주입 */
+              /* 선택된 폰트 CSS 주입 */
               ${getFontStyles(diaryFontFamily || 'System')}
               
               @page { padding: 40px; }
@@ -102,12 +102,12 @@ export default function PdfExportScreen() {
               .diary-title { font-size: 22px; font-weight: bold; color: #333; margin-top: 0; margin-bottom: 15px; }
               .text-block { font-size: 16px; margin-top: 10px; white-space: pre-wrap; }
               
-              /* 🌟 첨부 이미지 강제 30% (CSS 우선순위 확보) */
+              /* 첨부 이미지 강제 30% (CSS 우선순위 확보) */
               .image-block { width: 30% !important; height: auto !important; border-radius: 8px; margin-top: 15px; display: block; object-fit: cover; }
               .error-block { padding: 20px; background: #eee; text-align: center; color: #888; border-radius: 8px; margin-top: 15px; font-size: 14px; }
               
               .rich-content { font-size: 16px; margin-top: 10px; line-height: 1.6; }
-              /* 🌟 웹 에디터 이미지 강제 30% */
+              /* 웹 에디터 이미지 강제 30% */
               .rich-content img { width: 30% !important; height: auto !important; display: block; margin: 15px 0; border-radius: 8px; }
             </style>
           </head>
@@ -128,12 +128,12 @@ export default function PdfExportScreen() {
         htmlContent += `<div class="diary-entry">`;
 
         // 날짜 출력
-        // 🌟 날짜 포맷 변환 (2026-07-01 -> 2026.07.01.월요일)
+        // 날짜 포맷 변환 (2026-07-01 -> 2026.07.01.월요일)
         const dateObj = new Date(diary.date);
         const dayString = dayNames[dateObj.getDay()];
         const formattedDate = `${diary.date.replace(/-/g, '.')}.${dayString}`;
 
-        // 🌟 변환된 날짜로 출력
+        // 변환된 날짜로 출력
         htmlContent += `<div class="date">${formattedDate}</div>`;
 
         const emotionList =
@@ -150,7 +150,7 @@ export default function PdfExportScreen() {
             const emoSource = EMOTION_IMAGE_MAP[emo];
             if (emoSource) {
               try {
-                // 🌟 Asset을 통해 로컬 이미지 경로를 확실히 가져옴
+                // Asset을 통해 로컬 이미지 경로를 확실히 가져옴
                 const asset = Asset.fromModule(emoSource);
                 await asset.downloadAsync(); // 다운로드 보장
                 const uriToRead = asset.localUri || asset.uri;
@@ -207,7 +207,7 @@ export default function PdfExportScreen() {
                 );
 
                 if (manipResult.base64) {
-                  // 🌟 인라인 스타일로 한 번 더 width 30%를 강제 적용
+                  // 인라인 스타일로 한 번 더 width 30%를 강제 적용
                   htmlContent += `<img class="image-block" style="width: 30%; height: auto;" src="data:image/jpeg;base64,${manipResult.base64}" />`;
                 }
               } catch (compressError) {

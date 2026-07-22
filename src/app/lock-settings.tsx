@@ -17,7 +17,7 @@ import * as Haptics from 'expo-haptics';
 import { useDiaryStore } from '../store/useDiaryStore';
 import NumberKeypad from '@/components/NumberKeypad';
 import { BackIcon, CloseIcon, ArrowRightIcon } from '@/assets/icons';
-import CustomSwitch from '@/components/CustomSwitch'; // <-- 새로 분리한 컴포넌트 import
+import CustomSwitch from '@/components/CustomSwitch';
 
 export default function LockSettingsScreen() {
   const {

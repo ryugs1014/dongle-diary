@@ -99,13 +99,13 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 40,
     elevation: 10,
-    shadowColor: '#111111',
+    shadowColor: '#191919',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 10,
   },
   darkSortBottomSheet: {
-    backgroundColor: '#111111',
+    backgroundColor: '#191919',
   },
   dragHandle: {
     width: 40,

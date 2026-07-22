@@ -11,6 +11,7 @@ import AppTouchableOpacity from '@/components/AppTouchableOpacity';
 import AppText from '@/components/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Stack } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import { useDiaryStore } from '../store/useDiaryStore';
 import { FONT_SIZES, FONTS } from '@/constants/font';
 import { BackIcon } from '@/assets/icons';
@@ -39,6 +40,8 @@ export default function FontSettingsScreen() {
   const sliderWidthRef = useRef(0);
   const startStepRef = useRef(diaryFontSize);
 
+  const lastStepRef = useRef(diaryFontSize);
+
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -59,6 +62,13 @@ export default function FontSettingsScreen() {
           const step = Math.round(ratio * 4) + 1;
           setDiaryFontSize(step);
 
+          // 터치한 곳이 기존 단계와 다르면 햅틱 발생 및 상태 업데이트
+          if (lastStepRef.current !== step) {
+            Haptics.selectionAsync();
+            lastStepRef.current = step;
+            setDiaryFontSize(step);
+          }
+
           // 2. 드래그의 기준점이 될 시작 단계를 기억
           startStepRef.current = step;
         }
@@ -73,7 +83,13 @@ export default function FontSettingsScreen() {
             1,
             Math.min(5, startStepRef.current + moveSteps),
           );
-          setDiaryFontSize(newStep);
+
+          // 이동한 위치의 단계가 이전 단계와 다를 때만 햅틱 발생
+          if (lastStepRef.current !== newStep) {
+            Haptics.selectionAsync(); // 가벼운 '톡' 느낌의 햅틱
+            lastStepRef.current = newStep;
+            setDiaryFontSize(newStep);
+          }
         }
       },
       onPanResponderRelease: () => setIsSliding(false),

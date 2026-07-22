@@ -75,12 +75,16 @@ export default function LanguageSettingsScreen() {
           onPress={() => setLanguage('en')}
           isDark={isDark}
         />
-      </ScrollView>
 
-      <AppText style={[styles.infoText, isDark && styles.darkSubText]}>
-        시스템 기본값을 선택하면 기기의 언어 설정에 따라 앱의 언어가 자동으로
-        변경됩니다.
-      </AppText>
+        <View style={styles.dividerWrapper}>
+          <SvgDashedLine />
+        </View>
+
+        <AppText style={[styles.infoText, isDark && styles.darkSubText]}>
+          시스템 기본값을 선택하면 기기의 언어 설정에 따라 앱의 언어가 자동으로
+          변경됩니다.
+        </AppText>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -127,12 +131,12 @@ const styles = StyleSheet.create({
   },
 
   infoText: {
-    marginTop: 'auto',
+    marginTop: 15,
     marginBottom: 40,
     paddingHorizontal: 20,
     fontSize: 13,
     color: '#888888',
-    textAlign: 'center',
+    textAlign: 'left',
     lineHeight: 20,
   },
   darkText: { color: '#ffffff' },

@@ -514,7 +514,7 @@ const styles = StyleSheet.create({
     // backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'flex-start',
     alignItems: 'flex-end',
-    paddingTop: 60,
+    paddingTop: 100,
     paddingRight: 20,
   },
   menuBox: {

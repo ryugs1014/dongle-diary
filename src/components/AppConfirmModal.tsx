@@ -45,7 +45,7 @@ export default function AppConfirmModal({
     {
       key: 'cancel',
       text: cancelText,
-      color: isDark ? '#ffffff' : '#007AFF',
+      color: isDark ? '#ffffff' : '#666666',
       onPress: onCancel,
       isConfirm: false,
     },

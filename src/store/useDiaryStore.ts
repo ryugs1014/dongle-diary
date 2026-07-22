@@ -1,4 +1,8 @@
 import { create } from 'zustand';
+// 🌟 1. 영구 저장을 위한 persist, createJSONStorage 임포트
+import { persist, createJSONStorage } from 'zustand/middleware';
+// 🌟 2. AsyncStorage 임포트 (설치 안 하셨다면: npx expo install @react-native-async-storage/async-storage)
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type DiaryBlock = {
   id: string;
@@ -84,60 +88,77 @@ const today = getLocalToday();
 const defaultAlarmTime = new Date();
 defaultAlarmTime.setHours(22, 0, 0, 0);
 
-export const useDiaryStore = create<DiaryStore>((set) => ({
-  diaries: [],
-  selectedDate: today,
-  selectedEmotions: [],
-  draft: null,
+// 🌟 3. create<DiaryStore>()( persist( ... ) ) 형태로 래핑합니다.
+export const useDiaryStore = create<DiaryStore>()(
+  persist(
+    (set) => ({
+      diaries: [],
+      selectedDate: today,
+      selectedEmotions: [],
+      draft: null,
 
-  isLockEnabled: false,
-  pinCode: null,
-  isBiometricEnabled: false,
-  language: 'system',
-  theme: 'system',
-  googleToken: null,
-  googleEmail: null,
-  lastBackupDate: null,
-  isAlarmEnabled: false,
-  alarmTime: defaultAlarmTime,
-  diaryFontSize: 3,
-  diaryFontFamily: 'NanumSquareRound',
+      isLockEnabled: false,
+      pinCode: null,
+      isBiometricEnabled: false,
+      language: 'system',
+      theme: 'light',
+      googleToken: null,
+      googleEmail: null,
+      lastBackupDate: null,
+      isAlarmEnabled: false,
+      alarmTime: defaultAlarmTime,
+      diaryFontSize: 3,
+      diaryFontFamily: 'NanumSquareRound',
 
-  setSelectedDate: (date) => set({ selectedDate: date }),
-  setSelectedEmotions: (emotions) => set({ selectedEmotions: emotions }),
+      setSelectedDate: (date) => set({ selectedDate: date }),
+      setSelectedEmotions: (emotions) => set({ selectedEmotions: emotions }),
 
-  addDiary: (diary) =>
-    set((state) => ({
-      diaries: [
-        ...state.diaries,
-        { ...diary, id: Date.now().toString(), timestamp: Date.now() },
-      ],
-    })),
-  updateDiary: (id, updated) =>
-    set((state) => ({
-      diaries: state.diaries.map((d) =>
-        d.id === id ? { ...d, ...updated } : d,
-      ),
-    })),
-  deleteDiary: (id) =>
-    set((state) => ({
-      diaries: state.diaries.filter((d) => d.id !== id),
-    })),
+      addDiary: (diary) =>
+        set((state) => ({
+          diaries: [
+            ...state.diaries,
+            { ...diary, id: Date.now().toString(), timestamp: Date.now() },
+          ],
+        })),
+      updateDiary: (id, updated) =>
+        set((state) => ({
+          diaries: state.diaries.map((d) =>
+            d.id === id ? { ...d, ...updated } : d,
+          ),
+        })),
+      deleteDiary: (id) =>
+        set((state) => ({
+          diaries: state.diaries.filter((d) => d.id !== id),
+        })),
 
-  saveDraft: (draft) => set({ draft }),
-  clearDraft: () => set({ draft: null }),
+      saveDraft: (draft) => set({ draft }),
+      clearDraft: () => set({ draft: null }),
 
-  setLockEnabled: (enabled) => set({ isLockEnabled: enabled }),
-  setPinCode: (pin) => set({ pinCode: pin }),
-  setBiometricEnabled: (enabled) => set({ isBiometricEnabled: enabled }),
-  setLanguage: (lang) => set({ language: lang }),
-  setTheme: (theme) => set({ theme }),
-  restoreDiaries: (newDiaries) => set({ diaries: newDiaries }),
-  setGoogleAuth: (token, email) =>
-    set({ googleToken: token, googleEmail: email }),
-  setLastBackupDate: (date) => set({ lastBackupDate: date }),
-  setAlarmEnabled: (enabled) => set({ isAlarmEnabled: enabled }),
-  setAlarmTime: (time) => set({ alarmTime: time }),
-  setDiaryFontSize: (level) => set({ diaryFontSize: level }),
-  setDiaryFontFamily: (font) => set({ diaryFontFamily: font }),
-}));
+      setLockEnabled: (enabled) => set({ isLockEnabled: enabled }),
+      setPinCode: (pin) => set({ pinCode: pin }),
+      setBiometricEnabled: (enabled) => set({ isBiometricEnabled: enabled }),
+      setLanguage: (lang) => set({ language: lang }),
+      setTheme: (theme) => set({ theme }),
+      restoreDiaries: (newDiaries) => set({ diaries: newDiaries }),
+      setGoogleAuth: (token, email) =>
+        set({ googleToken: token, googleEmail: email }),
+      setLastBackupDate: (date) => set({ lastBackupDate: date }),
+      setAlarmEnabled: (enabled) => set({ isAlarmEnabled: enabled }),
+      setAlarmTime: (time) => set({ alarmTime: time }),
+      setDiaryFontSize: (level) => set({ diaryFontSize: level }),
+      setDiaryFontFamily: (font) => set({ diaryFontFamily: font }),
+    }),
+    {
+      name: 'diary-storage', // 기기에 저장될 스토리지 키 이름
+      storage: createJSONStorage(() => AsyncStorage, {
+        // 🌟 4. Date 객체가 문자열로 저장되었다가 불러올 때 다시 Date 객체로 복원되도록 처리
+        reviver: (key, value) => {
+          if (key === 'alarmTime' && typeof value === 'string') {
+            return new Date(value);
+          }
+          return value;
+        },
+      }),
+    },
+  ),
+);

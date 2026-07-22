@@ -311,11 +311,15 @@ export default function AlarmSettingsScreen() {
           disabled={!isAlarmEnabled}
           onPress={openTimePicker}
         />
-      </ScrollView>
 
-      <AppText style={[styles.infoText, isDark && styles.darkSubText]}>
-        설정한 시간에 매일 일기 작성 안내 알림을 보내드립니다.
-      </AppText>
+        <View style={styles.dividerWrapper}>
+          <SvgDashedLine />
+        </View>
+
+        <AppText style={[styles.infoText, isDark && styles.darkSubText]}>
+          설정한 시간에 매일 일기 작성 안내 알림을 보내드립니다.
+        </AppText>
+      </ScrollView>
 
       <Modal visible={showPicker} transparent animationType="fade">
         <View style={styles.alertOverlay}>
@@ -534,12 +538,13 @@ const styles = StyleSheet.create({
   dividerWrapper: { paddingHorizontal: 20, paddingVertical: 10 },
 
   infoText: {
-    marginTop: 'auto',
+    marginTop: 15,
     marginBottom: 40,
     paddingHorizontal: 20,
     fontSize: 13,
     color: '#888888',
-    textAlign: 'center',
+    textAlign: 'left',
+    lineHeight: 20,
   },
 
   alertOverlay: {

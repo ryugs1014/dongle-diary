@@ -3,14 +3,13 @@ import {
   View,
   TextInput,
   StyleSheet,
-  Modal,
   KeyboardAvoidingView,
   Platform,
   Keyboard,
   ScrollView,
   Alert,
   useColorScheme,
-  Pressable,
+  Animated,
 } from 'react-native';
 import { Image } from 'expo-image';
 import AppTouchableOpacity from '@/components/AppTouchableOpacity';
@@ -32,14 +31,19 @@ import {
   AlignCenterIcon,
   AlignRightIcon,
   WriteIcon,
+  AddBigIcon,
+  AddIcon,
+  AddDarkIcon,
+  MinusIcon,
+  MinusDarkIcon,
 } from '../../assets/icons';
 import { actions, RichEditor } from 'react-native-pell-rich-editor';
 import {
-  EMOTIONS_DATA,
   EMOTION_IMAGE_MAP,
   ANIMATED_EMOTION_IMAGE_MAP,
 } from '@/constants/emotions';
 import { FONT_SIZES } from '@/constants/font';
+import EmotionSelectModal from '@/components/EmotionSelectModal';
 
 // 지워지지 않는 기본 블록 상수화 (좌측 정렬 + 빈 줄)
 const BASE_BLOCK = '<div style="text-align: left;"><br></div>';
@@ -314,6 +318,11 @@ export default function WriteScreen() {
     }, 100);
   };
 
+  const handleTitleReset = () => {
+    setTitle('');
+    setIsTitleActive(false);
+  };
+
   const changeAlignment = () => {
     let nextAlign: 'left' | 'center' | 'right' = 'left';
     let command = actions.alignLeft;
@@ -344,6 +353,28 @@ export default function WriteScreen() {
         return '';
     }
   };
+
+  // 🌟 1. 어떤 버튼을 보여줄지 결정하는 조건
+  const showPlusBtn = !isTitleActive && title.length === 0;
+
+  // 🌟 2. 애니메이션 값 초기화
+  const fadePlus = useRef(new Animated.Value(showPlusBtn ? 1 : 0)).current;
+  const fadeMinus = useRef(new Animated.Value(showPlusBtn ? 0 : 1)).current;
+
+  // 🌟 3. 조건이 바뀔 때마다 스르륵(200ms) 투명도 변경
+  useEffect(() => {
+    Animated.timing(fadePlus, {
+      toValue: showPlusBtn ? 1 : 0,
+      duration: 200, // 0.2초
+      useNativeDriver: true,
+    }).start();
+
+    Animated.timing(fadeMinus, {
+      toValue: !showPlusBtn ? 1 : 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  }, [showPlusBtn]);
 
   return (
     <SafeAreaView
@@ -419,7 +450,11 @@ export default function WriteScreen() {
                     />
                   ))
                 ) : (
-                  <AppText style={styles.emotionFallback}>➕</AppText>
+                  <AddBigIcon
+                    width={50}
+                    height={50}
+                    color={isDark ? '#333' : '#ccc'}
+                  />
                 )}
               </AppTouchableOpacity>
 
@@ -434,23 +469,11 @@ export default function WriteScreen() {
               </View>
             </View>
 
-            {!isTitleActive && title.length === 0 ? (
-              <AppTouchableOpacity
-                style={[styles.addTitleBtn, isDark && styles.darkAddTitleBtn]}
-                onPress={handleTitleActivate}
-              >
-                <AppText
-                  style={[
-                    styles.addTitleText,
-                    isDark && styles.darkAddTitleText,
-                  ]}
-                >
-                  제목 +
-                </AppText>
-              </AppTouchableOpacity>
-            ) : (
+            <View style={styles.inputWrapper}>
               <AppTextInput
                 ref={titleInputRef}
+                editable={isTitleActive}
+                pointerEvents={isTitleActive ? 'auto' : 'none'}
                 style={[
                   styles.titleInput,
                   {
@@ -468,7 +491,59 @@ export default function WriteScreen() {
                 multiline={true}
                 onChangeText={(val) => setTitle(val.replace(/\n/g, ''))}
               />
-            )}
+
+              {/* 🌟 (+) 제목 추가 버튼: showPlusBtn이 true일 때 나타남 */}
+              <Animated.View
+                style={[styles.addTitleBtn, { opacity: fadePlus }]}
+                pointerEvents={showPlusBtn ? 'auto' : 'none'} // 🌟 투명할 땐 터치 무시
+              >
+                <AppTouchableOpacity
+                  activeOpacity={1}
+                  onPress={handleTitleActivate}
+                  style={styles.plusTouchable}
+                >
+                  <AppText
+                    style={[
+                      styles.addTitleText,
+                      isDark && styles.darkAddTitleText,
+                    ]}
+                  >
+                    제목
+                  </AppText>
+                  {isDark ? (
+                    <AddDarkIcon width={24} height={24} color={'#333'} />
+                  ) : (
+                    <AddIcon width={24} height={24} color={'#ccc'} />
+                  )}
+                </AppTouchableOpacity>
+              </Animated.View>
+
+              {/* 🌟 (-) 제목 빼기 버튼: showPlusBtn이 false일 때 나타남 */}
+              <Animated.View
+                style={[styles.addDisabledTitleBtn, { opacity: fadeMinus }]}
+                pointerEvents={!showPlusBtn ? 'auto' : 'none'} // 🌟 투명할 땐 터치 무시
+              >
+                <AppTouchableOpacity
+                  activeOpacity={1}
+                  onPress={handleTitleReset}
+                  style={styles.minusTouchable}
+                >
+                  {isDark ? (
+                    <MinusDarkIcon width={24} height={24} color={'#333'} />
+                  ) : (
+                    <MinusIcon width={24} height={24} color={'#ccc'} />
+                  )}
+                  <AppText
+                    style={[
+                      styles.addTitleText,
+                      isDark && styles.darkAddTitleText,
+                    ]}
+                  >
+                    제목
+                  </AppText>
+                </AppTouchableOpacity>
+              </Animated.View>
+            </View>
 
             <View
               style={[
@@ -695,55 +770,14 @@ export default function WriteScreen() {
         reverseButtons={true}
       />
 
-      <Modal visible={emotionModalVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.emotionBox}>
-            <AppText style={styles.modalTitle}>오늘의 기분 (최대 4개)</AppText>
-            <ScrollView
-              style={styles.emotionScrollView}
-              contentContainerStyle={styles.emotionScrollContent}
-              showsVerticalScrollIndicator={false}
-            >
-              <View style={styles.grid}>
-                {EMOTIONS_DATA.map((emotion) => {
-                  const isSelected = selectedEmotions.includes(emotion.id);
-                  return (
-                    <AppTouchableOpacity
-                      key={emotion.id}
-                      style={[
-                        styles.emojiBtn,
-                        isSelected && styles.selectedBtn,
-                      ]}
-                      onPress={() => handleEmotionToggle(emotion.id)}
-                    >
-                      <Image
-                        source={
-                          isSelected && emotion.animatedSource
-                            ? emotion.animatedSource
-                            : emotion.source
-                        }
-                        style={[
-                          styles.modalEmotionImage,
-                          isSelected && styles.selectedEmotionImage,
-                        ]}
-                        contentFit="contain" // resizeMode 대신 contentFit
-                        transition={200}
-                      />
-                    </AppTouchableOpacity>
-                  );
-                })}
-              </View>
-            </ScrollView>
-
-            <AppTouchableOpacity
-              style={styles.closeModalBtn}
-              onPress={() => setEmotionModalVisible(false)}
-            >
-              <AppText style={{ fontWeight: 'bold' }}>선택 완료</AppText>
-            </AppTouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      <EmotionSelectModal
+        visible={emotionModalVisible}
+        onClose={() => setEmotionModalVisible(false)}
+        selectedEmotions={selectedEmotions}
+        onClearEmotions={() => setSelectedEmotions([])}
+        onToggleEmotion={handleEmotionToggle}
+        isDark={isDark}
+      />
     </SafeAreaView>
   );
 }
@@ -799,17 +833,47 @@ const styles = StyleSheet.create({
   dateBox: { alignItems: 'center', gap: 4 },
   date: { fontSize: 14, lineHeight: 16 },
   day: { fontSize: 14, color: '#666', lineHeight: 16 },
+
+  addTitleText: { fontSize: 14, color: '#ccc', fontWeight: '600' },
+  darkAddTitleText: { color: '#333' },
+
+  inputWrapper: {
+    width: '100%',
+    position: 'relative',
+  },
+  plusTouchable: {
+    flex: 1, // 부모 뷰 크기를 꽉 채움
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  minusTouchable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   addTitleBtn: {
+    position: 'absolute',
+    top: 30,
+    left: 0,
+    right: 0,
     height: 32,
-    marginTop: 24,
-    marginBottom: 43,
-    // marginVertical: 39,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
+    zIndex: 2,
   },
-  addTitleText: { fontSize: 14, color: '#666', fontWeight: '600' },
-  darkAddTitleText: { color: '#cccccc' },
+  addDisabledTitleBtn: {
+    position: 'absolute',
+    top: -5,
+    left: -2,
+    height: 32,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    zIndex: 2,
+  },
   titleInput: {
     fontSize: 24,
     fontWeight: 'bold',
@@ -852,98 +916,7 @@ const styles = StyleSheet.create({
   toolbar: { flexDirection: 'row', gap: 10 },
   toolBtn: { padding: 5, justifyContent: 'center', alignItems: 'center' },
   submitBtn: { justifyContent: 'center', alignItems: 'center' },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.3)',
-  },
-  emotionBox: {
-    backgroundColor: '#ffffff',
-    padding: 20,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
 
-  emotionScrollView: {
-    maxHeight: 300,
-    width: '100%',
-  },
-  emotionScrollContent: {
-    alignItems: 'center',
-    paddingBottom: 10,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 40,
-    maxWidth: 230,
-    paddingTop: 54,
-    paddingBottom: 124,
-    marginHorizontal: 'auto',
-  },
-
-  emojiBtn: {
-    width: 50,
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalEmotionImage: {
-    width: 50,
-    height: 50,
-  },
-  selectedEmotionImage: {
-    transform: [{ scale: 1.3 }],
-  },
-
-  selectedBtn: {},
-  emojiText: { fontSize: 28 },
-  closeModalBtn: {
-    marginTop: 20,
-    alignItems: 'center',
-    padding: 15,
-  },
-  alertOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  alertBox: {
-    width: 300,
-    backgroundColor: '#ffffff',
-    borderRadius: 14,
-    overflow: 'hidden',
-  },
-  alertTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginTop: 20,
-  },
-  alertMessage: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    marginTop: 10,
-    marginBottom: 20,
-    paddingHorizontal: 20,
-    lineHeight: 20,
-  },
-  alertButtonsCol: {
-    flexDirection: 'column',
-    borderTopWidth: 1,
-    borderColor: '#eee',
-  },
-  alertBtnCol: { paddingVertical: 15, alignItems: 'center' },
-  alertBtnText: { fontSize: 16, color: '#333' },
   richEditor: {
     minHeight: 300,
     width: '100%',

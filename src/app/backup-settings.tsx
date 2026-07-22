@@ -364,12 +364,22 @@ export default function BackupSettingsScreen() {
         <View style={styles.authSection}>
           {!googleToken ? (
             <AppTouchableOpacity
-              style={[styles.btn, styles.googleBtn]}
+              style={[
+                styles.btn,
+                styles.googleBtn,
+                isDark && styles.darkGoogleBtn,
+              ]}
               onPress={handleGoogleLogin}
               disabled={loadingType !== null}
             >
-              <Ionicons name="logo-google" size={16} color="#111111" />
-              <AppText style={styles.btnText}>구글 계정 연결하기</AppText>
+              <Ionicons
+                name="logo-google"
+                size={16}
+                color={isDark ? '#111111' : '#ffffff'}
+              />
+              <AppText style={[styles.btnText, isDark && styles.darkBtnTExt]}>
+                구글 계정 연결하기
+              </AppText>
             </AppTouchableOpacity>
           ) : (
             <View style={[styles.accountBox, isDark && styles.darkAccountBox]}>
@@ -611,8 +621,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
-  googleBtn: { backgroundColor: '#ffffff' },
-  btnText: { color: '#111111', fontSize: 14, fontWeight: 'bold' },
+  googleBtn: { backgroundColor: '#111111' },
+  darkGoogleBtn: { backgroundColor: '#ffffff' },
+  btnText: { color: '#ffffff', fontSize: 14, fontWeight: 'bold' },
+  darkBtnTExt: { color: '#111111', fontSize: 14, fontWeight: 'bold' },
   accountBox: { gap: 20 },
   accountHeader: {
     gap: 20,

@@ -49,6 +49,10 @@ export default function EmotionSelectScreen() {
     }
   };
 
+  const handleResetEmotions = () => {
+    setSelectedEmotions([]);
+  };
+
   return (
     <SafeAreaView
       edges={['top', 'left', 'right']}
@@ -65,7 +69,16 @@ export default function EmotionSelectScreen() {
           />
         </AppTouchableOpacity>
 
-        <View style={styles.rightIconsWrapper}></View>
+        {selectedEmotions.length > 0 && (
+          <AppTouchableOpacity
+            onPress={handleResetEmotions}
+            style={styles.clearBtn}
+          >
+            <AppText style={[styles.clearText, isDark && styles.darkClearText]}>
+              모두 빼기
+            </AppText>
+          </AppTouchableOpacity>
+        )}
       </View>
 
       <View style={styles.titleWrapper}>
@@ -81,7 +94,14 @@ export default function EmotionSelectScreen() {
       >
         <View style={styles.grid}>
           {EMOTIONS_DATA.map((emotion) => {
-            const isSelected = selectedEmotions.includes(emotion.id);
+            // 1. 현재 이모션이 배열의 몇 번째에 있는지 찾습니다.
+            const selectedIndex = selectedEmotions.indexOf(emotion.id);
+
+            // 2. 인덱스가 -1이 아니라면 선택된 상태입니다.
+            const isSelected = selectedIndex !== -1;
+
+            // const isSelected = selectedEmotions.includes(emotion.id);
+
             return (
               <View key={emotion.id} style={styles.gridItem}>
                 <AppTouchableOpacity
@@ -101,6 +121,14 @@ export default function EmotionSelectScreen() {
                     contentFit="contain"
                     transition={200}
                   />
+
+                  {isSelected && (
+                    <View style={styles.orderBadge}>
+                      <AppText style={styles.orderBadgeText}>
+                        {selectedIndex + 1}
+                      </AppText>
+                    </View>
+                  )}
                 </AppTouchableOpacity>
               </View>
             );
@@ -112,11 +140,11 @@ export default function EmotionSelectScreen() {
         style={styles.bottomBtnWrapper}
         colors={
           isDark
-            ? ['rgba(17, 17, 17, 0)', 'rgba(17, 17, 17, 0.8)', '##111111']
-            : ['rgba(252, 251, 250, 0)', 'rgba(252, 251, 250, 0.8)', '#FCFBFA']
+            ? ['rgba(17, 17, 17, 0)', 'rgba(17, 17, 17, 0.8)', '#111111']
+            : ['rgba(255, 255, 255, 0)', 'rgba(255, 255, 255, 0.8)', '#FCFBFA']
         }
         start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 0.5 }}
+        end={{ x: 0, y: 0.7 }}
       >
         <AppTouchableOpacity
           style={[
@@ -140,7 +168,7 @@ export default function EmotionSelectScreen() {
               selectedEmotions.length === 0
                 ? 'transparent'
                 : isDark
-                  ? '#333333'
+                  ? '#111111'
                   : '#ffffff'
             }
           />
@@ -171,6 +199,18 @@ const styles = StyleSheet.create({
   },
   darkCustomHeader: {
     backgroundColor: '#111111',
+  },
+
+  clearBtn: {
+    padding: 4,
+  },
+  clearText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#666',
+  },
+  darkClearText: {
+    color: '#aaaaaa',
   },
 
   titleWrapper: {
@@ -213,8 +253,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     // backgroundColor: '#f0f0f0',
+    position: 'relative',
   },
-
+  orderBadge: {
+    position: 'absolute',
+    top: -6,
+    left: -10,
+    width: 20,
+    height: 20,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#111111',
+    zIndex: 2,
+  },
+  orderBadgeText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#ffffff',
+  },
   emotionImage: {
     width: 50,
     height: 50,
@@ -246,6 +303,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+
   disabledBtn: { opacity: 0 },
   nextBtnText: { color: '#ffffff', fontSize: 18, fontWeight: 'bold' },
 });

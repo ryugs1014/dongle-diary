@@ -29,6 +29,7 @@ export default function RadioSettingItem({
           style={[
             styles.settingTitle,
             isDark && styles.darkText,
+            fontFamily && styles.fontFamilyStyle,
             fontFamily ? { fontFamily } : undefined,
           ]}
         >
@@ -78,6 +79,9 @@ const styles = StyleSheet.create({
   },
   darkText: {
     color: '#ffffff',
+  },
+  fontFamilyStyle: {
+    fontSize: 16,
   },
 
   radioOuter: {
