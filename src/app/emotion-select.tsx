@@ -58,7 +58,11 @@ export default function EmotionSelectScreen() {
 
       <View style={[styles.customHeader, isDark && styles.darkCustomHeader]}>
         <AppTouchableOpacity onPress={() => router.back()}>
-          <BackIcon width={28} height={28} color={isDark ? 'white' : 'black'} />
+          <BackIcon
+            width={28}
+            height={28}
+            color={isDark ? '#ffffff' : '#111111'}
+          />
         </AppTouchableOpacity>
 
         <View style={styles.rightIconsWrapper}></View>
@@ -108,8 +112,8 @@ export default function EmotionSelectScreen() {
         style={styles.bottomBtnWrapper}
         colors={
           isDark
-            ? ['rgba(17, 17, 17, 0)', 'rgba(17, 17, 17, 0.8)', '#111']
-            : ['rgba(255, 255, 255, 0)', 'rgba(255, 255, 255, 0.8)', '#ffffff']
+            ? ['rgba(17, 17, 17, 0)', 'rgba(17, 17, 17, 0.8)', '##111111']
+            : ['rgba(252, 251, 250, 0)', 'rgba(252, 251, 250, 0.8)', '#FCFBFA']
         }
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 0.5 }}
@@ -129,15 +133,15 @@ export default function EmotionSelectScreen() {
               selectedEmotions.length === 0
                 ? '#cccccc'
                 : isDark
-                  ? 'white'
-                  : 'black'
+                  ? '#ffffff'
+                  : '#333333'
             }
             fill={
               selectedEmotions.length === 0
                 ? 'transparent'
                 : isDark
-                  ? 'black'
-                  : 'white'
+                  ? '#333333'
+                  : '#ffffff'
             }
           />
         </AppTouchableOpacity>
@@ -155,7 +159,7 @@ const styles = StyleSheet.create({
   //   alignItems: 'center',
   // },
 
-  container: { flex: 1, backgroundColor: '#ffffff' },
+  container: { flex: 1, backgroundColor: '#FCFBFA' },
   darkContainer: { backgroundColor: '#111111' },
 
   customHeader: {
@@ -166,7 +170,7 @@ const styles = StyleSheet.create({
     height: 50,
   },
   darkCustomHeader: {
-    backgroundColor: '#121212',
+    backgroundColor: '#111111',
   },
 
   titleWrapper: {
@@ -243,5 +247,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   disabledBtn: { opacity: 0 },
-  nextBtnText: { color: 'white', fontSize: 18, fontWeight: 'bold' },
+  nextBtnText: { color: '#ffffff', fontSize: 18, fontWeight: 'bold' },
 });

@@ -367,7 +367,7 @@ export default function WriteScreen() {
               <CloseIcon
                 width={28}
                 height={28}
-                color={isDark ? 'white' : 'black'}
+                color={isDark ? '#ffffff' : '#111111'}
               />
             </AppTouchableOpacity>
           </View>
@@ -461,8 +461,8 @@ export default function WriteScreen() {
                         : diaryFontFamily,
                   },
                 ]}
-                cursorColor={isDark ? '#fff' : '#000'}
-                selectionColor={isDark ? '#fff' : '#000'}
+                cursorColor={isDark ? '#ffffff' : '#111111'}
+                selectionColor={isDark ? '#ffffff' : '#111111'}
                 value={title}
                 blurOnSubmit={true}
                 multiline={true}
@@ -553,8 +553,8 @@ export default function WriteScreen() {
                 }}
 
                 editorStyle={{
-                  backgroundColor: isDark ? '#111111' : '#ffffff',
-                  color: isDark ? '#ffffff' : '#000000',
+                  backgroundColor: isDark ? '#111111' : '#FCFBFA',
+                  color: isDark ? '#ffffff' : '#111111',
                   placeholderColor: 'transparent',
                   initialCSSText: `
                     ${getWebFontCss(diaryFontFamily)}
@@ -564,7 +564,7 @@ export default function WriteScreen() {
                     font-size: ${currentFontSize}px !important; 
                     font-family: ${diaryFontFamily === 'System' ? 'sans-serif' : `'${diaryFontFamily}', sans-serif`} !important; 
                     line-height: 1.5 !important; 
-                    caret-color: ${isDark ? '#ffffff' : '#000000'} !important;
+                    caret-color: ${isDark ? '#ffffff' : '#111111'} !important;
                   `,
                 }}
                 useContainer={true}
@@ -592,21 +592,21 @@ export default function WriteScreen() {
                 <AlignLeftIcon
                   width={28}
                   height={28}
-                  color={isDark ? 'white' : 'black'}
+                  color={isDark ? '#ffffff' : '#111111'}
                 />
               )}
               {textAlign === 'center' && (
                 <AlignCenterIcon
                   width={28}
                   height={28}
-                  color={isDark ? 'white' : 'black'}
+                  color={isDark ? '#ffffff' : '#111111'}
                 />
               )}
               {textAlign === 'right' && (
                 <AlignRightIcon
                   width={28}
                   height={28}
-                  color={isDark ? 'white' : 'black'}
+                  color={isDark ? '#ffffff' : '#111111'}
                 />
               )}
             </AppTouchableOpacity>
@@ -617,7 +617,7 @@ export default function WriteScreen() {
               <ImageIcon
                 width={28}
                 height={28}
-                color={isDark ? 'white' : 'black'}
+                color={isDark ? '#ffffff' : '#111111'}
               />
             </AppTouchableOpacity>
             <AppTouchableOpacity
@@ -627,7 +627,7 @@ export default function WriteScreen() {
               <ClockIcon
                 width={28}
                 height={28}
-                color={isDark ? 'white' : 'black'}
+                color={isDark ? '#ffffff' : '#111111'}
               />
             </AppTouchableOpacity>
           </View>
@@ -635,7 +635,7 @@ export default function WriteScreen() {
             <WriteIcon
               width={28}
               height={28}
-              color={isDark ? 'white' : 'black'}
+              color={isDark ? '#ffffff' : '#111111'}
             />
           </AppTouchableOpacity>
         </View>
@@ -677,9 +677,11 @@ export default function WriteScreen() {
 
       <AppConfirmModal
         visible={cancelModalVisible}
-        title="작성 취소"
+        title={!editId ? '작성 취소' : '수정 취소'}
         message={
-          '일기를 그만 쓰시나요?\n작성 중인 일기가 저장되지 않아요.\n\n* 이어서 작성하려면 임시저장을 해주세요.'
+          !editId
+            ? '일기를 그만 쓰시나요?\n작성 중인 일기가 저장되지 않아요.\n\n* 이어서 작성하려면 임시저장을 해주세요.'
+            : '일기 수정을 취소할까요?\n일기가 원래 작성된 내용으로 유지돼요.'
         }
         cancelText="계속 작성하기"
         confirmText="나가기"
@@ -747,7 +749,7 @@ export default function WriteScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ffffff' },
+  container: { flex: 1, backgroundColor: '#FCFBFA' },
   darkContainer: { backgroundColor: '#111111' },
   customHeader: {
     flexDirection: 'row',
@@ -756,7 +758,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     height: 50,
   },
-  darkCustomHeader: { backgroundColor: '#121212' },
+  darkCustomHeader: { backgroundColor: '#111111' },
   headerBtn: { justifyContent: 'center', alignItems: 'center' },
   leftIconsWrapper: {
     flexDirection: 'row',
@@ -841,7 +843,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderTopWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FCFBFA',
   },
   darkBottomArea: {
     borderColor: 'rgba(0, 0, 0, 0.2)',
@@ -856,7 +858,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.3)',
   },
   emotionBox: {
-    backgroundColor: 'white',
+    backgroundColor: '#ffffff',
     padding: 20,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
@@ -916,7 +918,7 @@ const styles = StyleSheet.create({
   },
   alertBox: {
     width: 300,
-    backgroundColor: 'white',
+    backgroundColor: '#ffffff',
     borderRadius: 14,
     overflow: 'hidden',
   },

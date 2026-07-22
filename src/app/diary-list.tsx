@@ -78,18 +78,24 @@ export default function DiaryListScreen() {
   const renderFooter = () => {
     if (!hasMultipleYears) return null;
     return (
-      <View style={styles.footerContainer}>
-        <Text
-          useDiaryFont
-          style={[styles.footerText, isDark && styles.darkSubText]}
-        >
-          연도별로 작성한 일기를 찾으시나요?
-        </Text>
+      <View style={styles.emptyContainer}>
+        <AppText style={[styles.emptyText, isDark && styles.emptyTextDark]}>
+          연도별로 일기를 볼 수 있어요{'\n'}지난날의 소중한 하루하루를
+          읽어보세요
+        </AppText>
+
         <AppTouchableOpacity
-          style={styles.footerButton}
+          style={[styles.emptyButton, isDark && styles.emptyButtonDark]}
           onPress={() => setIsYearModalVisible(true)}
         >
-          <Text style={styles.footerButtonText}>다른 년도 보기</Text>
+          <AppText
+            style={[
+              styles.emptyButtonText,
+              isDark && styles.emptyButtonTextDark,
+            ]}
+          >
+            연도별 일기 보기
+          </AppText>
         </AppTouchableOpacity>
       </View>
     );
@@ -108,7 +114,7 @@ export default function DiaryListScreen() {
             <CloseIcon
               width={28}
               height={28}
-              color={isDark ? 'white' : 'black'}
+              color={isDark ? '#ffffff' : '#111111'}
             />
           </AppTouchableOpacity>
 
@@ -121,7 +127,7 @@ export default function DiaryListScreen() {
           style={styles.headerTitleBtn}
         >
           <AppText
-            style={[styles.customHeaderTitle, isDark && { color: 'white' }]}
+            style={[styles.customHeaderTitle, isDark && { color: '#ffffff' }]}
           >
             {selectedYear}
           </AppText>
@@ -132,14 +138,14 @@ export default function DiaryListScreen() {
             <SearchIcon
               width={28}
               height={28}
-              color={isDark ? 'white' : 'black'}
+              color={isDark ? '#ffffff' : '#111111'}
             />
           </AppTouchableOpacity>
           <AppTouchableOpacity onPress={() => setIsSortModalVisible(true)}>
             <OrderIcon
               width={28}
               height={28}
-              color={isDark ? 'white' : 'black'}
+              color={isDark ? '#ffffff' : '#111111'}
             />
           </AppTouchableOpacity>
         </View>
@@ -295,7 +301,9 @@ export default function DiaryListScreen() {
             style={[styles.modalBox, isDark && styles.darkModalBox]}
             onStartShouldSetResponder={() => true}
           >
-            <AppText style={[styles.modalTitle, isDark && { color: 'white' }]}>
+            <AppText
+              style={[styles.modalTitle, isDark && { color: '#ffffff' }]}
+            >
               년도 선택
             </AppText>
             <View style={styles.yearGrid}>
@@ -322,8 +330,8 @@ export default function DiaryListScreen() {
                   <Text
                     style={[
                       styles.yearOptionText,
-                      isDark && { color: 'white' },
-                      selectedYear === year && { color: 'white' },
+                      isDark && { color: '#ffffff' },
+                      selectedYear === year && { color: '#ffffff' },
                     ]}
                   >
                     {year}
@@ -347,7 +355,7 @@ export default function DiaryListScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ffffff' },
+  container: { flex: 1, backgroundColor: '#FCFBFA' },
   darkContainer: { backgroundColor: '#111111' },
 
   customHeader: {
@@ -358,7 +366,7 @@ const styles = StyleSheet.create({
     height: 50,
   },
   darkCustomHeader: {
-    backgroundColor: '#121212',
+    backgroundColor: '#111111',
   },
   headerTitleBtn: {
     flexDirection: 'row',
@@ -437,13 +445,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   footerButton: {
-    backgroundColor: '#FF6F61',
+    backgroundColor: '#FF6262',
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 20,
   },
   footerButtonText: {
-    color: 'white',
+    color: '#ffffff',
     fontSize: 14,
     fontWeight: 'bold',
   },
@@ -457,7 +465,7 @@ const styles = StyleSheet.create({
   },
   modalBox: {
     width: '80%',
-    backgroundColor: 'white',
+    backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 20,
     alignItems: 'center',
@@ -488,11 +496,49 @@ const styles = StyleSheet.create({
     backgroundColor: '#444',
   },
   yearOptionSelected: {
-    backgroundColor: '#FF6F61',
+    backgroundColor: '#FF6262',
   },
   yearOptionText: {
     fontSize: 16,
     fontWeight: '500',
     color: '#333',
+  },
+
+  // Empty State Styles
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 60,
+    gap: 10,
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: '#666',
+    fontSize: 14,
+    lineHeight: 24,
+    marginBottom: 10,
+  },
+  emptyTextDark: {
+    color: '#aaa',
+  },
+  emptyButton: {
+    backgroundColor: '#111111',
+    height: 50,
+    paddingHorizontal: 24,
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+    textAlign: 'center',
+  },
+  emptyButtonDark: {
+    backgroundColor: '#ffffff',
+  },
+  emptyButtonText: {
+    color: '#ffffff',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  emptyButtonTextDark: {
+    color: '#111111',
   },
 });

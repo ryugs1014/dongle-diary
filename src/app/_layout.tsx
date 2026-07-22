@@ -10,6 +10,8 @@ import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { useDiaryStore } from '../store/useDiaryStore';
 import InitialLoadingScreen from '@/components/InitialLoadingScreen';
+import NumberKeypad from '@/components/NumberKeypad';
+import * as Haptics from 'expo-haptics';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -47,7 +49,7 @@ export default function RootLayout() {
       // (DB 동기화 등 무거운 초기 작업이 있다면 여기서 await로 처리하면 됩니다.)
       const timer = setTimeout(() => {
         setShowCustomSplash(false);
-      }, 1500);
+      }, 2000);
 
       return () => clearTimeout(timer);
     }
@@ -111,6 +113,8 @@ export default function RootLayout() {
   };
 
   const handleNumberPress = (num: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
     if (currentInput.length < 4) {
       const newInput = currentInput + num;
       setCurrentInput(newInput);
@@ -134,9 +138,9 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   // 폰트 로드 후, 지정된 시간 동안 커스텀 로딩 화면 렌더링
-  if (showCustomSplash) {
-    return <InitialLoadingScreen />;
-  }
+  // if (showCustomSplash) {
+  //   return <InitialLoadingScreen />;
+  // }
 
   const customDarkTheme = {
     ...DarkTheme,
@@ -155,89 +159,12 @@ export default function RootLayout() {
   };
 
   return (
-    <>
-      {!isUnlocked && (
-        <SafeAreaView
-          style={[styles.lockContainer, isDark && styles.darkContainer]}
-        >
-          <View style={styles.pinArea}>
-            <Ionicons
-              name="lock-closed"
-              size={48}
-              color="#FF6F61"
-              style={{ marginBottom: 20 }}
-            />
-            <AppText style={[styles.pinTitle, isDark && styles.darkText]}>
-              일기장 잠금
-            </AppText>
-            <AppText style={[styles.pinSub, isDark && styles.darkSubText]}>
-              비밀번호 4자리를 입력해주세요.
-            </AppText>
-
-            <View style={styles.dotContainer}>
-              {[0, 1, 2, 3].map((i) => (
-                <View
-                  key={i}
-                  style={[
-                    styles.dot,
-                    isDark && styles.darkDot,
-                    currentInput.length > i && styles.dotFilled,
-                  ]}
-                />
-              ))}
-            </View>
-            <AppText style={styles.errorText}>{errorMsg}</AppText>
-          </View>
-
-          <View style={styles.keypad}>
-            {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((num) => (
-              <AppTouchableOpacity
-                key={num}
-                style={styles.keypadBtn}
-                onPress={() => handleNumberPress(num)}
-              >
-                <AppText style={[styles.keypadText, isDark && styles.darkText]}>
-                  {num}
-                </AppText>
-              </AppTouchableOpacity>
-            ))}
-            <AppTouchableOpacity
-              style={styles.keypadBtn}
-              onPress={isBiometricEnabled ? handleBiometricAuth : undefined}
-              disabled={!isBiometricEnabled}
-            >
-              {isBiometricEnabled && (
-                <Ionicons name="finger-print" size={32} color="#FF6F61" />
-              )}
-            </AppTouchableOpacity>
-            <AppTouchableOpacity
-              style={styles.keypadBtn}
-              onPress={() => handleNumberPress('0')}
-            >
-              <AppText style={[styles.keypadText, isDark && styles.darkText]}>
-                0
-              </AppText>
-            </AppTouchableOpacity>
-            <AppTouchableOpacity
-              style={styles.keypadBtn}
-              onPress={() => setCurrentInput((prev) => prev.slice(0, -1))}
-            >
-              <Ionicons
-                name="backspace-outline"
-                size={28}
-                color={isDark ? '#fff' : '#333'}
-              />
-            </AppTouchableOpacity>
-          </View>
-        </SafeAreaView>
-      )}
-
+    <View style={{ flex: 1, backgroundColor: isDark ? '#111111' : '#fcfbfa' }}>
       {/* 앱 메인 화면 렌더링 영역 */}
       <View
         style={{
           flex: 1,
           display: isUnlocked ? 'flex' : 'none',
-          backgroundColor: 'red',
         }}
       >
         <ThemeProvider value={isDark ? customDarkTheme : customLightTheme}>
@@ -260,7 +187,7 @@ export default function RootLayout() {
               // 카드 오버레이(iOS 특유의 뒤쪽 화면 어두워짐/그림자 효과)를 강제로 끕니다.
               cardOverlayEnabled: false,
               // 스와이프 제스처 시의 배경색을 아예 다크 모드 색상으로 덮어버립니다.
-              cardStyle: { backgroundColor: isDark ? '#121212' : '#ffffff' },
+              cardStyle: { backgroundColor: isDark ? '#111111' : '#FCFBFA' },
             }}
           >
             <Stack.Screen name="index" />
@@ -279,7 +206,55 @@ export default function RootLayout() {
           </Stack>
         </ThemeProvider>
       </View>
-    </>
+
+      {!showCustomSplash && !isUnlocked && (
+        <SafeAreaView
+          style={[styles.lockContainer, isDark && styles.darkContainer]}
+        >
+          <View style={styles.pinArea}>
+            <AppText style={styles.pinTitle}>
+              {errorMsg
+                ? '비밀번호가 일치하지 않습니다'
+                : '비밀번호를 입력해 주세요'}
+            </AppText>
+
+            <View style={styles.dotContainer}>
+              {[0, 1, 2, 3].map((i) => (
+                <View key={i} style={styles.dotWrapper}>
+                  {currentInput.length > i ? (
+                    <AppText
+                      style={[styles.asterisk, isDark && styles.darkAsterisk]}
+                    >
+                      *
+                    </AppText>
+                  ) : (
+                    <View style={[styles.dot, isDark && styles.darkDot]} />
+                  )}
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.keypadWrapper}>
+            <NumberKeypad
+              onNumberPress={handleNumberPress}
+              onDeletePress={() => setCurrentInput((prev) => prev.slice(0, -1))}
+              showBiometric={isBiometricEnabled}
+              onBiometricPress={
+                isBiometricEnabled ? handleBiometricAuth : undefined
+              }
+              isDark={isDark}
+            />
+          </View>
+        </SafeAreaView>
+      )}
+
+      {showCustomSplash && (
+        <View style={[StyleSheet.absoluteFill, { zIndex: 1000 }]}>
+          <InitialLoadingScreen />
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -295,44 +270,43 @@ const styles = StyleSheet.create({
     zIndex: 999,
   },
   darkContainer: { backgroundColor: '#111111' },
-  pinArea: { alignItems: 'center', marginTop: 80 },
-  pinTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
-  },
-  pinSub: { fontSize: 16, color: '#666', marginBottom: 40 },
-  darkText: { color: '#fff' },
-  darkSubText: { color: '#aaa' },
+  pinArea: { alignItems: 'center', paddingTop: 110 },
 
-  dotContainer: { flexDirection: 'row', gap: 24, marginBottom: 20 },
-  dot: {
+  pinTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    paddingBottom: 30,
+  },
+
+  dotContainer: { flexDirection: 'row', gap: 20 },
+
+  dotWrapper: {
     width: 16,
     height: 16,
-    borderRadius: 8,
+    backgroundColor: 'transparent',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  asterisk: {
+    fontSize: 24,
+    lineHeight: 28,
+  },
+
+  dot: {
+    width: 14,
+    height: 1,
     borderWidth: 1,
     borderColor: '#ccc',
     backgroundColor: 'transparent',
   },
-  darkDot: { borderColor: '#555' },
-  dotFilled: { backgroundColor: '#FF6F61', borderColor: '#FF6F61' },
-  errorText: { color: 'red', fontSize: 14, height: 20 },
+  darkDot: {
+    borderColor: '#666',
+  },
 
-  keypad: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
+  keypadWrapper: {
     marginTop: 'auto',
     paddingBottom: 50,
-    paddingHorizontal: 20,
   },
-  keypadBtn: {
-    width: '30%',
-    height: 80,
-    justifyContent: 'center',
-    alignItems: 'center',
-    margin: '1.5%',
-  },
-  keypadText: { fontSize: 32, color: '#333', fontWeight: '500' },
 });

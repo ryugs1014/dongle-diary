@@ -171,7 +171,7 @@ export default function SearchScreen() {
             <BackIcon
               width={28}
               height={28}
-              color={isDark ? 'white' : 'black'}
+              color={isDark ? '#ffffff' : '#111111'}
             />
           </AppTouchableOpacity>
         </View>
@@ -188,8 +188,8 @@ export default function SearchScreen() {
               style={[styles.searchInput, isDark && styles.darkText]}
               placeholder="일기 또는 날짜 검색"
               placeholderTextColor={isDark ? '#666' : '#999'}
-              cursorColor={isDark ? '#fff' : '#000'}
-              selectionColor={isDark ? '#fff' : '#000'}
+              cursorColor={isDark ? '#ffffff' : '#111111'}
+              selectionColor={isDark ? '#ffffff' : '#111111'}
               value={searchText}
               onChangeText={setSearchText}
               returnKeyType="search"
@@ -203,7 +203,7 @@ export default function SearchScreen() {
                 <DeleteIcon
                   width={24}
                   height={24}
-                  color={isDark ? 'white' : 'black'}
+                  color={isDark ? '#333' : '#ccc'}
                 />
               </AppTouchableOpacity>
             )}
@@ -216,7 +216,7 @@ export default function SearchScreen() {
             <SearchIcon
               width={28}
               height={28}
-              color={isDark ? 'white' : 'black'}
+              color={isDark ? '#ffffff' : '#111111'}
             />
           </AppTouchableOpacity>
 
@@ -230,7 +230,7 @@ export default function SearchScreen() {
             <OrderIcon
               width={28}
               height={28}
-              color={isDark ? 'white' : 'black'}
+              color={isDark ? '#ffffff' : '#111111'}
             />
           </AppTouchableOpacity>
         </View>
@@ -303,7 +303,7 @@ export default function SearchScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ffffff' },
+  container: { flex: 1, backgroundColor: '#FCFBFA' },
   darkContainer: { backgroundColor: '#111111' },
 
   customHeader: {
@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(33, 37, 41, 0.2)',
   },
   darkCustomHeader: {
-    backgroundColor: '#121212',
+    backgroundColor: '#111111',
     borderBottomColor: 'rgba(255, 255, 255, 0.2)',
   },
   leftIconsWrapper: {
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
     height: 50,
   },
   searchInput: { flex: 1, marginLeft: 10, fontSize: 14, lineHeight: 16 },
-  darkText: { color: '#fff' },
+  darkText: { color: '#ffffff' },
   darkSubText: { color: '#aaa' },
   clearBtn: { padding: 5 },
   submitBtn: { justifyContent: 'center', alignItems: 'center' },

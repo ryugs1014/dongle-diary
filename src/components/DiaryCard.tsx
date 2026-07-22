@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
   date: { fontSize: 14, lineHeight: 16 },
   day: { fontSize: 14, color: '#666', lineHeight: 16 },
   title: { fontSize: 18, fontWeight: 'bold' },
-  darkText: { color: '#fff' },
+  darkText: { color: '#ffffff' },
   content: { fontSize: 14, lineHeight: 24 },
   darkSubText: { color: '#aaa' },
   previewImage: {

@@ -104,7 +104,7 @@ export default function DiaryDetailScreen() {
             <Ionicons
               name="ellipsis-horizontal"
               size={24}
-              color={isDark ? '#fff' : '#000'}
+              color={isDark ? '#ffffff' : '#111111'}
             />
           </AppTouchableOpacity>
         ),
@@ -222,7 +222,7 @@ export default function DiaryDetailScreen() {
           baseStyle={{
             fontSize: currentFontSize,
             fontFamily: activeFontFamily,
-            color: isDark ? '#ffffff' : '#000000',
+            color: isDark ? '#ffffff' : '#111111',
             lineHeight: currentFontSize * 1.5,
             width: '100%',
           }}
@@ -261,7 +261,7 @@ export default function DiaryDetailScreen() {
             <BackIcon
               width={28}
               height={28}
-              color={isDark ? 'white' : 'black'}
+              color={isDark ? '#ffffff' : '#111111'}
             />
           </AppTouchableOpacity>
         </View>
@@ -271,7 +271,7 @@ export default function DiaryDetailScreen() {
             <OptionIcon
               width={28}
               height={28}
-              color={isDark ? 'white' : 'black'}
+              color={isDark ? '#ffffff' : '#111111'}
             />
           </AppTouchableOpacity>
         </View>
@@ -279,7 +279,7 @@ export default function DiaryDetailScreen() {
 
       <ViewShot
         ref={viewShotRef}
-        style={{ flex: 1, backgroundColor: isDark ? '#121212' : '#fff' }}
+        style={{ flex: 1, backgroundColor: isDark ? '#111111' : '#FCFBFA' }}
         options={{ format: 'jpg', quality: 0.9 }}
       >
         <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -399,10 +399,10 @@ export default function DiaryDetailScreen() {
               </AppText>
             </AppTouchableOpacity>
             <AppTouchableOpacity
-              style={styles.menuItem}
+              style={[styles.menuItem, styles.lastMenuItem]}
               onPress={handleDeleteClick}
             >
-              <AppText style={[styles.menuText, { color: '#FF6F61' }]}>
+              <AppText style={[styles.menuText, { color: '#FF6262' }]}>
                 삭제하기
               </AppText>
             </AppTouchableOpacity>
@@ -415,7 +415,7 @@ export default function DiaryDetailScreen() {
         title="일기 삭제"
         message={'정말로 일기를 삭제할까요?\n삭제된 일기는 복구할 수 없어요.'}
         confirmText="삭제"
-        confirmColor="#FF6F61" // 삭제니까 빨간색으로 지정
+        confirmColor="#FF6262" // 삭제니까 빨간색으로 지정
         onCancel={() => setDeleteModalVisible(false)}
         onConfirm={confirmDelete}
         reverseButtons={true}
@@ -425,11 +425,11 @@ export default function DiaryDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ffffff' },
+  container: { flex: 1, backgroundColor: '#FCFBFA' },
   darkContainer: { backgroundColor: '#111111' },
 
   fallback: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  darkFallback: { backgroundColor: '#121212' },
+  darkFallback: { backgroundColor: '#111111' },
 
   customHeader: {
     flexDirection: 'row',
@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
     height: 50,
   },
   darkCustomHeader: {
-    backgroundColor: '#121212',
+    backgroundColor: '#111111',
   },
   leftIconsWrapper: {
     flexDirection: 'row',
@@ -506,7 +506,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
 
-  darkText: { color: '#fff' },
+  darkText: { color: '#ffffff' },
   darkSubText: { color: '#aaa' },
 
   modalOverlay: {
@@ -518,7 +518,7 @@ const styles = StyleSheet.create({
     paddingRight: 20,
   },
   menuBox: {
-    backgroundColor: 'white',
+    backgroundColor: '#ffffff',
     width: 160,
     borderRadius: 12,
     overflow: 'hidden',
@@ -531,6 +531,10 @@ const styles = StyleSheet.create({
     padding: 16,
     borderBottomWidth: 1,
     alignItems: 'center',
+    borderBottomColor: '#f1f2f3',
+  },
+  lastMenuItem: {
+    borderBottomWidth: 0,
   },
   darkMenuItem: { borderBottomColor: '#333' },
   menuText: { fontSize: 16 },

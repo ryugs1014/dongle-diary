@@ -49,7 +49,7 @@ export default function SortBottomSheet({
             </AppText>
             {sortOrder === 'desc' && (
               <View style={styles.checkIconWrapper}>
-                <Ionicons name="checkmark" size={24} color="#FF6F61" />
+                <Ionicons name="checkmark" size={24} color="#FF6262" />
               </View>
             )}
           </AppTouchableOpacity>
@@ -76,7 +76,7 @@ export default function SortBottomSheet({
             </AppText>
             {sortOrder === 'asc' && (
               <View style={styles.checkIconWrapper}>
-                <Ionicons name="checkmark" size={24} color="#FF6F61" />
+                <Ionicons name="checkmark" size={24} color="#FF6262" />
               </View>
             )}
           </AppTouchableOpacity>
@@ -99,13 +99,13 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 40,
     elevation: 10,
-    shadowColor: '#000',
+    shadowColor: '#111111',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 10,
   },
   darkSortBottomSheet: {
-    backgroundColor: '#1e1e1e',
+    backgroundColor: '#111111',
   },
   dragHandle: {
     width: 40,
@@ -128,10 +128,10 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   darkText: {
-    color: '#fff',
+    color: '#ffffff',
   },
   selectedSortText: {
-    color: '#FF6F61',
+    color: '#FF6262',
     fontWeight: 'bold',
   },
   checkIconWrapper: {

@@ -185,12 +185,12 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
           <CalandarIcon
             width={28}
             height={28}
-            color={isDark ? 'white' : 'black'}
+            color={isDark ? '#ffffff' : '#111111'}
           />
           <SelectArrowIcon
             width={16}
             height={16}
-            color={isDark ? 'white' : 'black'}
+            color={isDark ? '#ffffff' : '#111111'}
           />
         </AppTouchableOpacity>
 
@@ -199,7 +199,7 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
             <SearchIcon
               width={28}
               height={28}
-              color={isDark ? 'white' : 'black'}
+              color={isDark ? '#ffffff' : '#111111'}
             />
           </AppTouchableOpacity>
 
@@ -207,7 +207,7 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
             <MenuIcon
               width={28}
               height={28}
-              color={isDark ? 'white' : 'black'}
+              color={isDark ? '#ffffff' : '#111111'}
             />
           </AppTouchableOpacity>
         </View>
@@ -261,7 +261,7 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
           dayComponent={renderDay}
           theme={{
             calendarBackground: 'transparent',
-            dayTextColor: isDark ? '#ffffff' : '#212529',
+            dayTextColor: isDark ? '#ffffff' : '#111111',
             textDisabledColor: isDark
               ? 'rgba(255, 255, 255, 0.2)'
               : 'rgba(0, 0, 0, 0.2)',
@@ -286,7 +286,11 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
           router.push('/emotion-select');
         }}
       >
-        <AddBigIcon width={60} height={60} color={isDark ? 'white' : 'black'} />
+        <AddBigIcon
+          width={60}
+          height={60}
+          color={isDark ? '#ffffff' : '#333333'}
+        />
       </AppTouchableOpacity>
 
       <Modal visible={datePickerVisible} transparent animationType="fade">
@@ -307,7 +311,7 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
                 <Ionicons
                   name="chevron-back"
                   size={24}
-                  color={isDark ? '#fff' : '#333'}
+                  color={isDark ? '#ffffff' : '#333'}
                 />
               </AppTouchableOpacity>
               <AppText
@@ -322,7 +326,7 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
                 <Ionicons
                   name="chevron-forward"
                   size={24}
-                  color={isDark ? '#fff' : '#333'}
+                  color={isDark ? '#ffffff' : '#333'}
                 />
               </AppTouchableOpacity>
             </View>
@@ -480,7 +484,7 @@ const styles = StyleSheet.create({
   },
   pickerBox: {
     width: '85%',
-    backgroundColor: 'white',
+    backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 20,
   },
@@ -509,7 +513,7 @@ const styles = StyleSheet.create({
   pickerMonthText: { fontSize: 16, fontWeight: '500' },
   alertBox: {
     width: 300,
-    backgroundColor: 'white',
+    backgroundColor: '#ffffff',
     borderRadius: 14,
     overflow: 'hidden',
   },

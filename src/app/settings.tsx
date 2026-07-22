@@ -6,7 +6,18 @@ import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDiaryStore } from '../store/useDiaryStore';
-import { BackIcon, ArrowRightIcon } from '../../assets/icons';
+import {
+  BackIcon,
+  ArrowRightIcon,
+  BackupIcon,
+  PdfIcon,
+  LockIcon,
+  BellIcon,
+  ThemeIcon,
+  FontIcon,
+  LanguageIcon,
+  InfoIcon,
+} from '../../assets/icons';
 import SvgDashedLine from '@/components/SvgDashedLine';
 
 export default function SettingsScreen() {
@@ -40,7 +51,7 @@ export default function SettingsScreen() {
   };
 
   const SettingItem = ({
-    icon,
+    IconComponent,
     title,
     onPress,
     rightText,
@@ -53,12 +64,14 @@ export default function SettingsScreen() {
       activeOpacity={onPress ? 0.7 : 1}
     >
       <View style={styles.settingLeft}>
-        <Ionicons
-          name={icon}
-          size={20}
-          color={isDark ? '#fff' : '#333'}
-          style={styles.settingIcon}
-        />
+        <View style={styles.settingIcon}>
+          <IconComponent
+            width={24}
+            height={24}
+            color={isDark ? '#fffFFf' : '#333'}
+          />
+        </View>
+
         <AppText style={[styles.settingTitle, isDark && styles.darkText]}>
           {title}
         </AppText>
@@ -99,7 +112,7 @@ export default function SettingsScreen() {
             <BackIcon
               width={28}
               height={28}
-              color={isDark ? 'white' : 'black'}
+              color={isDark ? '#ffffff' : '#111111'}
             />
           </AppTouchableOpacity>
         </View>
@@ -119,12 +132,12 @@ export default function SettingsScreen() {
         contentContainerStyle={{ paddingBottom: 40, paddingTop: 10 }}
       >
         <SettingItem
-          icon="cloud-upload-outline"
-          title="클라우드 백업/복구"
+          IconComponent={BackupIcon}
+          title="드라이브 백업 · 복원"
           onPress={() => router.push('/backup-settings')}
         />
         <SettingItem
-          icon="document-text-outline"
+          IconComponent={PdfIcon}
           title="PDF 저장"
           onPress={() => router.push('/pdf-export')}
         />
@@ -134,12 +147,12 @@ export default function SettingsScreen() {
         </View>
 
         <SettingItem
-          icon="lock-closed-outline"
+          IconComponent={LockIcon}
           title="암호 잠금"
           onPress={() => router.push('/lock-settings')}
         />
         <SettingItem
-          icon="notifications-outline"
+          IconComponent={BellIcon}
           title="일기 알림"
           rightText={getAlarmText()}
           onPress={() => router.push('/alarm-settings')}
@@ -150,22 +163,22 @@ export default function SettingsScreen() {
         </View>
 
         <SettingItem
-          icon="language-outline"
-          title="언어 / Language"
-          rightText={getLanguageText()}
-          onPress={() => router.push('/language-settings')}
-        />
-        <SettingItem
-          icon="moon-outline"
+          IconComponent={ThemeIcon}
           title="화면 테마"
           rightText={getThemeText()}
           onPress={() => router.push('/theme-settings')}
         />
         <SettingItem
-          icon="text-outline"
-          title="글씨체 / 크기"
+          IconComponent={FontIcon}
+          title="글꼴 · 크기"
           rightText={`크기 ${diaryFontSize}단계`}
           onPress={() => router.push('/font-settings')}
+        />
+        <SettingItem
+          IconComponent={LanguageIcon}
+          title="언어 · Language"
+          rightText={getLanguageText()}
+          onPress={() => router.push('/language-settings')}
         />
 
         <View style={styles.dividerWrapper}>
@@ -173,7 +186,7 @@ export default function SettingsScreen() {
         </View>
 
         <SettingItem
-          icon="information-circle-outline"
+          IconComponent={InfoIcon}
           title="버전 정보"
           rightText="v1.0.0"
           hideChevron={true}
@@ -184,7 +197,7 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ffffff' },
+  container: { flex: 1, backgroundColor: '#FCFBFA' },
   darkContainer: { backgroundColor: '#111111' },
 
   customHeader: {
@@ -195,7 +208,7 @@ const styles = StyleSheet.create({
     height: 50,
   },
   darkCustomHeader: {
-    backgroundColor: '#121212',
+    backgroundColor: '#111111',
     borderBottomColor: 'rgba(255, 255, 255, 0.2)',
   },
   leftIconsWrapper: {
@@ -226,7 +239,7 @@ const styles = StyleSheet.create({
   settingRight: { flexDirection: 'row', alignItems: 'center' },
   settingIcon: { marginRight: 10 },
   settingTitle: { fontSize: 16, color: '#333' },
-  darkText: { color: '#fff' },
+  darkText: { color: '#ffffff' },
   rightText: { fontSize: 14, color: '#888' },
   darkSubText: { color: '#aaa' },
   hideChevron: { fontSize: 16, marginRight: 10 },

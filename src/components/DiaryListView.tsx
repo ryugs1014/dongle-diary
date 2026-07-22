@@ -4,7 +4,12 @@ import AppTouchableOpacity from '@/components/AppTouchableOpacity';
 import AppText from '@/components/AppText';
 import { router } from 'expo-router';
 import { useDiaryStore } from '../store/useDiaryStore';
-import { BackIcon, SearchIcon, OrderIcon } from '../../assets/icons';
+import {
+  BackIcon,
+  SearchIcon,
+  OrderIcon,
+  EmptyEmotionIcon,
+} from '../../assets/icons';
 import SvgDashedLine from '@/components/SvgDashedLine';
 import { EMOTION_IMAGE_MAP } from '@/constants/emotions';
 import SortBottomSheet from '@/components/SortBottomSheet';
@@ -70,21 +75,36 @@ export default function DiaryListView({
   const renderFooter = () => {
     if (!hasMultipleYears) return null; // 연도가 1개 이하면 표시하지 않음
     return (
-      <View style={styles.footerContainer}>
-        <Text
-          useDiaryFont
-          style={[styles.footerText, isDark && styles.darkSubText]}
-        >
-          연도별로 작성한 일기를 찾으시나요?
-        </Text>
+      <View style={styles.emptyContainer}>
+        <AppText style={[styles.emptyText, isDark && styles.emptyTextDark]}>
+          연도별로 일기를 볼 수 있어요{'\n'}지난날의 소중한 하루하루를
+          읽어보세요
+        </AppText>
+
         <AppTouchableOpacity
-          style={styles.footerButton}
+          style={[styles.emptyButton, isDark && styles.emptyButtonDark]}
           onPress={() => setIsYearModalVisible(true)}
         >
-          <Text style={styles.footerButtonText}>다른 년도 보기</Text>
+          <AppText
+            style={[
+              styles.emptyButtonText,
+              isDark && styles.emptyButtonTextDark,
+            ]}
+          >
+            연도별 일기 보기
+          </AppText>
         </AppTouchableOpacity>
       </View>
     );
+  };
+
+  const handleGoToWrite = () => {
+    onGoBack();
+
+    // 뒤로가기 애니메이션이 끝날 즈음 모달 띄우기
+    setTimeout(() => {
+      router.push('/emotion-select');
+    }, 300);
   };
 
   return (
@@ -95,7 +115,7 @@ export default function DiaryListView({
             <BackIcon
               width={28}
               height={28}
-              color={isDark ? 'white' : 'black'}
+              color={isDark ? '#ffffff' : '#111111'}
             />
           </AppTouchableOpacity>
 
@@ -108,7 +128,7 @@ export default function DiaryListView({
           style={styles.headerTitleBtn}
         >
           <AppText
-            style={[styles.customHeaderTitle, isDark && { color: 'white' }]}
+            style={[styles.customHeaderTitle, isDark && { color: '#ffffff' }]}
           >
             {selectedYear}
           </AppText>
@@ -119,14 +139,14 @@ export default function DiaryListView({
             <SearchIcon
               width={28}
               height={28}
-              color={isDark ? 'white' : 'black'}
+              color={isDark ? '#ffffff' : '#111111'}
             />
           </AppTouchableOpacity>
           <AppTouchableOpacity onPress={() => setIsSortModalVisible(true)}>
             <OrderIcon
               width={28}
               height={28}
-              color={isDark ? 'white' : 'black'}
+              color={isDark ? '#ffffff' : '#111111'}
             />
           </AppTouchableOpacity>
         </View>
@@ -137,6 +157,34 @@ export default function DiaryListView({
         data={filteredDiaries}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <EmptyEmotionIcon
+              width={80}
+              height={80}
+              color={isDark ? '#888' : '#666'}
+            />
+
+            <AppText style={[styles.emptyText, isDark && styles.emptyTextDark]}>
+              작성한 일기가 없어요{'\n'}지나간 오늘 하루, 어떤 일이 있었나요?
+            </AppText>
+
+            <AppTouchableOpacity
+              style={[styles.emptyButton, isDark && styles.emptyButtonDark]}
+              onPress={handleGoToWrite}
+            >
+              <AppText
+                style={[
+                  styles.emptyButtonText,
+                  isDark && styles.emptyButtonTextDark,
+                ]}
+              >
+                오늘 하루 기록하기
+              </AppText>
+            </AppTouchableOpacity>
+          </View>
+        }
+
         ListFooterComponent={renderFooter}
         // 스크롤 에러 방지용 방어 코드
         onScrollToIndexFailed={(info) => {
@@ -287,7 +335,9 @@ export default function DiaryListView({
             style={[styles.modalBox, isDark && styles.darkModalBox]}
             onStartShouldSetResponder={() => true}
           >
-            <AppText style={[styles.modalTitle, isDark && { color: 'white' }]}>
+            <AppText
+              style={[styles.modalTitle, isDark && { color: '#ffffff' }]}
+            >
               년도 선택
             </AppText>
             <View style={styles.yearGrid}>
@@ -314,8 +364,8 @@ export default function DiaryListView({
                   <Text
                     style={[
                       styles.yearOptionText,
-                      isDark && { color: 'white' },
-                      selectedYear === year && { color: 'white' },
+                      isDark && { color: '#ffffff' },
+                      selectedYear === year && { color: '#ffffff' },
                     ]}
                   >
                     {year}
@@ -349,7 +399,7 @@ const styles = StyleSheet.create({
     height: 50,
   },
   darkCustomHeader: {
-    backgroundColor: '#121212',
+    backgroundColor: '#111111',
   },
   headerTitleBtn: {
     flexDirection: 'row',
@@ -433,7 +483,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   footerButtonText: {
-    color: 'white',
+    color: '#ffffff',
     fontSize: 14,
     fontWeight: 'bold',
   },
@@ -447,7 +497,7 @@ const styles = StyleSheet.create({
   },
   modalBox: {
     width: '80%',
-    backgroundColor: 'white',
+    backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 20,
     alignItems: 'center',
@@ -483,6 +533,44 @@ const styles = StyleSheet.create({
   yearOptionText: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#333',
+    color: '#333333',
+  },
+
+  // Empty State Styles
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 60,
+    gap: 10,
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: '#666',
+    fontSize: 14,
+    lineHeight: 24,
+    marginBottom: 10,
+  },
+  emptyTextDark: {
+    color: '#aaa',
+  },
+  emptyButton: {
+    backgroundColor: '#111111',
+    height: 50,
+    paddingHorizontal: 24,
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+    textAlign: 'center',
+  },
+  emptyButtonDark: {
+    backgroundColor: '#ffffff',
+  },
+  emptyButtonText: {
+    color: '#ffffff',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  emptyButtonTextDark: {
+    color: '#111111',
   },
 });

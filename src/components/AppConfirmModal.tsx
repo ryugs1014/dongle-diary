@@ -45,7 +45,7 @@ export default function AppConfirmModal({
     {
       key: 'cancel',
       text: cancelText,
-      color: isDark ? '#fff' : '#007AFF',
+      color: isDark ? '#ffffff' : '#007AFF',
       onPress: onCancel,
       isConfirm: false,
     },
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
   },
   alertBox: {
     width: 300,
-    backgroundColor: 'white',
+    backgroundColor: '#ffffff',
     borderRadius: 14,
     overflow: 'hidden',
     paddingTop: 24,
@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 10,
   },
-  darkText: { color: '#fff' },
+  darkText: { color: '#ffffff' },
   alertMessage: {
     fontSize: 14,
     lineHeight: 20,

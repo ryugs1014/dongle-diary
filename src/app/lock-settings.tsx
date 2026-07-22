@@ -1,23 +1,27 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
-  Switch,
+  ScrollView,
   Modal,
   Alert,
   Linking,
+  useColorScheme,
 } from 'react-native';
 import AppTouchableOpacity from '@/components/AppTouchableOpacity';
 import AppText from '@/components/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { router, Stack } from 'expo-router';
 import * as LocalAuthentication from 'expo-local-authentication';
+import * as Haptics from 'expo-haptics';
 import { useDiaryStore } from '../store/useDiaryStore';
+import NumberKeypad from '@/components/NumberKeypad';
+import { BackIcon, CloseIcon, ArrowRightIcon } from '@/assets/icons';
+import CustomSwitch from '@/components/CustomSwitch'; // <-- 새로 분리한 컴포넌트 import
 
 export default function LockSettingsScreen() {
   const {
+    theme,
     isLockEnabled,
     setLockEnabled,
     pinCode,
@@ -32,6 +36,10 @@ export default function LockSettingsScreen() {
   );
   const [tempPin, setTempPin] = useState('');
   const [currentInput, setCurrentInput] = useState('');
+
+  const systemColorScheme = useColorScheme();
+  const isDark =
+    theme === 'system' ? systemColorScheme === 'dark' : theme === 'dark';
 
   const handleLockToggle = (value: boolean) => {
     if (value) {
@@ -71,7 +79,6 @@ export default function LockSettingsScreen() {
       if (auth.success) {
         setBiometricEnabled(true);
       } else {
-        // 팝업이 무시되었거나, 권한이 없어서 실패한 경우 사용자에게 설정으로 갈지 물어봅니다.
         Alert.alert(
           '권한 필요',
           '생체 인식을 사용하려면 Face ID 권한이 필요합니다. 설정으로 이동하여 권한을 허용하시겠습니까?',
@@ -79,7 +86,7 @@ export default function LockSettingsScreen() {
             { text: '취소', style: 'cancel' },
             {
               text: '설정으로 이동',
-              onPress: () => Linking.openSettings(), // 사용자를 아이폰의 해당 앱 설정 창으로 다이렉트로 보냅니다.
+              onPress: () => Linking.openSettings(),
             },
           ],
         );
@@ -91,6 +98,8 @@ export default function LockSettingsScreen() {
   };
 
   const handleNumberPress = (num: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
     if (currentInput.length < 4) {
       const newInput = currentInput + num;
       setCurrentInput(newInput);
@@ -102,6 +111,8 @@ export default function LockSettingsScreen() {
   };
 
   const handleDeletePress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
     setCurrentInput((prev) => prev.slice(0, -1));
   };
 
@@ -131,114 +142,180 @@ export default function LockSettingsScreen() {
     setCurrentInput('');
   };
 
-  return (
-    <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
-      <Stack.Screen
-        options={{ headerTitle: '화면 잠금', headerBackTitle: '설정' }}
-      />
+  const SettingItem = ({
+    title,
+    subtitle,
+    onPress,
+    rightElement,
+    disabled,
+  }: {
+    title: string;
+    subtitle?: string;
+    onPress?: () => void;
+    rightElement?: React.ReactNode;
+    disabled?: boolean;
+  }) => (
+    <AppTouchableOpacity
+      style={[
+        styles.settingItem,
+        subtitle && styles.settingItemWithSub,
+        disabled && { opacity: 0.2 },
+      ]}
+      onPress={onPress}
+      disabled={disabled || !onPress}
+      activeOpacity={onPress ? 0.7 : 1}
+    >
+      <View style={styles.settingLeft}>
+        <AppText style={[styles.settingTitle, isDark && styles.darkText]}>
+          {title}
+        </AppText>
+        {subtitle && (
+          <AppText style={[styles.settingSub, isDark && styles.darkSubText]}>
+            {subtitle}
+          </AppText>
+        )}
+      </View>
 
-      <View style={styles.section}>
-        <View style={styles.settingItem}>
-          <AppText style={styles.settingTitle}>화면 잠금</AppText>
-          <Switch
-            value={isLockEnabled}
-            onValueChange={handleLockToggle}
-            trackColor={{ true: '#FF6F61', false: '#ddd' }}
+      <View style={[styles.settingRight, disabled && { opacity: 0 }]}>
+        {rightElement ? (
+          rightElement
+        ) : (
+          <ArrowRightIcon
+            width={28}
+            height={28}
+            color={isDark ? '#666' : '#ccc'}
           />
-        </View>
+        )}
+      </View>
+    </AppTouchableOpacity>
+  );
 
-        <AppTouchableOpacity
-          style={[styles.settingItem, !isLockEnabled && { opacity: 0.5 }]}
+  return (
+    <SafeAreaView
+      edges={['top', 'left', 'right']}
+      style={[styles.container, isDark && styles.darkContainer]}
+    >
+      <Stack.Screen options={{ headerShown: false }} />
+
+      <View style={[styles.customHeader, isDark && styles.darkCustomHeader]}>
+        <View style={styles.leftIconsWrapper}>
+          <AppTouchableOpacity onPress={() => router.back()}>
+            <BackIcon
+              width={28}
+              height={28}
+              color={isDark ? '#ffffff' : '#111111'}
+            />
+          </AppTouchableOpacity>
+        </View>
+        <View style={styles.headerTitleWrapper}>
+          <AppText
+            style={[styles.customHeaderTitle, isDark && styles.darkText]}
+          >
+            암호 잠금
+          </AppText>
+        </View>
+        <View style={styles.rightIconsWrapper} />
+      </View>
+
+      <ScrollView
+        style={styles.scrollWrapper}
+        contentContainerStyle={{ paddingBottom: 40, paddingTop: 10 }}
+      >
+        <SettingItem
+          title="화면 잠금"
+          rightElement={
+            <CustomSwitch
+              value={isLockEnabled}
+              onValueChange={handleLockToggle}
+              isDark={isDark}
+            />
+          }
+        />
+
+        {/*<View style={styles.dividerWrapper}>*/}
+        {/*  <SvgDashedLine />*/}
+        {/*</View>*/}
+
+        <SettingItem
+          title="비밀번호 변경"
           disabled={!isLockEnabled}
           onPress={() => {
             setPinStep('change');
             setCurrentInput('');
             setPinModalVisible(true);
           }}
-        >
-          <AppText style={styles.settingTitle}>비밀번호 변경</AppText>
-          <Ionicons name="chevron-forward" size={20} color="#ccc" />
-        </AppTouchableOpacity>
+        />
 
-        <View style={[styles.settingItem, !isLockEnabled && { opacity: 0.5 }]}>
-          <View>
-            <AppText style={styles.settingTitle}>생체 인식 사용</AppText>
-            <AppText style={styles.settingSub}>
-              지문이나 Face ID로 잠금을 해제합니다.
-            </AppText>
-          </View>
-          <Switch
-            value={isBiometricEnabled}
-            onValueChange={handleBiometricToggle}
-            disabled={!isLockEnabled}
-            trackColor={{ true: '#FF6F61', false: '#ddd' }}
-          />
-        </View>
-      </View>
+        {/*<View style={styles.dividerWrapper}>*/}
+        {/*  <SvgDashedLine />*/}
+        {/*</View>*/}
+
+        <SettingItem
+          title="생체 인식 사용"
+          subtitle="지문이나 Face ID로 잠금을 해제합니다."
+          disabled={!isLockEnabled}
+          rightElement={
+            <CustomSwitch
+              value={isBiometricEnabled}
+              onValueChange={handleBiometricToggle}
+              disabled={!isLockEnabled}
+              isDark={isDark}
+            />
+          }
+        />
+      </ScrollView>
 
       <Modal
         visible={pinModalVisible}
         animationType="slide"
         presentationStyle="pageSheet"
       >
-        <SafeAreaView style={styles.modalContainer}>
+        <SafeAreaView
+          style={[styles.modalContainer, isDark && styles.darkModalContainer]}
+        >
           <View style={styles.modalHeader}>
             <AppTouchableOpacity onPress={closePinModal}>
-              <AppText style={styles.cancelText}>취소</AppText>
+              <CloseIcon
+                width={28}
+                height={28}
+                color={isDark ? '#ffffff' : '#111111'}
+              />
             </AppTouchableOpacity>
           </View>
 
           <View style={styles.pinArea}>
-            <AppText style={styles.pinTitle}>
-              {pinStep === 'setup' || pinStep === 'change'
-                ? '새 비밀번호 입력'
-                : '비밀번호 확인'}
-            </AppText>
-            <AppText style={styles.pinSub}>
-              {pinStep === 'confirm'
-                ? '한 번 더 입력해주세요.'
-                : '4자리 숫자를 입력해주세요.'}
+            <AppText style={[styles.pinTitle, isDark && styles.darkText]}>
+              {pinStep === 'setup'
+                ? '새 암호 입력'
+                : pinStep === 'change'
+                  ? '변경 암호 입력'
+                  : '한 번 더 입력하세요'}
             </AppText>
 
             <View style={styles.dotContainer}>
               {[0, 1, 2, 3].map((i) => (
-                <View
-                  key={i}
-                  style={[
-                    styles.dot,
-                    currentInput.length > i && styles.dotFilled,
-                  ]}
-                />
+                <View key={i} style={styles.dotWrapper}>
+                  {currentInput.length > i ? (
+                    <AppText
+                      style={[styles.asterisk, isDark && styles.darkAsterisk]}
+                    >
+                      *
+                    </AppText>
+                  ) : (
+                    <View style={[styles.dot, isDark && styles.darkDot]} />
+                  )}
+                </View>
               ))}
             </View>
           </View>
 
-          <View style={styles.keypad}>
-            {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((num) => (
-              <AppTouchableOpacity
-                key={num}
-                style={styles.keypadBtn}
-                onPress={() => handleNumberPress(num)}
-              >
-                <AppText style={styles.keypadText}>{num}</AppText>
-              </AppTouchableOpacity>
-            ))}
-
-            <View style={styles.keypadBtn} />
-
-            <AppTouchableOpacity
-              style={styles.keypadBtn}
-              onPress={() => handleNumberPress('0')}
-            >
-              <AppText style={styles.keypadText}>0</AppText>
-            </AppTouchableOpacity>
-
-            <AppTouchableOpacity
-              style={styles.keypadBtn}
-              onPress={handleDeletePress}
-            >
-              <Ionicons name="backspace-outline" size={28} color="#333" />
-            </AppTouchableOpacity>
+          <View style={styles.keypadWrapper}>
+            <NumberKeypad
+              onNumberPress={handleNumberPress}
+              onDeletePress={handleDeletePress}
+              showBiometric={false}
+              isDark={isDark}
+            />
           </View>
         </SafeAreaView>
       </Modal>
@@ -247,62 +324,119 @@ export default function LockSettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8f9fa' },
-  section: {
-    marginTop: 20,
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#eee',
+  container: { flex: 1, backgroundColor: '#FCFBFA' },
+  darkContainer: { backgroundColor: '#111111' },
+
+  customHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    height: 50,
   },
+  darkCustomHeader: {
+    backgroundColor: '#111111',
+    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  leftIconsWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+  },
+  headerTitleWrapper: {
+    flex: 2,
+    alignItems: 'center',
+  },
+  customHeaderTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  rightIconsWrapper: {
+    flex: 1,
+  },
+
+  scrollWrapper: {
+    paddingVertical: 10,
+  },
+
   settingItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 18,
     paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    height: 52,
   },
-  settingTitle: { fontSize: 16, color: '#333' },
-  settingSub: { fontSize: 12, color: '#888', marginTop: 4 },
-
-  modalContainer: { flex: 1, backgroundColor: '#fff' },
-  modalHeader: { padding: 20, alignItems: 'flex-start' },
-  cancelText: { fontSize: 16, color: '#FF6F61', fontWeight: 'bold' },
-  pinArea: { alignItems: 'center', marginTop: 40 },
-  pinTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
+  settingItemWithSub: {
+    height: 68,
   },
-  pinSub: { fontSize: 14, color: '#888', marginBottom: 40 },
-  dotContainer: { flexDirection: 'row', gap: 20 },
-  dot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    backgroundColor: 'transparent',
-  },
-  dotFilled: { backgroundColor: '#FF6F61', borderColor: '#FF6F61' },
-
-  keypad: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  settingLeft: {
+    flexDirection: 'column',
     justifyContent: 'center',
-    marginTop: 'auto',
-    paddingBottom: 40,
+  },
+  settingRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  settingTitle: {
+    fontSize: 16,
+    color: '#333',
+  },
+  settingSub: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: 4,
+  },
+  darkText: { color: '#ffffff' },
+  darkSubText: { color: '#aaa' },
+
+  dividerWrapper: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+
+  modalContainer: { flex: 1, backgroundColor: '#FCFBFA' },
+  darkModalContainer: { backgroundColor: '#111111' },
+
+  modalHeader: {
+    paddingVertical: 20,
     paddingHorizontal: 20,
   },
-  keypadBtn: {
-    width: '30%',
-    height: 80,
+  pinArea: { alignItems: 'center', paddingTop: 40 },
+  pinTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    paddingBottom: 30,
+    color: '#333',
+  },
+
+  dotContainer: { flexDirection: 'row', gap: 20 },
+  dotWrapper: {
+    width: 24,
+    height: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    margin: '1.5%',
   },
-  keypadText: { fontSize: 28, color: '#333' },
+  asterisk: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#333',
+    paddingTop: 12,
+  },
+  darkAsterisk: {
+    color: '#ffffff',
+  },
+  dot: {
+    width: 16,
+    height: 2,
+    backgroundColor: '#ccc',
+  },
+  darkDot: {
+    backgroundColor: '#555',
+  },
+
+  keypadWrapper: {
+    marginTop: 'auto',
+    paddingBottom: 30,
+  },
 });

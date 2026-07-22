@@ -26,7 +26,7 @@ export default function MainSwipeScreen() {
     pagerRef.current?.setPage(0);
   };
 
-  const bgColor = isDark ? '#111' : '#fcfbfa';
+  const bgColor = isDark ? '#111111' : '#fcfbfa';
 
   return (
     <SafeAreaView

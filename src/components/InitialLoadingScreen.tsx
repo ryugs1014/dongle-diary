@@ -12,7 +12,11 @@ export default function InitialLoadingScreen() {
   return (
     <View style={[styles.container, isDark && styles.darkContainer]}>
       <View style={styles.contentWrapper}>
-        <LogoIcon width={100} height={150} color={isDark ? 'white' : 'black'} />
+        <LogoIcon
+          width={100}
+          height={150}
+          color={isDark ? '#ffffff' : '#111111'}
+        />
       </View>
     </View>
   );
@@ -21,7 +25,7 @@ export default function InitialLoadingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FCFBFA',
     justifyContent: 'center',
     alignItems: 'center',
   },
