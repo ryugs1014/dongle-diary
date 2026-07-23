@@ -10,12 +10,13 @@ import {
   Alert,
   useColorScheme,
   Animated,
+  BackHandler,
 } from 'react-native';
 import { Image } from 'expo-image';
-import AppTouchableOpacity from '@/components/AppTouchableOpacity';
-import AppConfirmModal from '@/components/AppConfirmModal';
-import AppText from '@/components/AppText';
-import AppTextInput from '@/components/AppTextInput';
+import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
+import AppConfirmModal from '@/components/modals/AppConfirmModal';
+import AppText from '@/components/atoms/AppText';
+import AppTextInput from '@/components/atoms/AppTextInput';
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -25,6 +26,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useDiaryStore } from '../store/useDiaryStore';
 import {
   CloseIcon,
+  BackIcon,
   ImageIcon,
   ClockIcon,
   AlignLeftIcon,
@@ -43,7 +45,7 @@ import {
   ANIMATED_EMOTION_IMAGE_MAP,
 } from '@/constants/emotions';
 import { FONT_SIZES } from '@/constants/font';
-import EmotionSelectModal from '@/components/EmotionSelectModal';
+import EmotionSelectModal from '@/components/modals/EmotionSelectModal';
 
 // 지워지지 않는 기본 블록 상수화 (좌측 정렬 + 빈 줄)
 const BASE_BLOCK = '<div style="text-align: left;"><br></div>';
@@ -116,6 +118,23 @@ export default function WriteScreen() {
       showSubscription.remove();
       hideSubscription.remove();
     };
+  }, []);
+
+  useEffect(() => {
+    const backAction = () => {
+      // 뒤로 가기 버튼을 눌렀을 때 취소 모달을 띄웁니다.
+      setCancelModalVisible(true);
+
+      // true를 반환하면 안드로이드 기본 뒤로 가기 동작(화면 이탈)을 막습니다.
+      return true;
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      backAction,
+    );
+
+    return () => backHandler.remove();
   }, []);
 
   // 텍스트가 완전히 비어있는지 체크하는 유틸리티 함수
@@ -395,11 +414,19 @@ export default function WriteScreen() {
         >
           <View style={styles.leftIconsWrapper}>
             <AppTouchableOpacity onPress={() => setCancelModalVisible(true)}>
-              <CloseIcon
-                width={28}
-                height={28}
-                color={isDark ? '#ffffff' : '#111111'}
-              />
+              {editId ? (
+                <BackIcon
+                  width={28}
+                  height={28}
+                  color={isDark ? '#ffffff' : '#111111'}
+                />
+              ) : (
+                <CloseIcon
+                  width={28}
+                  height={28}
+                  color={isDark ? '#ffffff' : '#111111'}
+                />
+              )}
             </AppTouchableOpacity>
           </View>
           <View style={styles.rightIconsWrapper}>
@@ -477,7 +504,7 @@ export default function WriteScreen() {
                 style={[
                   styles.titleInput,
                   {
-                    height: 'auto',
+                    // height: 'auto',
                     fontFamily:
                       diaryFontFamily === 'System'
                         ? undefined
@@ -485,7 +512,9 @@ export default function WriteScreen() {
                   },
                 ]}
                 cursorColor={isDark ? '#ffffff' : '#111111'}
-                selectionColor={isDark ? '#ffffff' : '#111111'}
+                selectionColor={
+                  isDark ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)'
+                }
                 value={title}
                 blurOnSubmit={true}
                 multiline={true}
@@ -764,8 +793,12 @@ export default function WriteScreen() {
         onCancel={() => setCancelModalVisible(false)}
         onConfirm={() => {
           setCancelModalVisible(false);
-          if (router.canDismiss()) router.dismissAll();
-          router.replace('/');
+          if (editId) {
+            router.back();
+          } else {
+            if (router.canDismiss()) router.dismissAll();
+            router.replace('/');
+          }
         }}
         reverseButtons={true}
       />
@@ -853,7 +886,7 @@ const styles = StyleSheet.create({
   },
   addTitleBtn: {
     position: 'absolute',
-    top: 30,
+    top: 25,
     left: 0,
     right: 0,
     height: 32,
@@ -881,9 +914,12 @@ const styles = StyleSheet.create({
     minHeight: 32,
     textAlign: 'center',
     width: '100%',
-    paddingBottom: 40,
     marginTop: 24,
-    paddingHorizontal: 10,
+    marginBottom: 40,
+    paddingHorizontal: 5,
+    paddingTop: 0,
+    paddingBottom: 0,
+    textAlignVertical: 'center', // 안드로이드에서 텍스트가 위아래로 흔들리는 것을 방지
   },
 
   editorWrapper: {

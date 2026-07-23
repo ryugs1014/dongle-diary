@@ -1,22 +1,27 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, AppState, useColorScheme } from 'react-native';
-import AppTouchableOpacity from '@/components/AppTouchableOpacity';
-import AppText from '@/components/AppText';
+import {
+  View,
+  StyleSheet,
+  AppState,
+  useColorScheme,
+  BackHandler,
+} from 'react-native';
+import AppText from '@/components/atoms/AppText';
 import { ThemeProvider, DarkTheme, DefaultTheme, Stack } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { useDiaryStore } from '../store/useDiaryStore';
 import InitialLoadingScreen from '@/components/InitialLoadingScreen';
-import NumberKeypad from '@/components/NumberKeypad';
+import NumberKeypad from '@/components/common/NumberKeypad';
 import * as Haptics from 'expo-haptics';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const { isLockEnabled, pinCode, isBiometricEnabled, theme } = useDiaryStore();
+  const insets = useSafeAreaInsets();
 
   const [fontsLoaded] = useFonts({
     KyoboHandwriting: require('../../assets/fonts/KyoboHandwriting.ttf'),
@@ -49,7 +54,7 @@ export default function RootLayout() {
       // (DB 동기화 등 무거운 초기 작업이 있다면 여기서 await로 처리하면 됩니다.)
       const timer = setTimeout(() => {
         setShowCustomSplash(false);
-      }, 2000);
+      }, 1750);
 
       return () => clearTimeout(timer);
     }
@@ -58,6 +63,30 @@ export default function RootLayout() {
   useEffect(() => {
     isUnlockedRef.current = isUnlocked;
   }, [isUnlocked]);
+
+  // 🌟 안드로이드 물리 뒤로 가기 버튼 방어 로직
+  useEffect(() => {
+    const backAction = () => {
+      // 1. 잠금 화면 상태(!isUnlocked)일 때
+      if (!isUnlocked) {
+        // 뒤로 가기를 누르면 잠금을 뚫는 대신 앱을 종료해버림
+        BackHandler.exitApp();
+
+        // true를 반환하면 리액트 네이티브의 기본 뒤로 가기 동작을 무시함
+        return true;
+      }
+
+      // 잠금이 해제된 상태라면 기본 동작(정상적인 뒤로 가기) 수행
+      return false;
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      backAction,
+    );
+
+    return () => backHandler.remove();
+  }, [isUnlocked]); // isUnlocked 상태가 변할 때마다 이벤트를 갱신합니다.
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextAppState) => {
@@ -92,7 +121,7 @@ export default function RootLayout() {
       handleBiometricAuth();
     }
     return () => subscription.remove();
-  }, [isLockEnabled, isBiometricEnabled]);
+  }, [isLockEnabled, isBiometricEnabled, showCustomSplash]);
 
   const handleBiometricAuth = async () => {
     if (isAuthenticating.current) return;
@@ -208,8 +237,12 @@ export default function RootLayout() {
       </View>
 
       {!showCustomSplash && !isUnlocked && (
-        <SafeAreaView
-          style={[styles.lockContainer, isDark && styles.darkContainer]}
+        <View
+          style={[
+            styles.lockContainer,
+            isDark && styles.darkContainer,
+            { paddingTop: insets.top, paddingBottom: insets.bottom },
+          ]}
         >
           <View style={styles.pinArea}>
             <AppText style={styles.pinTitle}>
@@ -246,7 +279,7 @@ export default function RootLayout() {
               isDark={isDark}
             />
           </View>
-        </SafeAreaView>
+        </View>
       )}
 
       {showCustomSplash && (

@@ -8,9 +8,9 @@ import {
   useWindowDimensions,
   Pressable,
 } from 'react-native';
-import AppTouchableOpacity from '@/components/AppTouchableOpacity';
-import AppConfirmModal from '@/components/AppConfirmModal';
-import AppText from '@/components/AppText';
+import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
+import AppConfirmModal from '@/components/modals/AppConfirmModal';
+import AppText from '@/components/atoms/AppText';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -112,36 +112,6 @@ export default function DiaryDetailScreen() {
     }
   }, [navigation, diary, isDark]);
 
-  if (!diary)
-    return (
-      <View style={[styles.fallback, isDark && styles.darkFallback]}>
-        <AppText useDiaryFont style={isDark && styles.darkText}>
-          일기를 찾을 수 없습니다.
-        </AppText>
-      </View>
-    );
-
-  const handleDeleteClick = () => {
-    setMenuVisible(false);
-    setDeleteModalVisible(true);
-  };
-
-  const confirmDelete = () => {
-    deleteDiary(diary.id);
-    setDeleteModalVisible(false);
-    router.back();
-  };
-
-  const handleShare = async () => {
-    setMenuVisible(false);
-    try {
-      const uri = await viewShotRef.current?.capture?.();
-      if (uri) await Sharing.shareAsync(uri);
-    } catch (error) {
-      alert('이미지 공유에 실패했거나 지원하지 않는 기기입니다.');
-    }
-  };
-
   const currentFontSize = FONT_SIZES[diaryFontSize as keyof typeof FONT_SIZES];
   const activeFontFamily =
     diaryFontFamily === 'System' ? undefined : diaryFontFamily;
@@ -201,7 +171,8 @@ export default function DiaryDetailScreen() {
   };
 
   const memoizedHtml = useMemo(() => {
-    if (diary.content === undefined) return null;
+    // if (diary.content === undefined) return null;
+    if (!diary || diary.content === undefined) return null;
 
     return (
       <View style={[styles.renderHtmlWrapper]}>
@@ -240,13 +211,43 @@ export default function DiaryDetailScreen() {
       </View>
     );
   }, [
-    diary.content,
+    diary?.content,
     width,
     currentFontSize,
     activeFontFamily,
     isDark,
     systemFonts,
   ]);
+
+  if (!diary)
+    return (
+      <View style={[styles.fallback, isDark && styles.darkFallback]}>
+        <AppText useDiaryFont style={isDark && styles.darkText}>
+          일기를 찾을 수 없습니다.
+        </AppText>
+      </View>
+    );
+
+  const handleDeleteClick = () => {
+    setMenuVisible(false);
+    setDeleteModalVisible(true);
+  };
+
+  const confirmDelete = () => {
+    deleteDiary(diary.id);
+    setDeleteModalVisible(false);
+    router.back();
+  };
+
+  const handleShare = async () => {
+    setMenuVisible(false);
+    try {
+      const uri = await viewShotRef.current?.capture?.();
+      if (uri) await Sharing.shareAsync(uri);
+    } catch (error) {
+      alert('이미지 공유에 실패했거나 지원하지 않는 기기입니다.');
+    }
+  };
 
   return (
     <SafeAreaView

@@ -6,14 +6,14 @@ import {
   useColorScheme,
   ScrollView,
 } from 'react-native';
-import AppTouchableOpacity from '@/components/AppTouchableOpacity';
+import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import AppText from '@/components/AppText';
+import AppText from '@/components/atoms/AppText';
 import { Stack, router } from 'expo-router';
 import { useDiaryStore } from '../store/useDiaryStore';
 import { BackIcon } from '../../assets/icons';
-import { NextBigIcon } from '@/components/NextBigIcon';
+import { NextBigIcon } from '@/components/ui/NextBigIcon';
 import { EMOTIONS_DATA } from '@/constants/emotions';
 import { Image } from 'expo-image';
 

@@ -7,8 +7,8 @@ import {
   useColorScheme,
   Pressable,
 } from 'react-native';
-import AppText from '@/components/AppText';
-import AppTouchableOpacity from '@/components/AppTouchableOpacity';
+import AppText from '@/components/atoms/AppText';
+import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
 import { useDiaryStore } from '@/store/useDiaryStore';
 
 interface AppConfirmModalProps {
@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     paddingTop: 24,
   },
-  darkMenuBox: { backgroundColor: '#1e1e1e' },
+  darkMenuBox: { backgroundColor: '#191919' },
   alertTitle: {
     fontSize: 18,
     fontWeight: 'bold',

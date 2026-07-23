@@ -8,16 +8,16 @@ import {
   Linking,
   useColorScheme,
 } from 'react-native';
-import AppTouchableOpacity from '@/components/AppTouchableOpacity';
-import AppText from '@/components/AppText';
+import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
+import AppText from '@/components/atoms/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Stack } from 'expo-router';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as Haptics from 'expo-haptics';
 import { useDiaryStore } from '../store/useDiaryStore';
-import NumberKeypad from '@/components/NumberKeypad';
+import NumberKeypad from '@/components/common/NumberKeypad';
 import { BackIcon, CloseIcon, ArrowRightIcon } from '@/assets/icons';
-import CustomSwitch from '@/components/CustomSwitch';
+import CustomSwitch from '@/components/common/CustomSwitch';
 
 export default function LockSettingsScreen() {
   const {

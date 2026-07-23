@@ -7,16 +7,16 @@ import {
   ScrollView,
   PanResponder,
 } from 'react-native';
-import AppTouchableOpacity from '@/components/AppTouchableOpacity';
-import AppText from '@/components/AppText';
+import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
+import AppText from '@/components/atoms/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Stack } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useDiaryStore } from '../store/useDiaryStore';
 import { FONT_SIZES, FONTS } from '@/constants/font';
 import { BackIcon } from '@/assets/icons';
-import SvgDashedLine from '@/components/SvgDashedLine';
-import RadioSettingItem from '@/components/RadioSettingItem';
+import SvgDashedLine from '@/components/ui/SvgDashedLine';
+import RadioSettingItem from '@/components/common/RadioSettingItem';
 
 export default function FontSettingsScreen() {
   const {

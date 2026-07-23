@@ -8,15 +8,15 @@ import {
   Modal,
   useColorScheme,
 } from 'react-native';
-import AppTouchableOpacity from '@/components/AppTouchableOpacity';
+import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import AppText from '@/components/AppText';
+import AppText from '@/components/atoms/AppText';
 import { Stack, router } from 'expo-router';
 import { useDiaryStore } from '../store/useDiaryStore';
 import { CloseIcon, SearchIcon, OrderIcon } from '../../assets/icons';
-import SvgDashedLine from '@/components/SvgDashedLine';
+import SvgDashedLine from '@/components/ui/SvgDashedLine';
 import { EMOTION_IMAGE_MAP } from '@/constants/emotions';
-import SortBottomSheet from '@/components/SortBottomSheet';
+import SortBottomSheet from '@/components/modals/SortBottomSheet';
 
 export default function DiaryListScreen() {
   const { diaries, selectedDate, theme } = useDiaryStore();
@@ -244,23 +244,25 @@ export default function DiaryListScreen() {
 
                     return (
                       <>
-                        {firstImgUrl && (
-                          <Image
-                            source={{ uri: firstImgUrl }}
-                            style={styles.previewImage}
-                          />
-                        )}
                         {plainText.length > 0 && (
                           <AppText
                             useDiaryFont
+                            useDiarySize
                             style={[
                               styles.content,
-                              isDark && styles.darkSubText,
+                              // isDark && styles.darkSubText,
                             ]}
                             numberOfLines={3}
                           >
                             {plainText}
                           </AppText>
+                        )}
+
+                        {firstImgUrl && (
+                          <Image
+                            source={{ uri: firstImgUrl }}
+                            style={styles.previewImage}
+                          />
                         )}
                       </>
                     );
@@ -392,7 +394,6 @@ const styles = StyleSheet.create({
 
   card: {
     paddingVertical: 30,
-    elevation: 2,
     gap: 10,
   },
   darkCard: {
@@ -419,9 +420,7 @@ const styles = StyleSheet.create({
   dateBox: { gap: 4 },
   date: { fontSize: 14, lineHeight: 16 },
   day: { fontSize: 14, color: '#666', lineHeight: 16 },
-  title: { fontSize: 18 },
-
-  content: { fontSize: 14, lineHeight: 24 },
+  title: { fontSize: 24 },
 
   darkSubText: { color: '#666' },
   previewImage: {

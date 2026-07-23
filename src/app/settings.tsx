@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView, useColorScheme } from 'react-native';
-import AppTouchableOpacity from '@/components/AppTouchableOpacity';
-import AppText from '@/components/AppText';
+import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
+import AppText from '@/components/atoms/AppText';
 import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,7 +18,7 @@ import {
   LanguageIcon,
   InfoIcon,
 } from '../../assets/icons';
-import SvgDashedLine from '@/components/SvgDashedLine';
+import SvgDashedLine from '@/components/ui/SvgDashedLine';
 
 export default function SettingsScreen() {
   const { language, theme, isAlarmEnabled, alarmTime, diaryFontSize } =

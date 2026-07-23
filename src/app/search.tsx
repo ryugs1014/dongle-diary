@@ -8,9 +8,9 @@ import {
   useColorScheme,
   Keyboard,
 } from 'react-native';
-import AppTouchableOpacity from '@/components/AppTouchableOpacity';
-import AppTextInput from '@/components/AppTextInput';
-import AppText from '@/components/AppText';
+import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
+import AppTextInput from '@/components/atoms/AppTextInput';
+import AppText from '@/components/atoms/AppText';
 import { Stack, router, useNavigation } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -21,10 +21,10 @@ import {
   DeleteIcon,
   BackIcon,
 } from '../../assets/icons';
-import SvgDashedLine from '@/components/SvgDashedLine';
+import SvgDashedLine from '@/components/ui/SvgDashedLine';
 import { EMOTIONS_DATA } from '@/constants/emotions';
-import DiaryCard from '@/components/DiaryCard';
-import SortBottomSheet from '@/components/SortBottomSheet';
+import DiaryCard from '@/components/common/DiaryCard';
+import SortBottomSheet from '@/components/modals/SortBottomSheet';
 
 export default function SearchScreen() {
   const { diaries, theme } = useDiaryStore();
@@ -189,7 +189,9 @@ export default function SearchScreen() {
               placeholder="일기 또는 날짜 검색"
               placeholderTextColor={isDark ? '#666' : '#999'}
               cursorColor={isDark ? '#ffffff' : '#111111'}
-              selectionColor={isDark ? '#ffffff' : '#111111'}
+              selectionColor={
+                isDark ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)'
+              }
               value={searchText}
               onChangeText={setSearchText}
               returnKeyType="search"

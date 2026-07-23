@@ -149,9 +149,8 @@ export const useDiaryStore = create<DiaryStore>()(
       setDiaryFontFamily: (font) => set({ diaryFontFamily: font }),
     }),
     {
-      name: 'diary-storage', // 기기에 저장될 스토리지 키 이름
+      name: 'diary-storage',
       storage: createJSONStorage(() => AsyncStorage, {
-        // 🌟 4. Date 객체가 문자열로 저장되었다가 불러올 때 다시 Date 객체로 복원되도록 처리
         reviver: (key, value) => {
           if (key === 'alarmTime' && typeof value === 'string') {
             return new Date(value);
@@ -159,6 +158,12 @@ export const useDiaryStore = create<DiaryStore>()(
           return value;
         },
       }),
+      // 🌟 [추가된 부분] 기기에 영구 저장할 상태와 저장하지 않을 상태를 분리합니다.
+      partialize: (state) => {
+        // selectedDate는 저장 목록에서 빼고(앱 켤때마다 오늘 날짜로 초기화), 나머지만 저장합니다.
+        const { selectedDate, ...rest } = state;
+        return rest;
+      },
     },
   ),
 );

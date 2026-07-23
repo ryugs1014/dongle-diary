@@ -1,13 +1,13 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView, useColorScheme } from 'react-native';
-import AppTouchableOpacity from '@/components/AppTouchableOpacity';
-import AppText from '@/components/AppText';
+import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
+import AppText from '@/components/atoms/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Stack } from 'expo-router';
 import { useDiaryStore } from '../store/useDiaryStore';
 import { BackIcon } from '@/assets/icons'; // 헤더 뒤로가기 아이콘 (CloseIcon 대신 BackIcon 사용을 추천)
-import SvgDashedLine from '@/components/SvgDashedLine';
-import RadioSettingItem from '@/components/RadioSettingItem'; // 분리한 컴포넌트 import
+import SvgDashedLine from '@/components/ui/SvgDashedLine';
+import RadioSettingItem from '@/components/common/RadioSettingItem'; // 분리한 컴포넌트 import
 
 export default function LanguageSettingsScreen() {
   const { language, setLanguage, theme } = useDiaryStore();

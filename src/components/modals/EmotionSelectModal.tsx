@@ -8,13 +8,13 @@ import {
   Dimensions,
 } from 'react-native';
 import { Image } from 'expo-image';
-import AppText from '@/components/AppText';
-import AppTouchableOpacity from '@/components/AppTouchableOpacity';
+import AppText from '@/components/atoms/AppText';
+import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
 import { EMOTIONS_DATA } from '@/constants/emotions';
 import { CloseIcon } from '@/assets/icons';
-import { NextBigIcon } from '@/components/NextBigIcon';
+import { NextBigIcon } from '@/components/ui/NextBigIcon';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SelectBigIcon } from '@/components/SelectBigIcon';
+import { SelectBigIcon } from '@/components/ui/SelectBigIcon';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
   },
 
   darkEmotionBox: {
-    backgroundColor: '#1C1C1E', //다크모드 배경색
+    backgroundColor: '#191919', //다크모드 배경색
   },
 
   darkText: {

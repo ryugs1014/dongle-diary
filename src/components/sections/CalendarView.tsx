@@ -1,19 +1,19 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, StyleSheet, Text, Modal } from 'react-native';
-import AppTouchableOpacity from '@/components/AppTouchableOpacity';
+import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
 import { Image } from 'expo-image';
-import AppText from '@/components/AppText';
+import AppText from '@/components/atoms/AppText';
 import { router } from 'expo-router';
 import { CalendarList, LocaleConfig } from 'react-native-calendars';
 import { Ionicons } from '@expo/vector-icons';
-import { useDiaryStore } from '../store/useDiaryStore';
+import { useDiaryStore } from '../../store/useDiaryStore';
 import {
   CalandarIcon,
   SelectArrowIcon,
   SearchIcon,
   MenuIcon,
   AddBigIcon,
-} from '../../assets/icons';
+} from '@/assets/icons';
 import {
   EMOTION_IMAGE_MAP,
   ANIMATED_EMOTION_IMAGE_MAP,
@@ -252,6 +252,19 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
           pagingEnabled={true}
           calendarHeight={330}
           hideDayNames={true}
+
+          // 🌟 [최적화 1] 화면 밖으로 벗어난 달력 컴포넌트들은 메모리에서 해제합니다. (안드로이드에서 성능 향상 큼)
+          removeClippedSubviews={true}
+
+          // 🌟 [최적화 2] 한 번에 렌더링할 최대 항목(월) 개수를 줄여서 렉을 방지합니다. (기본값 10 -> 3으로 감소)
+          maxToRenderPerBatch={3}
+
+          // 🌟 [최적화 3] 처음에 렌더링할 달력 개수 (기본값 10 -> 2로 감소)
+          initialNumToRender={3}
+
+          // 🌟 [최적화 4] 위아래로 렌더링해둘 여유 화면 비율 (기본값 21 -> 7로 감소하여 메모리 절약)
+          windowSize={7}
+
           renderHeader={() => <View style={{ height: 0 }} />}
           onVisibleMonthsChange={(months) => {
             if (months && months.length > 0)
@@ -265,9 +278,10 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
             textDisabledColor: isDark
               ? 'rgba(255, 255, 255, 0.2)'
               : 'rgba(0, 0, 0, 0.2)',
+
             'stylesheet.calendar-list.main': {
               placeholderText: {
-                color: 'transparent',
+                color: isDark ? '#111111' : '#ffffff',
               },
             },
           }}

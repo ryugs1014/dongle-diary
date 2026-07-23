@@ -2,8 +2,8 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import AppTouchableOpacity from '@/components/AppTouchableOpacity';
-import AppText from '@/components/AppText';
+import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
+import AppText from '@/components/atoms/AppText';
 import { EditIcon, FingerIcon } from '@/assets/icons';
 
 interface NumberKeypadProps {

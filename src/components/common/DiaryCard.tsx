@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, useColorScheme } from 'react-native';
-import AppTouchableOpacity from '@/components/AppTouchableOpacity';
-import AppText from '@/components/AppText';
+import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
+import AppText from '@/components/atoms/AppText';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useDiaryStore } from '@/store/useDiaryStore';

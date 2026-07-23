@@ -1,18 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, Image, Modal } from 'react-native';
-import AppTouchableOpacity from '@/components/AppTouchableOpacity';
-import AppText from '@/components/AppText';
+import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
+import AppText from '@/components/atoms/AppText';
 import { router } from 'expo-router';
-import { useDiaryStore } from '../store/useDiaryStore';
+import { useDiaryStore } from '../../store/useDiaryStore';
 import {
   BackIcon,
   SearchIcon,
   OrderIcon,
   EmptyEmotionIcon,
-} from '../../assets/icons';
-import SvgDashedLine from '@/components/SvgDashedLine';
+} from '@/assets/icons';
+import SvgDashedLine from '@/components/ui/SvgDashedLine';
 import { EMOTION_IMAGE_MAP } from '@/constants/emotions';
-import SortBottomSheet from '@/components/SortBottomSheet';
+import SortBottomSheet from '@/components/modals/SortBottomSheet';
 
 interface DiaryListViewProps {
   isDark: boolean;
@@ -277,23 +277,25 @@ export default function DiaryListView({
 
                     return (
                       <>
-                        {firstImgUrl && (
-                          <Image
-                            source={{ uri: firstImgUrl }}
-                            style={styles.previewImage}
-                          />
-                        )}
                         {plainText.length > 0 && (
                           <AppText
                             useDiaryFont
+                            useDiarySize
                             style={[
                               styles.content,
-                              isDark && styles.darkSubText,
+                              // isDark && styles.darkSubText,
                             ]}
                             numberOfLines={3}
                           >
                             {plainText}
                           </AppText>
+                        )}
+
+                        {firstImgUrl && (
+                          <Image
+                            source={{ uri: firstImgUrl }}
+                            style={styles.previewImage}
+                          />
                         )}
                       </>
                     );
@@ -425,7 +427,6 @@ const styles = StyleSheet.create({
 
   card: {
     paddingVertical: 30,
-    elevation: 2,
     gap: 10,
   },
   darkCard: {
@@ -452,11 +453,12 @@ const styles = StyleSheet.create({
   dateBox: { gap: 4 },
   date: { fontSize: 14, lineHeight: 16 },
   day: { fontSize: 14, color: '#666', lineHeight: 16 },
-  title: { fontSize: 18 },
-
-  content: { fontSize: 14, lineHeight: 24 },
+  title: { fontSize: 24 },
 
   darkSubText: { color: '#666' },
+  content: {
+    marginBottom: 10,
+  },
   previewImage: {
     width: '100%',
     height: 150,

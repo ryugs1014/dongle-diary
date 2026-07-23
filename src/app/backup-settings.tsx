@@ -8,9 +8,9 @@ import {
   ScrollView,
   Animated,
 } from 'react-native';
-import AppTouchableOpacity from '@/components/AppTouchableOpacity';
-import AppConfirmModal from '@/components/AppConfirmModal';
-import AppText from '@/components/AppText';
+import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
+import AppConfirmModal from '@/components/modals/AppConfirmModal';
+import AppText from '@/components/atoms/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,7 +19,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import { useDiaryStore } from '../store/useDiaryStore';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { BackIcon, CloudIcon, DownloadIcon, UploadIcon } from '@/assets/icons';
-import SvgDashedLine from '@/components/SvgDashedLine';
+import SvgDashedLine from '@/components/ui/SvgDashedLine';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -633,7 +633,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f1f2f3',
   },
   darkAccountHeader: {
-    backgroundColor: '#1c1c1e',
+    backgroundColor: '#191919',
   },
   accountInfo: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
   accountLabel: { fontSize: 13, color: '#888' },
@@ -713,7 +713,7 @@ const styles = StyleSheet.create({
   backupBtn: { backgroundColor: '#111111' },
   darkBackupBtn: { backgroundColor: '#ffffff' },
   restoreBtn: { backgroundColor: '#f0f0f0' },
-  darkRestoreBtn: { backgroundColor: '#333' },
+  darkRestoreBtn: { backgroundColor: '#191919' },
   restoreBtnText: { color: '#333', fontSize: 14 },
   backupBtnText: { color: '#ffffff', fontSize: 14 },
   darkBackupBtnText: { color: '#111111' },
@@ -729,6 +729,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 999, // 가장 위에 표시
-    elevation: 10,
   },
 });

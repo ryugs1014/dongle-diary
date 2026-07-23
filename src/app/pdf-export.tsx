@@ -8,8 +8,8 @@ import {
   useColorScheme,
   ActivityIndicator,
 } from 'react-native';
-import AppTouchableOpacity from '@/components/AppTouchableOpacity';
-import AppText from '@/components/AppText';
+import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
+import AppText from '@/components/atoms/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Stack } from 'expo-router';
 import * as Print from 'expo-print';
@@ -24,7 +24,7 @@ import {
   DocumentIcon,
   DownloadIcon,
 } from '@/assets/icons';
-import SvgDashedLine from '@/components/SvgDashedLine';
+import SvgDashedLine from '@/components/ui/SvgDashedLine';
 import { EMOTION_IMAGE_MAP } from '@/constants/emotions';
 
 export default function PdfExportScreen() {
@@ -87,8 +87,8 @@ export default function PdfExportScreen() {
               /* 선택된 폰트 CSS 주입 */
               ${getFontStyles(diaryFontFamily || 'System')}
               
-              @page { padding: 40px; }
-              body { margin-left: 40px; margin-right: 40px; color: #333; line-height: 1.6; }
+              /*@page { padding: 40px; }*/
+              body { margin-left: 30px; margin-right: 30px; color: #333; line-height: 1.6; }
               
               /* 한 페이지에 1개의 일기씩 출력 */
               .diary-entry { page-break-after: always; margin-bottom: 20px; }
@@ -157,11 +157,22 @@ export default function PdfExportScreen() {
 
                 let emoBase64Uri = uriToRead;
 
-                if (uriToRead.startsWith('file://')) {
-                  const base64 = await FileSystem.readAsStringAsync(uriToRead, {
-                    encoding: FileSystem.EncodingType.Base64,
-                  });
-                  emoBase64Uri = `data:image/png;base64,${base64}`;
+                if (
+                  uriToRead.startsWith('file://') ||
+                  uriToRead.startsWith('http')
+                ) {
+                  const manipResult = await ImageManipulator.manipulateAsync(
+                    uriToRead,
+                    [], // 크기 변경 없이 원본 유지
+                    {
+                      format: ImageManipulator.SaveFormat.PNG,
+                      base64: true,
+                    },
+                  );
+
+                  if (manipResult.base64) {
+                    emoBase64Uri = `data:image/png;base64,${manipResult.base64}`;
+                  }
                 }
 
                 if (emoBase64Uri) {
@@ -500,6 +511,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 999, // 가장 위에 위치하도록 설정
-    elevation: 10,
   },
 });

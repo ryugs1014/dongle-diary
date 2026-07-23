@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { Animated, StyleSheet } from 'react-native';
-import AppTouchableOpacity from '@/components/AppTouchableOpacity';
+import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
 
 interface CustomSwitchProps {
   value: boolean;
