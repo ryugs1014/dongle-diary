@@ -1,7 +1,7 @@
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { View, useColorScheme, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, useFocusEffect } from 'expo-router';
+import { Stack, useFocusEffect, router } from 'expo-router';
 import PagerView from 'react-native-pager-view';
 import { useDiaryStore } from '../store/useDiaryStore';
 
@@ -9,10 +9,13 @@ import CalendarView from '../components/sections/CalendarView';
 import DiaryListView from '../components/sections/DiaryListView';
 import AppConfirmModal from '@/components/modals/AppConfirmModal';
 
+let hasCheckedDraftGlobal = false;
+
 export default function MainSwipeScreen() {
   const pagerRef = useRef<PagerView>(null);
 
-  const { language, theme } = useDiaryStore();
+  const { language, theme, draft, setSelectedDate, isAppReady } =
+    useDiaryStore();
   const systemColorScheme = useColorScheme();
   const isDark =
     theme === 'system' ? systemColorScheme === 'dark' : theme === 'dark';
@@ -21,6 +24,21 @@ export default function MainSwipeScreen() {
 
   const [currentPage, setCurrentPage] = useState(0);
   const [exitModalVisible, setExitModalVisible] = useState(false);
+
+  const [draftAlertVisible, setDraftAlertVisible] = useState(false);
+  // const hasCheckedDraft = useRef(false);
+
+  useEffect(() => {
+    // 전역 변수로 체크
+    if (isAppReady && !hasCheckedDraftGlobal) {
+      hasCheckedDraftGlobal = true; // 체크 완료 표시
+      if (draft) {
+        setTimeout(() => {
+          setDraftAlertVisible(true);
+        }, 1000);
+      }
+    }
+  }, [isAppReady, draft]);
 
   const slideToDiaryList = () => {
     pagerRef.current?.setPage(1);
@@ -92,6 +110,31 @@ export default function MainSwipeScreen() {
         onConfirm={() => {
           setExitModalVisible(false);
           BackHandler.exitApp();
+        }}
+      />
+
+      <AppConfirmModal
+        visible={draftAlertVisible}
+        title={t('작성 중인 일기', 'Draft Diary')}
+        message={t(
+          '작성 중이던 일기가 있어요.\n이어서 작성하시겠어요?',
+          'You have a saved draft.\nDo you want to continue writing?',
+        )}
+        cancelText={t('닫기', 'Close')}
+        confirmText={t('이어서 작성', 'Continue')}
+        confirmColor="#007AFF"
+        onCancel={() => setDraftAlertVisible(false)}
+        onConfirm={() => {
+          setDraftAlertVisible(false);
+          if (draft) {
+            // 달력의 선택 날짜를 임시저장된 날짜로 동기화
+            setSelectedDate(draft.date);
+            // URL 파라미터로 'autoLoadDraft=true'를 함께 보냅니다.
+            router.push({
+              pathname: '/write',
+              params: { autoLoadDraft: 'true' },
+            });
+          }
         }}
       />
     </SafeAreaView>

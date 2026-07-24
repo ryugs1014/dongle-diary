@@ -34,6 +34,7 @@ import {
   ANIMATED_EMOTION_IMAGE_MAP,
 } from '@/constants/emotions';
 import { FONT_SIZES } from '@/constants/font';
+import Toast from 'react-native-toast-message';
 
 const customHTMLElementModels = {
   aligncenter: HTMLElementModel.fromCustomModel({
@@ -223,7 +224,7 @@ export default function DiaryDetailScreen() {
     return (
       <View style={[styles.fallback, isDark && styles.darkFallback]}>
         <AppText useDiaryFont style={isDark && styles.darkText}>
-          일기를 찾을 수 없습니다.
+          일기를 찾을 수 없어요
         </AppText>
       </View>
     );
@@ -237,6 +238,15 @@ export default function DiaryDetailScreen() {
     deleteDiary(diary.id);
     setDeleteModalVisible(false);
     router.back();
+
+    setTimeout(() => {
+      Toast.show({
+        type: 'success',
+        text1: '일기를 지웠어요',
+        position: 'top',
+        topOffset: 60,
+      });
+    }, 1000);
   };
 
   const handleShare = async () => {
@@ -245,7 +255,12 @@ export default function DiaryDetailScreen() {
       const uri = await viewShotRef.current?.capture?.();
       if (uri) await Sharing.shareAsync(uri);
     } catch (error) {
-      alert('이미지 공유에 실패했거나 지원하지 않는 기기입니다.');
+      Toast.show({
+        type: 'warn',
+        text1: '이미지 공유에 실패했거나 지원하지 않는 기기에요',
+        position: 'top',
+        topOffset: 60,
+      });
     }
   };
 

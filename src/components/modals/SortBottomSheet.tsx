@@ -1,8 +1,7 @@
 import React from 'react';
 import { View, Modal, StyleSheet } from 'react-native';
 import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
-import AppText from '@/components/atoms/AppText';
-import { Ionicons } from '@expo/vector-icons';
+import RadioSettingItem from '@/components/common/RadioSettingItem';
 
 interface SortBottomSheetProps {
   visible: boolean;
@@ -31,55 +30,29 @@ export default function SortBottomSheet({
         >
           <View style={styles.dragHandle} />
 
-          <AppTouchableOpacity
-            style={styles.sortOptionBtn}
+          <RadioSettingItem
+            title="최신순"
+            isSelected={sortOrder === 'desc'}
+            isDark={isDark}
             onPress={() => {
               setSortOrder('desc');
               onClose();
             }}
-          >
-            <AppText
-              style={[
-                styles.sortOptionText,
-                isDark && styles.darkText,
-                sortOrder === 'desc' && styles.selectedSortText,
-              ]}
-            >
-              최신순
-            </AppText>
-            {sortOrder === 'desc' && (
-              <View style={styles.checkIconWrapper}>
-                <Ionicons name="checkmark" size={24} color="#FF6262" />
-              </View>
-            )}
-          </AppTouchableOpacity>
+          />
 
           <View
             style={[styles.sortDivider, isDark && styles.darkSortDivider]}
           />
 
-          <AppTouchableOpacity
-            style={styles.sortOptionBtn}
+          <RadioSettingItem
+            title="과거순"
+            isSelected={sortOrder === 'asc'}
+            isDark={isDark}
             onPress={() => {
               setSortOrder('asc');
               onClose();
             }}
-          >
-            <AppText
-              style={[
-                styles.sortOptionText,
-                isDark && styles.darkText,
-                sortOrder === 'asc' && styles.selectedSortText,
-              ]}
-            >
-              과거순
-            </AppText>
-            {sortOrder === 'asc' && (
-              <View style={styles.checkIconWrapper}>
-                <Ionicons name="checkmark" size={24} color="#FF6262" />
-              </View>
-            )}
-          </AppTouchableOpacity>
+          />
         </View>
       </AppTouchableOpacity>
     </Modal>
@@ -114,29 +87,6 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     alignSelf: 'center',
     marginBottom: 10,
-  },
-  sortOptionBtn: {
-    paddingVertical: 18,
-    paddingHorizontal: 20,
-    position: 'relative',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    flexDirection: 'row',
-  },
-  sortOptionText: {
-    fontSize: 14,
-    color: '#333',
-  },
-  darkText: {
-    color: '#ffffff',
-  },
-  selectedSortText: {
-    color: '#FF6262',
-    fontWeight: 'bold',
-  },
-  checkIconWrapper: {
-    position: 'absolute',
-    right: 20,
   },
   sortDivider: {
     height: 1,

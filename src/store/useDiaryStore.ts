@@ -1,7 +1,5 @@
 import { create } from 'zustand';
-// 🌟 1. 영구 저장을 위한 persist, createJSONStorage 임포트
 import { persist, createJSONStorage } from 'zustand/middleware';
-// 🌟 2. AsyncStorage 임포트 (설치 안 하셨다면: npx expo install @react-native-async-storage/async-storage)
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type DiaryBlock = {
@@ -51,9 +49,8 @@ interface DiaryStore {
   alarmTime: Date;
   diaryFontSize: number;
   diaryFontFamily: string;
-
-  setSelectedDate: (date: string) => void;
-  setSelectedEmotions: (emotions: string[]) => void;
+  calendarStartMonday: boolean;
+  alwaysShowDate: boolean;
 
   addDiary: (diary: Omit<DiaryEntry, 'id' | 'timestamp'>) => void;
   updateDiary: (id: string, updated: Partial<DiaryEntry>) => void;
@@ -61,7 +58,11 @@ interface DiaryStore {
 
   saveDraft: (draft: DraftEntry) => void;
   clearDraft: () => void;
+  isAppReady: boolean;
+  setAppReady: (ready: boolean) => void;
 
+  setSelectedDate: (date: string) => void;
+  setSelectedEmotions: (emotions: string[]) => void;
   setLockEnabled: (enabled: boolean) => void;
   setPinCode: (pin: string | null) => void;
   setBiometricEnabled: (enabled: boolean) => void;
@@ -74,6 +75,9 @@ interface DiaryStore {
   setAlarmTime: (time: Date) => void;
   setDiaryFontSize: (level: number) => void;
   setDiaryFontFamily: (font: string) => void;
+
+  setCalendarStartMonday: (enabled: boolean) => void;
+  setAlwaysShowDate: (enabled: boolean) => void;
 }
 
 const getLocalToday = () => {
@@ -88,7 +92,6 @@ const today = getLocalToday();
 const defaultAlarmTime = new Date();
 defaultAlarmTime.setHours(22, 0, 0, 0);
 
-// 🌟 3. create<DiaryStore>()( persist( ... ) ) 형태로 래핑합니다.
 export const useDiaryStore = create<DiaryStore>()(
   persist(
     (set) => ({
@@ -109,9 +112,8 @@ export const useDiaryStore = create<DiaryStore>()(
       alarmTime: defaultAlarmTime,
       diaryFontSize: 3,
       diaryFontFamily: 'NanumSquareRound',
-
-      setSelectedDate: (date) => set({ selectedDate: date }),
-      setSelectedEmotions: (emotions) => set({ selectedEmotions: emotions }),
+      calendarStartMonday: false,
+      alwaysShowDate: false,
 
       addDiary: (diary) =>
         set((state) => ({
@@ -133,7 +135,11 @@ export const useDiaryStore = create<DiaryStore>()(
 
       saveDraft: (draft) => set({ draft }),
       clearDraft: () => set({ draft: null }),
+      isAppReady: false,
+      setAppReady: (ready) => set({ isAppReady: ready }),
 
+      setSelectedDate: (date) => set({ selectedDate: date }),
+      setSelectedEmotions: (emotions) => set({ selectedEmotions: emotions }),
       setLockEnabled: (enabled) => set({ isLockEnabled: enabled }),
       setPinCode: (pin) => set({ pinCode: pin }),
       setBiometricEnabled: (enabled) => set({ isBiometricEnabled: enabled }),
@@ -147,6 +153,9 @@ export const useDiaryStore = create<DiaryStore>()(
       setAlarmTime: (time) => set({ alarmTime: time }),
       setDiaryFontSize: (level) => set({ diaryFontSize: level }),
       setDiaryFontFamily: (font) => set({ diaryFontFamily: font }),
+      setCalendarStartMonday: (enabled) =>
+        set({ calendarStartMonday: enabled }),
+      setAlwaysShowDate: (enabled) => set({ alwaysShowDate: enabled }),
     }),
     {
       name: 'diary-storage',
@@ -158,10 +167,9 @@ export const useDiaryStore = create<DiaryStore>()(
           return value;
         },
       }),
-      // 🌟 [추가된 부분] 기기에 영구 저장할 상태와 저장하지 않을 상태를 분리합니다.
       partialize: (state) => {
         // selectedDate는 저장 목록에서 빼고(앱 켤때마다 오늘 날짜로 초기화), 나머지만 저장합니다.
-        const { selectedDate, ...rest } = state;
+        const { selectedDate, isAppReady, ...rest } = state;
         return rest;
       },
     },

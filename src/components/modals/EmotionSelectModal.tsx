@@ -35,7 +35,7 @@ export default function EmotionSelectModal({
   onClearEmotions,
   isDark = false,
 }: EmotionSelectModalProps) {
-  // 🌟 애니메이션 처리를 위한 상태와 ref
+  // 애니메이션 처리를 위한 상태와 ref
   const [modalVisible, setModalVisible] = useState(false);
   const translateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
 
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.4)', // 🌟 배경을 살짝 진하게 하여 팝업을 돋보이게 합니다
+    backgroundColor: 'rgba(0,0,0,0.4)',
   },
 
   modalHeader: {
@@ -236,14 +236,14 @@ const styles = StyleSheet.create({
   },
 
   emotionBox: {
-    backgroundColor: '#ffffff', // 라이트모드 배경
-    height: '70%', // 🌟화면 높이의 80% 적용
+    backgroundColor: '#ffffff',
+    height: '70%',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
   },
 
   darkEmotionBox: {
-    backgroundColor: '#191919', //다크모드 배경색
+    backgroundColor: '#191919',
   },
 
   darkText: {

@@ -20,6 +20,7 @@ import { BackIcon, ArrowRightIcon } from '@/assets/icons';
 import SvgDashedLine from '@/components/ui/SvgDashedLine';
 import CustomSwitch from '@/components/common/CustomSwitch';
 import WheelPicker from 'react-native-wheel-picker-expo';
+import Toast from 'react-native-toast-message';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -166,6 +167,12 @@ export default function AlarmSettingsScreen() {
       scheduleAlarm(newDate);
     }
     setShowPicker(false);
+    Toast.show({
+      type: 'success',
+      text1: '알람이 설정되었어요',
+      position: 'top',
+      topOffset: 60,
+    });
   };
 
   // ----- 구조적 스크롤 추적 핸들러 생성 함수 -----
@@ -543,7 +550,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     fontSize: 13,
     color: '#888888',
-    textAlign: 'left',
+    textAlign: 'center',
     lineHeight: 20,
   },
 

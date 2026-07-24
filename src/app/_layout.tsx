@@ -17,10 +17,14 @@ import InitialLoadingScreen from '@/components/InitialLoadingScreen';
 import NumberKeypad from '@/components/common/NumberKeypad';
 import * as Haptics from 'expo-haptics';
 
+import Toast, { ToastConfigParams } from 'react-native-toast-message';
+import { getToastConfig } from '@/components/common/ToastConfig';
+
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const { isLockEnabled, pinCode, isBiometricEnabled, theme } = useDiaryStore();
+  const { isLockEnabled, pinCode, isBiometricEnabled, theme, setAppReady } =
+    useDiaryStore();
   const insets = useSafeAreaInsets();
 
   const [fontsLoaded] = useFonts({
@@ -64,7 +68,7 @@ export default function RootLayout() {
     isUnlockedRef.current = isUnlocked;
   }, [isUnlocked]);
 
-  // 🌟 안드로이드 물리 뒤로 가기 버튼 방어 로직
+  // 안드로이드 물리 뒤로 가기 버튼 방어 로직
   useEffect(() => {
     const backAction = () => {
       // 1. 잠금 화면 상태(!isUnlocked)일 때
@@ -122,6 +126,10 @@ export default function RootLayout() {
     }
     return () => subscription.remove();
   }, [isLockEnabled, isBiometricEnabled, showCustomSplash]);
+
+  useEffect(() => {
+    setAppReady(!showCustomSplash && isUnlocked);
+  }, [showCustomSplash, isUnlocked, setAppReady]);
 
   const handleBiometricAuth = async () => {
     if (isAuthenticating.current) return;
@@ -225,7 +233,9 @@ export default function RootLayout() {
             <Stack.Screen name="diary/[id]" />
             <Stack.Screen
               name="write"
-              options={{ presentation: 'fullScreenModal', headerShown: false }}
+              options={{
+                animation: 'slide_from_bottom',
+              }}
             />
             <Stack.Screen name="search" />
             <Stack.Screen name="settings" />
@@ -247,7 +257,7 @@ export default function RootLayout() {
           <View style={styles.pinArea}>
             <AppText style={styles.pinTitle}>
               {errorMsg
-                ? '비밀번호가 일치하지 않습니다'
+                ? '비밀번호가 일치하지 않아요'
                 : '비밀번호를 입력해 주세요'}
             </AppText>
 
@@ -287,6 +297,8 @@ export default function RootLayout() {
           <InitialLoadingScreen />
         </View>
       )}
+
+      <Toast config={getToastConfig(isDark)} />
     </View>
   );
 }
@@ -342,4 +354,27 @@ const styles = StyleSheet.create({
     marginTop: 'auto',
     paddingBottom: 50,
   },
+
+  toastContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '90%',
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  lightToast: { backgroundColor: '#393939' },
+  darkToast: { backgroundColor: '#202020' },
+  toastTextWrapper: { marginLeft: 12, flex: 1 },
+  toastText1: { fontSize: 16, lineHeight: 24 },
+  toastText2: { fontSize: 13, lineHeight: 20 },
+  lightText: { color: '#ffffff' },
+  darkText: { color: '#ffffff' },
+  lightSubText: { color: '#aaa' },
+  darkSubText: { color: '#aaa' },
 });

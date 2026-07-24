@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   StyleSheet,
-  Alert,
   ActivityIndicator,
   useColorScheme,
   ScrollView,
@@ -20,6 +19,8 @@ import { useDiaryStore } from '../store/useDiaryStore';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { BackIcon, CloudIcon, DownloadIcon, UploadIcon } from '@/assets/icons';
 import SvgDashedLine from '@/components/ui/SvgDashedLine';
+import Toast from 'react-native-toast-message';
+import CustomSpinner from '@/components/common/CustomSpinner';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -82,10 +83,38 @@ export default function BackupSettingsScreen() {
         '434139943-ushi0r2tj7bg1vaqern9o3ou7akouvq5.apps.googleusercontent.com',
     });
 
-    if (googleToken) {
-      verifyAndLoadGoogleData(googleToken);
-    }
+    // if (googleToken) {
+    //   verifyAndLoadGoogleData(googleToken);
+    // }
+
+    restoreGoogleSession();
   }, []);
+
+  const restoreGoogleSession = async () => {
+    try {
+      // 1. 기기(네이티브)에 구글 로그인 세션이 남아있는지 확인합니다.
+      const isSignedIn = await GoogleSignin.hasPreviousSignIn();
+
+      if (isSignedIn) {
+        setLoadingType('auth');
+        // 2. 세션이 있다면 조용히 로그인을 시도합니다. (토큰이 만료되었다면 알아서 새 토큰으로 갱신해 줍니다!)
+        await GoogleSignin.signInSilently();
+        const tokens = await GoogleSignin.getTokens();
+
+        if (tokens.accessToken) {
+          await verifyAndLoadGoogleData(tokens.accessToken);
+        }
+      } else if (googleToken) {
+        // 기기 세션은 없지만 Zustand에 예전 토큰이 남아있는 경우 방어 코드
+        await verifyAndLoadGoogleData(googleToken);
+      }
+    } catch (error) {
+      console.log('Silent Sign In Error:', error);
+      // 토큰 갱신에 완전히 실패했을 때만 상태를 초기화합니다.
+      setGoogleAuth(null, null);
+      setLoadingType(null);
+    }
+  };
 
   // 구글 로그인 상태에 따라 플로팅 버튼 애니메이션 작동
   useEffect(() => {
@@ -107,9 +136,23 @@ export default function BackupSettingsScreen() {
       if (tokens.accessToken) {
         await verifyAndLoadGoogleData(tokens.accessToken);
       }
+
+      Toast.show({
+        type: 'success',
+        text1: '계정이 연결되었어요',
+        position: 'top',
+        topOffset: 60,
+      });
     } catch (error: any) {
       console.log('Google Native Login Error:', error);
-      Alert.alert('로그인 실패', '구글 로그인 중 오류가 발생했습니다.');
+
+      Toast.show({
+        type: 'info',
+        text1: '로그인이 중단되었어요',
+        position: 'top',
+        topOffset: 60,
+      });
+
       setLoadingType(null); // 실패 시에만 여기서 초기화 (성공 시 verify에서 초기화)
     }
   };
@@ -142,9 +185,14 @@ export default function BackupSettingsScreen() {
       } else {
         setLastBackupDate(null);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.log('Google Auth Error:', error);
-      setGoogleAuth(null, null);
+
+      // 진짜로 토큰이 만료되었거나 인증 에러일 때만 로그아웃 처리
+      if (error.message === 'Token Expired' || error.message.includes('401')) {
+        setGoogleAuth(null, null);
+      }
+      // 단순 네트워크 에러일 때는 로그아웃 시키지 않고 넘어감
     } finally {
       setLoadingType(null);
     }
@@ -238,13 +286,20 @@ export default function BackupSettingsScreen() {
       }
 
       setLastBackupDate(new Date().toLocaleString('ko-KR'));
-      Alert.alert(
-        '백업 완료',
-        '사진을 포함한 모든 일기가 안전하게 백업되었습니다.',
-      );
+      Toast.show({
+        type: 'success',
+        text1: '모든 일기가 안전하게 백업되었어요',
+        position: 'top',
+        topOffset: 60,
+      });
     } catch (error) {
       console.error(error);
-      Alert.alert('오류', '백업 중 문제가 발생했습니다.');
+      Toast.show({
+        type: 'error',
+        text1: '백업 중 문제가 발생했어요',
+        position: 'top',
+        topOffset: 60,
+      });
     } finally {
       setLoadingType(null);
     }
@@ -257,7 +312,12 @@ export default function BackupSettingsScreen() {
     try {
       const fileId = await findBackupFileId(googleToken!);
       if (!fileId) {
-        Alert.alert('알림', '구글 드라이브에 백업된 데이터가 없습니다.');
+        Toast.show({
+          type: 'info',
+          text1: '구글 드라이브에 백업된 데이터가 없어요',
+          position: 'top',
+          topOffset: 60,
+        });
         setLoadingType(null);
         return;
       }
@@ -279,13 +339,23 @@ export default function BackupSettingsScreen() {
         }));
 
         restoreDiaries(migratedData);
-        Alert.alert('복원 완료', '성공적으로 데이터를 복원했습니다!');
+        Toast.show({
+          type: 'success',
+          text1: '데이터가 복원되었어요',
+          position: 'top',
+          topOffset: 60,
+        });
       } else {
-        throw new Error('데이터 형식이 올바르지 않습니다.');
+        throw new Error('데이터 형식이 올바르지 않아요');
       }
     } catch (error) {
       console.error(error);
-      Alert.alert('오류', '데이터를 복원하는 데 실패했습니다.');
+      Toast.show({
+        type: 'warn',
+        text1: '데이터 복원에 실패했어요',
+        position: 'top',
+        topOffset: 60,
+      });
     } finally {
       setLoadingType(null);
     }
@@ -525,7 +595,7 @@ export default function BackupSettingsScreen() {
       {/* 전체 화면 로딩 오버레이 */}
       {loadingType !== null && (
         <View style={styles.fullScreenOverlay}>
-          <ActivityIndicator size="large" color="#FF6262" />
+          <CustomSpinner />
         </View>
       )}
 

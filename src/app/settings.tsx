@@ -17,6 +17,7 @@ import {
   FontIcon,
   LanguageIcon,
   InfoIcon,
+  CalandarIcon,
 } from '../../assets/icons';
 import SvgDashedLine from '@/components/ui/SvgDashedLine';
 
@@ -162,6 +163,11 @@ export default function SettingsScreen() {
           <SvgDashedLine />
         </View>
 
+        <SettingItem
+          IconComponent={CalandarIcon}
+          title="달력 설정"
+          onPress={() => router.push('/calandar-settings')}
+        />
         <SettingItem
           IconComponent={ThemeIcon}
           title="화면 테마"

@@ -64,6 +64,9 @@ export default function AppText({
         sizeStyle,
         restStyle,
       ]}
+
+      textBreakStrategy="simple" // 안드로이드용
+      lineBreakStrategyIOS="hangul-word" // iOS용 한국어 단어 끊김 방지
     >
       {props.children}
     </Text>

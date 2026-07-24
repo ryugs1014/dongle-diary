@@ -7,7 +7,6 @@ import {
   Platform,
   Keyboard,
   ScrollView,
-  Alert,
   useColorScheme,
   Animated,
   BackHandler,
@@ -46,13 +45,14 @@ import {
 } from '@/constants/emotions';
 import { FONT_SIZES } from '@/constants/font';
 import EmotionSelectModal from '@/components/modals/EmotionSelectModal';
+import Toast from 'react-native-toast-message';
 
 // 지워지지 않는 기본 블록 상수화 (좌측 정렬 + 빈 줄)
 const BASE_BLOCK = '<div style="text-align: left;"><br></div>';
 
 export default function WriteScreen() {
   const insets = useSafeAreaInsets();
-  const { editId } = useLocalSearchParams();
+  const { editId, autoLoadDraft } = useLocalSearchParams();
   const {
     theme,
     diaryFontSize,
@@ -87,7 +87,7 @@ export default function WriteScreen() {
   const titleInputRef = useRef<TextInput>(null);
   const richText = useRef<RichEditor>(null);
   const scrollViewRef = useRef<ScrollView>(null);
-  const isInitializingRef = useRef(!!editId);
+  const isInitializingRef = useRef(!!editId || autoLoadDraft === 'true'); // 자동 로드 시에도 초기화 방어
   const isEditorFocusedRef = useRef(false);
 
   const dateObj = new Date(selectedDate);
@@ -137,6 +137,14 @@ export default function WriteScreen() {
     return () => backHandler.remove();
   }, []);
 
+  // 모달이 떠 있을 때는 에디터 포커스를 강제로 해제
+  useEffect(() => {
+    if (draftModalVisible || cancelModalVisible || emotionModalVisible) {
+      Keyboard.dismiss();
+      richText.current?.blurContentEditor();
+    }
+  }, [draftModalVisible, cancelModalVisible, emotionModalVisible]);
+
   // 텍스트가 완전히 비어있는지 체크하는 유틸리티 함수
   const checkIsEmptyText = (html: string) => {
     const plainText = html
@@ -165,10 +173,19 @@ export default function WriteScreen() {
       }
     } else {
       if (draft && draft.date === selectedDate) {
-        setDraftModalVisible(true);
+        // 인덱스에서 넘어온 자동 로드 신호가 있다면 모달 없이 즉시 세팅
+        if (autoLoadDraft === 'true') {
+          setTitle(draft.title || '');
+          if (draft.title) setIsTitleActive(true);
+          setSelectedEmotions(draft.emotions || []);
+        } else {
+          setTimeout(() => {
+            setDraftModalVisible(true);
+          }, 1000);
+        }
       }
     }
-  }, [editId, selectedDate]);
+  }, [editId, selectedDate, autoLoadDraft]);
 
   const handleEditorInit = () => {
     richText.current?.sendAction(actions.alignLeft, 'result');
@@ -184,9 +201,22 @@ export default function WriteScreen() {
           forceLayoutReflow(true);
         }, 500);
       }
+    } else if (autoLoadDraft === 'true' && draft) {
+      // 🌟 에디터 초기화 시점에 임시저장 HTML 세팅
+      isInitializingRef.current = true;
+      setTimeout(() => {
+        richText.current?.setContentHTML(draft.content || BASE_BLOCK);
+        setIsPlaceholderVisible(checkIsEmptyText(draft.content || ''));
+        forceLayoutReflow(true);
+      }, 500);
     } else {
       setTimeout(() => {
         richText.current?.setContentHTML(BASE_BLOCK);
+
+        if (draft && draft.date === selectedDate && autoLoadDraft !== 'true') {
+          richText.current?.blurContentEditor();
+          Keyboard.dismiss();
+        }
       }, 300);
     }
   };
@@ -222,12 +252,22 @@ export default function WriteScreen() {
       content: currentContent,
       emotions: selectedEmotions,
     });
-    Alert.alert('알림', '임시저장 되었습니다.');
+    Toast.show({
+      type: 'success',
+      text1: '일기를 임시저장 했어요',
+      position: 'top',
+      topOffset: 60,
+    });
   };
 
   const handleSave = async () => {
     if (selectedEmotions.length === 0) {
-      Alert.alert('알림', '오늘의 기분을 최소 한 개 이상 선택해주세요.');
+      Toast.show({
+        type: 'info',
+        text1: '기분을 한 개 이상 선택해주세요',
+        position: 'top',
+        topOffset: 60,
+      });
       return;
     }
 
@@ -247,7 +287,12 @@ export default function WriteScreen() {
     const hasImage = currentContent.includes('<img');
 
     if (plainText.length === 0 && !hasImage) {
-      Alert.alert('알림', '일기 본문을 작성해주세요.');
+      Toast.show({
+        type: 'info',
+        text1: '일기 내용을 작성해주세요',
+        position: 'top',
+        topOffset: 60,
+      });
       return;
     }
 
@@ -289,6 +334,23 @@ export default function WriteScreen() {
         }, 1500);
       }
     }, 800);
+  };
+
+  // 중복되는 임시저장 로드 로직을 함수로 분리
+  const loadDraftData = () => {
+    if (!draft) return;
+
+    setTitle(draft?.title || '');
+    if (draft?.title) setIsTitleActive(true);
+    setSelectedEmotions(draft?.emotions || []);
+
+    // 🌟 autoLoadDraft와 완전히 동일한 방식으로 동작하도록 보강
+    isInitializingRef.current = true;
+    setTimeout(() => {
+      richText.current?.setContentHTML(draft?.content || BASE_BLOCK);
+      setIsPlaceholderVisible(checkIsEmptyText(draft?.content || ''));
+      forceLayoutReflow(true);
+    }, 300);
   };
 
   const handleImagePress = async () => {
@@ -373,14 +435,11 @@ export default function WriteScreen() {
     }
   };
 
-  // 🌟 1. 어떤 버튼을 보여줄지 결정하는 조건
   const showPlusBtn = !isTitleActive && title.length === 0;
 
-  // 🌟 2. 애니메이션 값 초기화
   const fadePlus = useRef(new Animated.Value(showPlusBtn ? 1 : 0)).current;
   const fadeMinus = useRef(new Animated.Value(showPlusBtn ? 0 : 1)).current;
 
-  // 🌟 3. 조건이 바뀔 때마다 스르륵(200ms) 투명도 변경
   useEffect(() => {
     Animated.timing(fadePlus, {
       toValue: showPlusBtn ? 1 : 0,
@@ -509,6 +568,7 @@ export default function WriteScreen() {
                       diaryFontFamily === 'System'
                         ? undefined
                         : diaryFontFamily,
+                    tintColor: isDark ? '#ffffff' : '#111111',
                   },
                 ]}
                 cursorColor={isDark ? '#ffffff' : '#111111'}
@@ -521,10 +581,10 @@ export default function WriteScreen() {
                 onChangeText={(val) => setTitle(val.replace(/\n/g, ''))}
               />
 
-              {/* 🌟 (+) 제목 추가 버튼: showPlusBtn이 true일 때 나타남 */}
+              {/* (+) 제목 추가 버튼: showPlusBtn이 true일 때 나타남 */}
               <Animated.View
                 style={[styles.addTitleBtn, { opacity: fadePlus }]}
-                pointerEvents={showPlusBtn ? 'auto' : 'none'} // 🌟 투명할 땐 터치 무시
+                pointerEvents={showPlusBtn ? 'auto' : 'none'} // 투명할 땐 터치 무시
               >
                 <AppTouchableOpacity
                   activeOpacity={1}
@@ -547,10 +607,10 @@ export default function WriteScreen() {
                 </AppTouchableOpacity>
               </Animated.View>
 
-              {/* 🌟 (-) 제목 빼기 버튼: showPlusBtn이 false일 때 나타남 */}
+              {/* (-) 제목 빼기 버튼: showPlusBtn이 false일 때 나타남 */}
               <Animated.View
                 style={[styles.addDisabledTitleBtn, { opacity: fadeMinus }]}
-                pointerEvents={!showPlusBtn ? 'auto' : 'none'} // 🌟 투명할 땐 터치 무시
+                pointerEvents={!showPlusBtn ? 'auto' : 'none'} // 투명할 땐 터치 무시
               >
                 <AppTouchableOpacity
                   activeOpacity={1}
@@ -761,20 +821,7 @@ export default function WriteScreen() {
         }}
         onConfirm={() => {
           setDraftModalVisible(false);
-
-          // 방어 코드: draft가 null이면 아래 코드를 실행하지 않고 즉시 종료합니다.
-          if (!draft) return;
-
-          // draft! 대신 draft? (옵셔널 체이닝)와 기본값을 사용해 안전하게 처리합니다.
-          setTitle(draft?.title || '');
-          if (draft?.title) setIsTitleActive(true);
-          setSelectedEmotions(draft?.emotions || []);
-
-          setTimeout(() => {
-            // setTimeout 내부에서도 한 번 더 안전하게 접근합니다.
-            richText.current?.setContentHTML(draft?.content || BASE_BLOCK);
-            setIsPlaceholderVisible(checkIsEmptyText(draft?.content || ''));
-          }, 100);
+          loadDraftData(); // 분리된 함수 사용
         }}
         closeOnOverlayPress={false}
       />

@@ -286,7 +286,7 @@ export default function SearchScreen() {
         ListEmptyComponent={
           isSearchActive ? (
             <AppText style={[styles.emptyText, isDark && styles.darkSubText]}>
-              검색 조건에 맞는 일기가 없습니다.
+              검색 조건에 맞는 일기가 없어요.
             </AppText>
           ) : null
         }

@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     fontSize: 13,
     color: '#888888',
-    textAlign: 'left',
+    textAlign: 'center',
     lineHeight: 20,
   },
   darkText: { color: '#ffffff' },

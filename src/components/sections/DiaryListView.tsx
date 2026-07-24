@@ -13,6 +13,7 @@ import {
 import SvgDashedLine from '@/components/ui/SvgDashedLine';
 import { EMOTION_IMAGE_MAP } from '@/constants/emotions';
 import SortBottomSheet from '@/components/modals/SortBottomSheet';
+import YearPickerModal from '@/components/modals/YearPickerModal';
 
 interface DiaryListViewProps {
   isDark: boolean;
@@ -327,57 +328,25 @@ export default function DiaryListView({
       />
 
       {/* 연도 선택 모달 */}
-      <Modal visible={isYearModalVisible} transparent animationType="fade">
-        <AppTouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setIsYearModalVisible(false)}
-        >
-          <View
-            style={[styles.modalBox, isDark && styles.darkModalBox]}
-            onStartShouldSetResponder={() => true}
-          >
-            <AppText
-              style={[styles.modalTitle, isDark && { color: '#ffffff' }]}
-            >
-              년도 선택
-            </AppText>
-            <View style={styles.yearGrid}>
-              {availableYears.map((year) => (
-                <AppTouchableOpacity
-                  key={year}
-                  style={[
-                    styles.yearOption,
-                    isDark && styles.darkYearOption,
-                    selectedYear === year && styles.yearOptionSelected,
-                  ]}
-                  onPress={() => {
-                    setSelectedYear(year);
-                    setIsYearModalVisible(false);
+      <YearPickerModal
+        visible={isYearModalVisible}
+        onClose={() => setIsYearModalVisible(false)}
+        availableYears={availableYears}
+        initialYear={selectedYear}
+        isDark={isDark}
+        onConfirm={(year) => {
+          setSelectedYear(year);
+          setIsYearModalVisible(false);
 
-                    setTimeout(() => {
-                      listRef.current?.scrollToOffset({
-                        offset: 0,
-                        animated: true,
-                      });
-                    }, 100);
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.yearOptionText,
-                      isDark && { color: '#ffffff' },
-                      selectedYear === year && { color: '#ffffff' },
-                    ]}
-                  >
-                    {year}
-                  </Text>
-                </AppTouchableOpacity>
-              ))}
-            </View>
-          </View>
-        </AppTouchableOpacity>
-      </Modal>
+          // 선택 완료 시 리스트 최상단으로 스크롤 이동
+          setTimeout(() => {
+            listRef.current?.scrollToOffset({
+              offset: 0,
+              animated: true,
+            });
+          }, 100);
+        }}
+      />
 
       <SortBottomSheet
         visible={isSortModalVisible}
@@ -466,76 +435,6 @@ const styles = StyleSheet.create({
     marginTop: 5,
     marginBottom: 10,
     resizeMode: 'cover',
-  },
-
-  footerContainer: {
-    alignItems: 'center',
-    marginTop: 20,
-    paddingVertical: 20,
-  },
-  footerText: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 12,
-  },
-  footerButton: {
-    backgroundColor: '#FF6F61',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 20,
-  },
-  footerButtonText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-
-  // Modal 스타일
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalBox: {
-    width: '80%',
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
-  },
-  darkModalBox: {
-    backgroundColor: '#2c2c2e',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 20,
-  },
-  yearGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 10,
-  },
-  yearOption: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    backgroundColor: '#f5f5f5',
-    minWidth: 80,
-    alignItems: 'center',
-  },
-  darkYearOption: {
-    backgroundColor: '#444',
-  },
-  yearOptionSelected: {
-    backgroundColor: '#FF6F61',
-  },
-  yearOptionText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#333333',
   },
 
   // Empty State Styles

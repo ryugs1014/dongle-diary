@@ -18,6 +18,7 @@ import { useDiaryStore } from '../store/useDiaryStore';
 import NumberKeypad from '@/components/common/NumberKeypad';
 import { BackIcon, CloseIcon, ArrowRightIcon } from '@/assets/icons';
 import CustomSwitch from '@/components/common/CustomSwitch';
+import Toast from 'react-native-toast-message';
 
 export default function LockSettingsScreen() {
   const {
@@ -36,6 +37,7 @@ export default function LockSettingsScreen() {
   );
   const [tempPin, setTempPin] = useState('');
   const [currentInput, setCurrentInput] = useState('');
+  const [pinError, setPinError] = useState(false);
 
   const systemColorScheme = useColorScheme();
   const isDark =
@@ -45,6 +47,7 @@ export default function LockSettingsScreen() {
     if (value) {
       setPinStep('setup');
       setCurrentInput('');
+      setPinError(false); // 초기화
       setPinModalVisible(true);
     } else {
       setLockEnabled(false);
@@ -57,18 +60,22 @@ export default function LockSettingsScreen() {
     if (value) {
       const hasHardware = await LocalAuthentication.hasHardwareAsync();
       if (!hasHardware) {
-        return Alert.alert(
-          '지원 불가',
-          '이 기기는 생체 인식을 지원하지 않습니다.',
-        );
+        return Toast.show({
+          type: 'info',
+          text1: '이 기기는 생체 인식을 지원하지 않아요',
+          position: 'top',
+          topOffset: 60,
+        });
       }
 
       const isEnrolled = await LocalAuthentication.isEnrolledAsync();
       if (!isEnrolled) {
-        return Alert.alert(
-          '설정 필요',
-          '기기에 등록된 생체 정보가 없습니다. 기기 설정에서 먼저 등록해주세요.',
-        );
+        return Toast.show({
+          type: 'info',
+          text1: '기기 설정에서 먼저 생체 정보를 등록하세요',
+          position: 'top',
+          topOffset: 60,
+        });
       }
 
       const auth = await LocalAuthentication.authenticateAsync({
@@ -126,12 +133,22 @@ export default function LockSettingsScreen() {
         setPinCode(inputPin);
         setLockEnabled(true);
         setPinModalVisible(false);
-        Alert.alert('완료', '비밀번호가 성공적으로 설정되었습니다.');
+        setPinError(false); // 초기화
+
+        Toast.show({
+          type: 'success',
+          text1: '비밀번호가 설정되었어요',
+          position: 'top',
+          topOffset: 60,
+        });
       } else {
-        Alert.alert(
-          '불일치',
-          '비밀번호가 일치하지 않습니다. 다시 입력해주세요.',
-        );
+        setPinError(true);
+        // Toast.show({
+        //   type: 'warn',
+        //   text1: '비밀번호가 일치하지 않아요',
+        //   position: 'top',
+        //   topOffset: 60,
+        // });
         setCurrentInput('');
       }
     }
@@ -140,6 +157,7 @@ export default function LockSettingsScreen() {
   const closePinModal = () => {
     setPinModalVisible(false);
     setCurrentInput('');
+    setPinError(false); // 닫을 때 초기화
   };
 
   const SettingItem = ({
@@ -242,6 +260,7 @@ export default function LockSettingsScreen() {
           onPress={() => {
             setPinStep('change');
             setCurrentInput('');
+            setPinError(false);
             setPinModalVisible(true);
           }}
         />
@@ -285,11 +304,19 @@ export default function LockSettingsScreen() {
 
           <View style={styles.pinArea}>
             <AppText style={[styles.pinTitle, isDark && styles.darkText]}>
+              {/*{pinStep === 'setup'*/}
+              {/*  ? '새 암호 입력'*/}
+              {/*  : pinStep === 'change'*/}
+              {/*    ? '변경 암호 입력'*/}
+              {/*    : '한 번 더 입력하세요'}*/}
+
               {pinStep === 'setup'
                 ? '새 암호 입력'
                 : pinStep === 'change'
                   ? '변경 암호 입력'
-                  : '한 번 더 입력하세요'}
+                  : pinError
+                    ? '비밀번호가 일치하지 않아요'
+                    : '한 번 더 입력하세요'}
             </AppText>
 
             <View style={styles.dotContainer}>

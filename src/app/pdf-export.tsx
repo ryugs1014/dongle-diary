@@ -1,12 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   FlatList,
-  Alert,
   useColorScheme,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
 import AppText from '@/components/atoms/AppText';
@@ -26,6 +25,8 @@ import {
 } from '@/assets/icons';
 import SvgDashedLine from '@/components/ui/SvgDashedLine';
 import { EMOTION_IMAGE_MAP } from '@/constants/emotions';
+import Toast from 'react-native-toast-message';
+import CustomSpinner from '@/components/common/CustomSpinner';
 
 export default function PdfExportScreen() {
   const { diaries, theme, diaryFontFamily } = useDiaryStore();
@@ -270,11 +271,25 @@ export default function PdfExportScreen() {
         mimeType: 'application/pdf',
         dialogTitle: `${monthStr} 일기 저장`, // 안드로이드 공유 창 타이틀
       });
+
+      // Toast.show({
+      //   type: 'success',
+      //   text1: 'PDF가 생성되었어요',
+      //   position: 'top',
+      //   topOffset: 60,
+      // });
     } catch (error) {
-      Alert.alert('오류', 'PDF를 생성하는 중에 문제가 발생했습니다.');
+      Toast.show({
+        type: 'error',
+        text1: 'PDF 생성 중 문제가 발생했어요',
+        position: 'top',
+        topOffset: 60,
+      });
+
       console.error(error);
     } finally {
       setIsExporting(false);
+
       setLoadingMonth(null);
     }
   };
@@ -386,7 +401,7 @@ export default function PdfExportScreen() {
               </View>
 
               {isThisLoading ? (
-                <ActivityIndicator color="#FF6262" />
+                <ActivityIndicator color={isDark ? '#ffffff' : '#111111'} />
               ) : (
                 <DownloadIcon
                   width={28}
@@ -402,7 +417,7 @@ export default function PdfExportScreen() {
       {/* 전체 화면 반투명 로딩 오버레이 */}
       {isExporting && (
         <View style={styles.fullScreenOverlay}>
-          <ActivityIndicator size="large" color="#FF6262" />
+          <CustomSpinner />
         </View>
       )}
     </SafeAreaView>
