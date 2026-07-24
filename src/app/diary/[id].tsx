@@ -23,7 +23,13 @@ import { Ionicons } from '@expo/vector-icons';
 import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import { useDiaryStore } from '../../store/useDiaryStore';
-import { BackIcon, OptionIcon } from '../../../assets/icons';
+import {
+  BackIcon,
+  OptionIcon,
+  DetailEditIcon,
+  DetailShareIcon,
+  DetailDeleteIcon,
+} from '../../../assets/icons';
 import RenderHtml, {
   defaultSystemFonts,
   HTMLContentModel,
@@ -293,12 +299,18 @@ export default function DiaryDetailScreen() {
         </View>
       </View>
 
-      <ViewShot
-        ref={viewShotRef}
+      <ScrollView
         style={{ flex: 1, backgroundColor: isDark ? '#111111' : '#FCFBFA' }}
-        options={{ format: 'jpg', quality: 0.9 }}
       >
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <ViewShot
+          ref={viewShotRef}
+          // 기존 ScrollView의 contentContainerStyle을 ViewShot의 style로 이동
+          style={[
+            styles.scrollContainer,
+            { backgroundColor: isDark ? '#111111' : '#FCFBFA' },
+          ]}
+          options={{ format: 'jpg', quality: 0.9 }}
+        >
           <View style={styles.infoArea}>
             <View style={styles.emotionsContainer}>
               {diary.emotions && diary.emotions.length > 0 ? (
@@ -386,8 +398,8 @@ export default function DiaryDetailScreen() {
                   </AppText>
                 ),
               )}
-        </ScrollView>
-      </ViewShot>
+        </ViewShot>
+      </ScrollView>
 
       <Modal visible={menuVisible} transparent animationType="fade">
         <Pressable
@@ -402,6 +414,11 @@ export default function DiaryDetailScreen() {
                 router.push(`/write?editId=${diary.id}`);
               }}
             >
+              <DetailEditIcon
+                width={24}
+                height={24}
+                color={isDark ? '#ffffff' : '#111111'}
+              />
               <AppText style={[styles.menuText, isDark && styles.darkText]}>
                 수정하기
               </AppText>
@@ -410,6 +427,11 @@ export default function DiaryDetailScreen() {
               style={[styles.menuItem, isDark && styles.darkMenuItem]}
               onPress={handleShare}
             >
+              <DetailShareIcon
+                width={24}
+                height={24}
+                color={isDark ? '#ffffff' : '#111111'}
+              />
               <AppText style={[styles.menuText, isDark && styles.darkText]}>
                 이미지로 공유
               </AppText>
@@ -418,6 +440,7 @@ export default function DiaryDetailScreen() {
               style={[styles.menuItem, styles.lastMenuItem]}
               onPress={handleDeleteClick}
             >
+              <DetailDeleteIcon width={24} height={24} color={'#FF6262'} />
               <AppText style={[styles.menuText, { color: '#FF6262' }]}>
                 삭제하기
               </AppText>
@@ -536,10 +559,12 @@ const styles = StyleSheet.create({
   menuBox: {
     backgroundColor: '#ffffff',
     width: 160,
-    borderRadius: 12,
-    overflow: 'hidden',
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
+    borderRadius: 20,
+    // overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
     elevation: 5,
   },
   darkMenuBox: { backgroundColor: '#1e1e1e' },
@@ -548,10 +573,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     alignItems: 'center',
     borderBottomColor: '#f1f2f3',
+    flexDirection: 'row',
+    gap: 4,
   },
   lastMenuItem: {
     borderBottomWidth: 0,
   },
   darkMenuItem: { borderBottomColor: '#333' },
-  menuText: { fontSize: 16 },
+  menuText: { fontSize: 14 },
 });

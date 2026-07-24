@@ -90,7 +90,7 @@ export default function MainSwipeScreen() {
         onPageSelected={(e) => setCurrentPage(e.nativeEvent.position)}
       >
         <View key="0" style={{ flex: 1, backgroundColor: bgColor }}>
-          <CalendarView isDark={isDark} t={t} />
+          <CalendarView isDark={isDark} t={t} onGoToList={slideToDiaryList} />
         </View>
 
         <View key="1" style={{ flex: 1, backgroundColor: bgColor }}>

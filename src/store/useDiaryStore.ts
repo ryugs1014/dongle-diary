@@ -61,6 +61,10 @@ interface DiaryStore {
   isAppReady: boolean;
   setAppReady: (ready: boolean) => void;
 
+  // 추가: 시스템 팝업(공유 창 등) 호출 여부 방어 플래그
+  isSystemAction: boolean;
+  setIsSystemAction: (value: boolean) => void;
+
   setSelectedDate: (date: string) => void;
   setSelectedEmotions: (emotions: string[]) => void;
   setLockEnabled: (enabled: boolean) => void;
@@ -137,6 +141,9 @@ export const useDiaryStore = create<DiaryStore>()(
       clearDraft: () => set({ draft: null }),
       isAppReady: false,
       setAppReady: (ready) => set({ isAppReady: ready }),
+
+      isSystemAction: false,
+      setIsSystemAction: (value) => set({ isSystemAction: value }),
 
       setSelectedDate: (date) => set({ selectedDate: date }),
       setSelectedEmotions: (emotions) => set({ selectedEmotions: emotions }),

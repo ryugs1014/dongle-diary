@@ -29,7 +29,8 @@ import Toast from 'react-native-toast-message';
 import CustomSpinner from '@/components/common/CustomSpinner';
 
 export default function PdfExportScreen() {
-  const { diaries, theme, diaryFontFamily } = useDiaryStore();
+  const { diaries, theme, diaryFontFamily, setIsSystemAction } =
+    useDiaryStore();
   const systemColorScheme = useColorScheme();
   const isDark =
     theme === 'system' ? systemColorScheme === 'dark' : theme === 'dark';
@@ -156,29 +157,16 @@ export default function PdfExportScreen() {
                 await asset.downloadAsync(); // 다운로드 보장
                 const uriToRead = asset.localUri || asset.uri;
 
-                let emoBase64Uri = uriToRead;
+                // [수정됨] ImageManipulator 대신 FileSystem을 통해 다이렉트로 Base64 인코딩
+                const base64Data = await FileSystem.readAsStringAsync(
+                  uriToRead,
+                  {
+                    encoding: FileSystem.EncodingType.Base64,
+                  },
+                );
 
-                if (
-                  uriToRead.startsWith('file://') ||
-                  uriToRead.startsWith('http')
-                ) {
-                  const manipResult = await ImageManipulator.manipulateAsync(
-                    uriToRead,
-                    [], // 크기 변경 없이 원본 유지
-                    {
-                      format: ImageManipulator.SaveFormat.PNG,
-                      base64: true,
-                    },
-                  );
-
-                  if (manipResult.base64) {
-                    emoBase64Uri = `data:image/png;base64,${manipResult.base64}`;
-                  }
-                }
-
-                if (emoBase64Uri) {
-                  htmlContent += `<img class="emotion-img" src="${emoBase64Uri}" />`;
-                }
+                const emoBase64Uri = `data:image/png;base64,${base64Data}`;
+                htmlContent += `<img class="emotion-img" src="${emoBase64Uri}" />`;
               } catch (e) {
                 console.log('Emotion image load error:', e);
               }
@@ -265,6 +253,9 @@ export default function PdfExportScreen() {
         to: newUri,
       });
 
+      // 안드로이드 공유 창 호출 시 잠금화면 방어 플래그 ON
+      setIsSystemAction(true);
+
       // 변경된 이름의 파일로 공유/저장 실행
       await Sharing.shareAsync(newUri, {
         UTI: '.pdf',
@@ -289,7 +280,6 @@ export default function PdfExportScreen() {
       console.error(error);
     } finally {
       setIsExporting(false);
-
       setLoadingMonth(null);
     }
   };
@@ -328,7 +318,7 @@ export default function PdfExportScreen() {
           <AppText
             style={[styles.customHeaderTitle, isDark && styles.darkText]}
           >
-            PDF 저장
+            PDF 저장 아아
           </AppText>
         </View>
         <View style={styles.rightIconsWrapper} />

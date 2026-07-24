@@ -19,6 +19,7 @@ export default function AppTouchableOpacity(props: TouchableOpacityProps) {
       }, 500);
     },
     [props.onPress],
+    ``,
   );
 
   return <TouchableOpacity {...props} onPress={handlePress} />;

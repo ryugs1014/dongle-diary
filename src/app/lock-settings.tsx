@@ -62,7 +62,7 @@ export default function LockSettingsScreen() {
       if (!hasHardware) {
         return Toast.show({
           type: 'info',
-          text1: '이 기기는 생체 인식을 지원하지 않아요',
+          text1: '이 기기는 생체 인증을 지원하지 않아요',
           position: 'top',
           topOffset: 60,
         });
@@ -79,16 +79,23 @@ export default function LockSettingsScreen() {
       }
 
       const auth = await LocalAuthentication.authenticateAsync({
-        promptMessage: '생체 인식을 활성화합니다.',
+        promptMessage: '생체 인증을 활성화합니다.',
         cancelLabel: '취소',
       });
 
       if (auth.success) {
         setBiometricEnabled(true);
+
+        Toast.show({
+          type: 'success',
+          text1: '생체 인증이 설정되었어요',
+          position: 'top',
+          topOffset: 60,
+        });
       } else {
         Alert.alert(
           '권한 필요',
-          '생체 인식을 사용하려면 Face ID 권한이 필요합니다. 설정으로 이동하여 권한을 허용하시겠습니까?',
+          '생체 인증을 사용하려면 Face ID 권한이 필요합니다. 설정으로 이동하여 권한을 허용하시겠습니까?',
           [
             { text: '취소', style: 'cancel' },
             {
@@ -270,7 +277,7 @@ export default function LockSettingsScreen() {
         {/*</View>*/}
 
         <SettingItem
-          title="생체 인식 사용"
+          title="생체 인증 사용"
           subtitle="지문이나 Face ID로 잠금을 해제합니다."
           disabled={!isLockEnabled}
           rightElement={

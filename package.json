@@ -3,6 +3,7 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "dependencies": {
+    "@10play/tentap-editor": "^1.0.1",
     "@expo-google-fonts/nanum-pen-script": "^0.4.0",
     "@expo-google-fonts/noto-sans-kr": "^0.4.3",
     "@expo/ui": "~57.0.6",

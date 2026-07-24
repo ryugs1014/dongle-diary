@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, StyleSheet, Text, Modal } from 'react-native';
+import { View, StyleSheet, Text, Modal, Pressable } from 'react-native';
 import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
 import { Image } from 'expo-image';
 import AppText from '@/components/atoms/AppText';
 import { router } from 'expo-router';
 import { CalendarList, LocaleConfig } from 'react-native-calendars';
-import { Ionicons } from '@expo/vector-icons';
 import { useDiaryStore } from '../../store/useDiaryStore';
 import {
   CalandarIcon,
@@ -13,6 +12,8 @@ import {
   SearchIcon,
   MenuIcon,
   AddBigIcon,
+  DraftPanIcon,
+  DocumentIcon,
 } from '@/assets/icons';
 import {
   EMOTION_IMAGE_MAP,
@@ -48,6 +49,7 @@ const DYNAMIC_FUTURE_RANGE = 12 - currentMonthNumber + 12;
 interface CalendarViewProps {
   isDark: boolean;
   t: (ko: string, en: string) => string;
+  onGoToList: () => void;
 }
 
 export default function CalendarView({ isDark, t }: CalendarViewProps) {
@@ -62,6 +64,8 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
   } = useDiaryStore();
   const [displayedMonth, setDisplayedMonth] = useState(localTodayStr);
   const [datePickerVisible, setDatePickerVisible] = useState(false);
+
+  const [menuVisible, setMenuVisible] = useState(false);
   // const [pickerYear, setPickerYear] = useState(
   //   parseInt(localTodayStr.split('-')[0], 10),
   // );
@@ -159,7 +163,10 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
 
       const showEmotion =
         hasDiary && displayEmotion && EMOTION_IMAGE_MAP[displayEmotion];
-      const showDate = !hasDiary || alwaysShowDate;
+
+      const showDraftIcon = hasDraft;
+
+      const showDate = (!hasDiary && !showDraftIcon) || alwaysShowDate;
 
       return (
         <AppTouchableOpacity
@@ -168,19 +175,24 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
           onPress={() => handleDayPress(dateStr, hasDiary)}
           style={[
             styles.dayCell,
-            isSelected && !isFuture && !hasDiary && styles.selectedCell,
+            isSelected &&
+              !isFuture &&
+              !hasDiary &&
+              !showDraftIcon &&
+              styles.selectedCell,
             isDark &&
               isSelected &&
               !isFuture &&
               !hasDiary &&
+              !showDraftIcon &&
               styles.selectedCellDark,
             isSelected &&
-              showEmotion &&
+              (showEmotion || showDraftIcon) &&
               alwaysShowDate &&
               styles.overlaySelectedCell,
             isDark &&
               isSelected &&
-              showEmotion &&
+              (showEmotion || showDraftIcon) &&
               alwaysShowDate &&
               styles.overlaySelectedCellDark,
           ]}
@@ -196,16 +208,31 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
                 isFuture &&
                   (isDark ? styles.darkDisabledText : styles.disabledText),
                 isSelected && !isFuture && styles.selectedText,
-                // 이모티콘과 함께 켜질 때는 좌측 상단으로 작게 밀어냅니다.
-                showEmotion && alwaysShowDate && styles.overlayDateText,
+                // 아이콘과 함께 켜질 때는 좌측 상단으로 작게 밀어냅니다.
+                (showEmotion || showDraftIcon) &&
+                  alwaysShowDate &&
+                  styles.overlayDateText,
               ]}
             >
               {date?.day}
             </AppText>
           )}
 
-          {/*  2. 이모티콘 이미지 */}
-          {showEmotion && (
+          {/* 2. 임시저장 아이콘 또는 감정 이미지 */}
+          {showDraftIcon ? (
+            <View
+              style={[
+                isSelected && styles.selectedEmotionImage,
+                alwaysShowDate && styles.emotionImageShifted,
+              ]}
+            >
+              <DraftPanIcon
+                width={alwaysShowDate ? 28 : 40}
+                height={alwaysShowDate ? 28 : 40}
+                color={isDark ? '#ffffff' : '#111111'} // 임시저장 텍스트 색상과 통일
+              />
+            </View>
+          ) : showEmotion ? (
             <Image
               source={
                 isSelected && ANIMATED_EMOTION_IMAGE_MAP[displayEmotion]
@@ -221,7 +248,7 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
               contentFit="contain"
               transition={200}
             />
-          )}
+          ) : null}
         </AppTouchableOpacity>
       );
     },
@@ -233,7 +260,7 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
       <View style={[styles.customHeader]}>
         <AppTouchableOpacity
           style={styles.contentSelect}
-          onPress={() => router.push('/')}
+          onPress={() => setMenuVisible(true)}
         >
           <CalandarIcon
             width={28}
@@ -365,6 +392,55 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
           setDatePickerVisible(false);
         }}
       />
+
+      <Modal visible={menuVisible} transparent animationType="fade">
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setMenuVisible(false)} // 여백 누르면 닫힘
+        >
+          <View style={[styles.menuBox, isDark && styles.darkMenuBox]}>
+            <AppTouchableOpacity
+              style={[styles.menuItem, isDark && styles.darkMenuItem]}
+              onPress={() => {
+                setMenuVisible(false);
+                // 현재 달력 화면이므로 창만 닫습니다.
+              }}
+            >
+              <CalandarIcon
+                width={24}
+                height={24}
+                color={isDark ? '#ffffff' : '#111111'}
+              />
+              <AppText style={[styles.menuText, isDark && styles.darkText]}>
+                일기장
+              </AppText>
+            </AppTouchableOpacity>
+
+            {/* 3. 🟢 새로 추가: 메모 보기 */}
+            <AppTouchableOpacity
+              style={[styles.menuItem, styles.lastMenuItem]} // 💡 여기에 lastMenuItem 적용
+              onPress={() => {
+                setMenuVisible(false);
+
+                // 메모 목록 페이지를 거쳐서 작성하게 하려면:
+                // router.push('/memo-list');
+
+                // 지금 당장 메모 작성 에디터로 바로 가려면:
+                // router.push('/memo-list');
+              }}
+            >
+              <DocumentIcon
+                width={24}
+                height={24}
+                color={isDark ? '#ffffff' : '#111111'}
+              />
+              <AppText style={[styles.menuText, isDark && styles.darkText]}>
+                메모장
+              </AppText>
+            </AppTouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -425,8 +501,8 @@ const styles = StyleSheet.create({
   disabledText: { color: '#d9e1e8' },
   darkDisabledText: { color: '#444' },
   sundayText: { color: '#FF6262' },
-  draftText: { color: '#007AFF' },
-  darkDraftText: { color: '#007AFF' },
+  // draftText: { color: '#007AFF' },
+  // darkDraftText: { color: '#007AFF' },
   dayCell: {
     width: 40,
     height: 40,
@@ -468,4 +544,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     elevation: 5,
   },
+
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    // backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
+    paddingTop: 100,
+    paddingLeft: 20,
+  },
+  menuBox: {
+    backgroundColor: '#ffffff',
+    width: 160,
+    borderRadius: 20,
+    // overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  darkMenuBox: { backgroundColor: '#1e1e1e' },
+  menuItem: {
+    padding: 16,
+    borderBottomWidth: 1,
+    alignItems: 'center',
+    borderBottomColor: '#f1f2f3',
+    flexDirection: 'row',
+    gap: 4,
+  },
+  lastMenuItem: {
+    borderBottomWidth: 0,
+  },
+  darkMenuItem: { borderBottomColor: '#333' },
+  menuText: { fontSize: 14 },
 });

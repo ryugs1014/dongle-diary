@@ -17,7 +17,13 @@ import * as WebBrowser from 'expo-web-browser';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { useDiaryStore } from '../store/useDiaryStore';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import { BackIcon, CloudIcon, DownloadIcon, UploadIcon } from '@/assets/icons';
+import {
+  BackIcon,
+  CloudIcon,
+  DownloadIcon,
+  UploadIcon,
+  InfoIcon,
+} from '@/assets/icons';
 import SvgDashedLine from '@/components/ui/SvgDashedLine';
 import Toast from 'react-native-toast-message';
 import CustomSpinner from '@/components/common/CustomSpinner';
@@ -59,6 +65,7 @@ export default function BackupSettingsScreen() {
     lastBackupDate,
     setGoogleAuth,
     setLastBackupDate,
+    setIsSystemAction,
   } = useDiaryStore();
 
   const systemColorScheme = useColorScheme();
@@ -128,6 +135,10 @@ export default function BackupSettingsScreen() {
 
   const handleGoogleLogin = async () => {
     setLoadingType('auth');
+
+    // 구글 로그인 시스템 팝업이 뜰 때 잠금화면 방어 플래그 ON
+    setIsSystemAction(true);
+
     try {
       await GoogleSignin.hasPlayServices();
       await GoogleSignin.signIn();
@@ -510,9 +521,19 @@ export default function BackupSettingsScreen() {
         </View>
 
         <View style={styles.infoSection}>
-          <AppText style={[styles.infoMainTitle, isDark && styles.darkSubText]}>
-            읽어주세요
-          </AppText>
+          <View style={styles.infoHeader}>
+            <InfoIcon
+              width={24}
+              height={24}
+              color={isDark ? '#ffffff' : '#888'}
+            />
+            <AppText
+              style={[styles.infoMainTitle, isDark && styles.darkSubText]}
+            >
+              읽어주세요
+            </AppText>
+          </View>
+
           {INFO_LIST.map((info, index) => (
             <View key={index} style={styles.infoItem}>
               {/* 제목은 위로 분리 */}
@@ -726,10 +747,16 @@ const styles = StyleSheet.create({
   dividerWrapper: { paddingHorizontal: 20, paddingVertical: 15 },
 
   infoSection: { paddingHorizontal: 20, paddingTop: 25 },
+  infoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: 4,
+    marginBottom: 25,
+  },
   infoMainTitle: {
     fontSize: 13,
     color: '#555',
-    marginBottom: 25,
   },
   infoItem: { marginBottom: 25 },
   infoTitle: {

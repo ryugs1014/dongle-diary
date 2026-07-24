@@ -95,19 +95,23 @@ export default function RootLayout() {
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextAppState) => {
       const store = useDiaryStore.getState();
-      // 앱이 백그라운드로 가면 즉시 잠금
+
       if (nextAppState === 'background') {
-        if (store.isLockEnabled) {
+        // [수정됨] 공유 창 등 시스템 액션 중이 아닐 때만 잠금 활성화
+        if (store.isLockEnabled && !store.isSystemAction) {
           setIsUnlocked(false);
           setCurrentInput('');
         }
       } else if (nextAppState === 'active') {
-        if (
+        // [수정됨] 앱으로 돌아왔을 때 시스템 액션 상태였다면, 잠금은 무시하고 플래그만 초기화
+        if (store.isSystemAction) {
+          store.setIsSystemAction(false);
+        } else if (
           store.isLockEnabled &&
           store.isBiometricEnabled &&
           !isUnlockedRef.current &&
           !isAuthenticating.current &&
-          !showCustomSplash // 로딩 화면 중에는 생체인식을 호출하지 않음
+          !showCustomSplash
         ) {
           handleBiometricAuth();
         }
