@@ -157,7 +157,21 @@ export default function PdfExportScreen() {
                 await asset.downloadAsync(); // 다운로드 보장
                 const uriToRead = asset.localUri || asset.uri;
 
-                // [수정됨] ImageManipulator 대신 FileSystem을 통해 다이렉트로 Base64 인코딩
+                // 핵심 해결 코드: 안드로이드 배포 환경에서 file:// 경로가 아닐 경우 처리
+                // 번들된 에셋(asset:// 등)을 직접 읽으면 에러가 나므로, 임시 캐시 폴더로 복사합니다.
+                if (
+                  Platform.OS === 'android' &&
+                  !uriToRead.startsWith('file://')
+                ) {
+                  const tempUri = `${FileSystem.cacheDirectory}emo_temp_${Date.now()}.png`;
+                  await FileSystem.copyAsync({
+                    from: uriToRead,
+                    to: tempUri,
+                  });
+                  uriToRead = tempUri; // 복사된 안전한 경로로 교체
+                }
+
+                // 일반 file:// 경로로 변환되었으므로 안드로이드 배포판에서도 에러 없이 읽힙니다.
                 const base64Data = await FileSystem.readAsStringAsync(
                   uriToRead,
                   {
