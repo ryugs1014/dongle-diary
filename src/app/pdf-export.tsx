@@ -152,35 +152,26 @@ export default function PdfExportScreen() {
             const emoSource = EMOTION_IMAGE_MAP[emo];
             if (emoSource) {
               try {
-                // Asset을 통해 로컬 이미지 경로를 확실히 가져옴
+                // Asset을 통해 경로를 가져옴
                 const asset = Asset.fromModule(emoSource);
-                await asset.downloadAsync(); // 다운로드 보장
+                await asset.downloadAsync();
                 const uriToRead = asset.localUri || asset.uri;
 
-                // 핵심 해결 코드: 안드로이드 배포 환경에서 file:// 경로가 아닐 경우 처리
-                // 번들된 에셋(asset:// 등)을 직접 읽으면 에러가 나므로, 임시 캐시 폴더로 복사합니다.
-                if (
-                  Platform.OS === 'android' &&
-                  !uriToRead.startsWith('file://')
-                ) {
-                  const tempUri = `${FileSystem.cacheDirectory}emo_temp_${Date.now()}.png`;
-                  await FileSystem.copyAsync({
-                    from: uriToRead,
-                    to: tempUri,
-                  });
-                  uriToRead = tempUri; // 복사된 안전한 경로로 교체
-                }
-
-                // 일반 file:// 경로로 변환되었으므로 안드로이드 배포판에서도 에러 없이 읽힙니다.
-                const base64Data = await FileSystem.readAsStringAsync(
+                // 💡 해결책: FileSystem 강제 복사 방식 대신 ImageManipulator 사용
+                // 네이티브 단에서 이미지를 정상적으로 불러온 뒤 Base64로 인코딩합니다.
+                const manipResult = await ImageManipulator.manipulateAsync(
                   uriToRead,
+                  [], // 리사이즈 없이 원본 크기 유지
                   {
-                    encoding: FileSystem.EncodingType.Base64,
+                    format: ImageManipulator.SaveFormat.PNG,
+                    base64: true, // 순수 Base64 문자열 추출
                   },
                 );
 
-                const emoBase64Uri = `data:image/png;base64,${base64Data}`;
-                htmlContent += `<img class="emotion-img" src="${emoBase64Uri}" />`;
+                if (manipResult.base64) {
+                  const emoBase64Uri = `data:image/png;base64,${manipResult.base64}`;
+                  htmlContent += `<img class="emotion-img" src="${emoBase64Uri}" />`;
+                }
               } catch (e) {
                 console.log('Emotion image load error:', e);
               }
@@ -332,7 +323,7 @@ export default function PdfExportScreen() {
           <AppText
             style={[styles.customHeaderTitle, isDark && styles.darkText]}
           >
-            PDF 저장 아아
+            PDF 저장
           </AppText>
         </View>
         <View style={styles.rightIconsWrapper} />

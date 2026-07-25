@@ -1,5 +1,12 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, StyleSheet, Text, Modal, Pressable } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  Text,
+  Modal,
+  Pressable,
+  useWindowDimensions,
+} from 'react-native';
 import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
 import { Image } from 'expo-image';
 import AppText from '@/components/atoms/AppText';
@@ -53,6 +60,8 @@ interface CalendarViewProps {
 }
 
 export default function CalendarView({ isDark, t }: CalendarViewProps) {
+  const { width: windowWidth } = useWindowDimensions();
+
   const {
     selectedDate,
     setSelectedDate,
@@ -306,6 +315,7 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
 
       <View style={styles.calendarWrapper}>
         <CalendarList
+          calendarWidth={windowWidth}
           firstDay={calendarStartMonday ? 1 : 0}
           current={selectedDate}
           pastScrollRange={DYNAMIC_PAST_RANGE}
