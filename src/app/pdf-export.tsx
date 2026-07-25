@@ -27,6 +27,7 @@ import SvgDashedLine from '@/components/ui/SvgDashedLine';
 import { EMOTION_IMAGE_MAP } from '@/constants/emotions';
 import Toast from 'react-native-toast-message';
 import CustomSpinner from '@/components/common/CustomSpinner';
+import { EMOTION_BASE64_MAP } from '@/constants/emotionBase64';
 
 export default function PdfExportScreen() {
   const { diaries, theme, diaryFontFamily, setIsSystemAction } =
@@ -148,35 +149,18 @@ export default function PdfExportScreen() {
         // 감정 이미지 출력
         if (emotionList.length > 0) {
           htmlContent += `<div class="emotion-container">`;
+
           for (const emo of emotionList) {
-            const emoSource = EMOTION_IMAGE_MAP[emo];
-            if (emoSource) {
-              try {
-                // Asset을 통해 경로를 가져옴
-                const asset = Asset.fromModule(emoSource);
-                await asset.downloadAsync();
-                const uriToRead = asset.localUri || asset.uri;
+            // 💡 파일 시스템 접근 없이, 메모리에 올려둔 Base64 문자열을 즉시 가져옵니다.
+            const base64String = EMOTION_BASE64_MAP[emo];
 
-                // 💡 해결책: FileSystem 강제 복사 방식 대신 ImageManipulator 사용
-                // 네이티브 단에서 이미지를 정상적으로 불러온 뒤 Base64로 인코딩합니다.
-                const manipResult = await ImageManipulator.manipulateAsync(
-                  uriToRead,
-                  [], // 리사이즈 없이 원본 크기 유지
-                  {
-                    format: ImageManipulator.SaveFormat.PNG,
-                    base64: true, // 순수 Base64 문자열 추출
-                  },
-                );
-
-                if (manipResult.base64) {
-                  const emoBase64Uri = `data:image/png;base64,${manipResult.base64}`;
-                  htmlContent += `<img class="emotion-img" src="${emoBase64Uri}" />`;
-                }
-              } catch (e) {
-                console.log('Emotion image load error:', e);
-              }
+            if (base64String) {
+              htmlContent += `<img class="emotion-img" src="${base64String}" />`;
+            } else {
+              console.log(`${emo}에 해당하는 Base64 문자열이 없습니다.`);
             }
           }
+
           htmlContent += `</div>`;
         }
 
