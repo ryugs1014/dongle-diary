@@ -434,6 +434,7 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
 
                 // 메모 목록 페이지를 거쳐서 작성하게 하려면:
                 // router.push('/memo-list');
+                router.replace('/memo-list');
 
                 // 지금 당장 메모 작성 에디터로 바로 가려면:
                 // router.push('/memo-list');

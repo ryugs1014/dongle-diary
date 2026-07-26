@@ -460,6 +460,7 @@ export default function WriteScreen() {
       style={[styles.container, isDark && styles.darkContainer]}
     >
       <Stack.Screen options={{ headerShown: false }} />
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}

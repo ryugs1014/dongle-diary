@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { View, useColorScheme, BackHandler } from 'react-native';
+import { View, useColorScheme, BackHandler, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useFocusEffect, router } from 'expo-router';
 import PagerView from 'react-native-pager-view';
@@ -8,6 +8,13 @@ import { useDiaryStore } from '../store/useDiaryStore';
 import CalendarView from '../components/sections/CalendarView';
 import DiaryListView from '../components/sections/DiaryListView';
 import AppConfirmModal from '@/components/modals/AppConfirmModal';
+import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
+import {
+  DocumentIcon,
+  MenuIcon,
+  SearchIcon,
+  SelectArrowIcon,
+} from '@/assets/icons';
 
 let hasCheckedDraftGlobal = false;
 

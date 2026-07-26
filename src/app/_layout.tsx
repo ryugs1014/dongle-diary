@@ -246,6 +246,13 @@ export default function RootLayout() {
             <Stack.Screen name="lock-settings" />
             <Stack.Screen name="language-settings" />
             <Stack.Screen name="theme-settings" />
+            <Stack.Screen
+              name="memo-editor"
+              options={{
+                animation: 'slide_from_bottom',
+                headerShown: false,
+              }}
+            />
           </Stack>
         </ThemeProvider>
       </View>

@@ -3,25 +3,29 @@ import { View, Modal, StyleSheet, Animated, Dimensions } from 'react-native';
 import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
 import RadioSettingItem from '@/components/common/RadioSettingItem';
 
-interface SortBottomSheetProps {
+export type MemoSortType = 'dateDesc' | 'nameAsc' | 'nameDesc';
+
+interface SortMemoBottomSheetProps {
   visible: boolean;
   onClose: () => void;
-  sortOrder: 'desc' | 'asc';
-  setSortOrder: (order: 'desc' | 'asc') => void;
+  sortType: MemoSortType;
+  setSortType: (type: MemoSortType) => void;
   isDark: boolean;
 }
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-export default function SortBottomSheet({
+export default function SortMemoBottomSheet({
   visible,
   onClose,
-  sortOrder,
-  setSortOrder,
+  sortType,
+  setSortType,
   isDark,
-}: SortBottomSheetProps) {
+}: SortMemoBottomSheetProps) {
+  // 바텀시트의 Y축 위치를 관리하는 Animated.Value
   const slideY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
 
+  // 열고 닫힐 때 하얀 시트만 애니메이션 처리
   useEffect(() => {
     if (visible) {
       Animated.spring(slideY, {
@@ -35,23 +39,13 @@ export default function SortBottomSheet({
     }
   }, [visible, slideY]);
 
+  // 닫기 버튼(또는 배경)을 눌렀을 때 자연스럽게 내려가고 모달 종료
   const handleClose = () => {
     Animated.timing(slideY, {
       toValue: SCREEN_HEIGHT,
       duration: 250,
       useNativeDriver: true,
     }).start(() => {
-      onClose();
-    });
-  };
-
-  const handleSort = (order: 'desc' | 'asc') => {
-    Animated.timing(slideY, {
-      toValue: SCREEN_HEIGHT,
-      duration: 250,
-      useNativeDriver: true,
-    }).start(() => {
-      setSortOrder(order);
       onClose();
     });
   };
@@ -68,6 +62,7 @@ export default function SortBottomSheet({
         activeOpacity={1}
         onPress={handleClose}
       >
+        {/* 🔥 하얀 시트 영역만 Animated.View로 감싸서 슬라이드 애니메이션 적용 */}
         <Animated.View
           style={[
             styles.sortBottomSheet,
@@ -80,10 +75,13 @@ export default function SortBottomSheet({
             <View style={styles.dragHandle} />
 
             <RadioSettingItem
-              title="최신순"
-              isSelected={sortOrder === 'desc'}
+              title="최근 날짜순"
+              isSelected={sortType === 'dateDesc'}
               isDark={isDark}
-              onPress={() => handleSort('desc')}
+              onPress={() => {
+                setSortType('dateDesc');
+                handleClose();
+              }}
             />
 
             <View
@@ -91,10 +89,27 @@ export default function SortBottomSheet({
             />
 
             <RadioSettingItem
-              title="과거순"
-              isSelected={sortOrder === 'asc'}
+              title="이름순 (오름차순)"
+              isSelected={sortType === 'nameAsc'}
               isDark={isDark}
-              onPress={() => handleSort('asc')}
+              onPress={() => {
+                setSortType('nameAsc');
+                handleClose();
+              }}
+            />
+
+            <View
+              style={[styles.sortDivider, isDark && styles.darkSortDivider]}
+            />
+
+            <RadioSettingItem
+              title="이름순 (내림차순)"
+              isSelected={sortType === 'nameDesc'}
+              isDark={isDark}
+              onPress={() => {
+                setSortType('nameDesc');
+                handleClose();
+              }}
             />
           </AppTouchableOpacity>
         </Animated.View>
@@ -107,7 +122,7 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.4)', // 다른 모달과 통일감을 위해 추가
+    backgroundColor: 'rgba(0,0,0,0.4)',
   },
   sortBottomSheet: {
     width: '100%',
