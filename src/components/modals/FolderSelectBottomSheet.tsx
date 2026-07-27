@@ -13,11 +13,13 @@ import AppText from '@/components/atoms/AppText';
 import RadioSettingItem from '@/components/common/RadioSettingItem';
 import AppPromptModal from '@/components/modals/AppPromptModal';
 import Toast from 'react-native-toast-message';
+import { AddMemoIcon, EmptyEmotionIcon } from '@/assets/icons';
 
 export interface FolderOption {
   id: string | null;
   name: string;
-  icon?: string;
+  // 🔥 아이콘 이름(string), 이모지(string), SVG 컴포넌트 모두 받을 수 있도록 타입 확장
+  icon?: string | React.ElementType;
 }
 
 interface FolderSelectBottomSheetProps {
@@ -50,17 +52,14 @@ export default function FolderSelectBottomSheet({
   const footerHeight = useRef(new Animated.Value(HALF_OFFSET)).current;
   const lastSnap = useRef(HIDDEN_OFFSET);
 
-  // 🔥 1. FlatList 제어를 위한 Ref 및 옵션 개수 추적 Ref 추가
   const flatListRef = useRef<FlatList>(null);
   const prevOptionsLength = useRef(options.length);
 
   const [isPromptVisible, setIsPromptVisible] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
 
-  // 🔥 2. 옵션(폴더) 개수가 늘어났음을 감지하고 맨 위로 스크롤하는 Effect 추가
   useEffect(() => {
     if (options.length > prevOptionsLength.current) {
-      // 렌더링이 완료될 짧은 시간을 벌어준 뒤 맨 위로 스크롤
       setTimeout(() => {
         flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
       }, 100);
@@ -189,7 +188,7 @@ export default function FolderSelectBottomSheet({
           </View>
 
           <FlatList
-            ref={flatListRef} // 🔥 3. FlatList에 제어용 ref 연결
+            ref={flatListRef}
             data={options}
             keyExtractor={(item) => item.id || 'null'}
             contentContainerStyle={styles.listContainer}
@@ -197,7 +196,6 @@ export default function FolderSelectBottomSheet({
             ItemSeparatorComponent={() => (
               <View style={[styles.divider, isDark && styles.darkDivider]} />
             )}
-            // 🔥 4. 중복되었던 ListFooterComponent를 하나로 병합
             ListFooterComponent={
               <>
                 {onCreateFolder && (
@@ -212,8 +210,18 @@ export default function FolderSelectBottomSheet({
                         setIsPromptVisible(true);
                       }}
                     >
-                      <AppText style={styles.createFolderText}>
-                        + 신규 폴더 생성
+                      <AddMemoIcon
+                        width={24}
+                        height={24}
+                        color={isDark ? '#ffffff' : '#111111'}
+                      />
+                      <AppText
+                        style={[
+                          styles.createFolderText,
+                          isDark && styles.createFolderTextDark,
+                        ]}
+                      >
+                        신규 폴더 생성
                       </AppText>
                     </AppTouchableOpacity>
                   </>
@@ -223,7 +231,8 @@ export default function FolderSelectBottomSheet({
             }
             renderItem={({ item }) => (
               <RadioSettingItem
-                title={item.icon ? `${item.icon} ${item.name}` : item.name}
+                title={item.name}
+                icon={item.icon} // 🔥 iconName 대신 icon 하나로 전달
                 isSelected={selectedId === item.id}
                 isDark={isDark}
                 onPress={() => {
@@ -254,7 +263,6 @@ export default function FolderSelectBottomSheet({
             const trimmedName = newFolderName.trim();
             if (!trimmedName) return;
 
-            // 🔥 중복 이름 검사 로직 추가 (기존 옵션들에 같은 이름이 있는지 확인)
             const isDuplicate = options.some((opt) => opt.name === trimmedName);
 
             if (isDuplicate) {
@@ -264,7 +272,7 @@ export default function FolderSelectBottomSheet({
                 position: 'top',
                 topOffset: 60,
               });
-              return; // ❌ 중복이면 여기서 멈추고 모달을 닫지 않음
+              return;
             }
 
             if (onCreateFolder) {
@@ -314,12 +322,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#ddd',
     borderRadius: 2,
     alignSelf: 'center',
-    marginBottom: 15,
+    marginBottom: 30,
   },
   title: {
     fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',
+    marginBottom: 10,
   },
   darkTitle: {
     color: '#fff',
@@ -336,14 +345,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#333',
   },
   createFolderBtn: {
-    paddingVertical: 18,
+    paddingVertical: 24,
     paddingHorizontal: 24,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 4,
+    marginTop: 20,
   },
   createFolderText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#007AFF',
+    color: '#111111',
+  },
+  createFolderTextDark: {
+    color: '#ffffff',
   },
 });

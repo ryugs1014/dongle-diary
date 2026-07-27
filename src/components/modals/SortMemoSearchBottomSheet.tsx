@@ -82,7 +82,7 @@ export default function SortMemoSearchBottomSheet({
             <View style={styles.dragHandle} />
 
             <RadioSettingItem
-              title="최신순"
+              title="최근 날짜순"
               isSelected={sortType === 'dateDesc'}
               isDark={isDark}
               onPress={() => handleSort('dateDesc')}
@@ -92,7 +92,7 @@ export default function SortMemoSearchBottomSheet({
             />
 
             <RadioSettingItem
-              title="과거순"
+              title="오래된 날짜순"
               isSelected={sortType === 'dateAsc'}
               isDark={isDark}
               onPress={() => handleSort('dateAsc')}

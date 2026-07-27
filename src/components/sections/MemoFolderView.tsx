@@ -3,18 +3,22 @@ import { View, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
 import AppText from '@/components/atoms/AppText';
 import { useMemoStore } from '@/store/useMemoStore';
 import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
-import { AddBigIcon, OptionIcon } from '@/assets/icons';
+import {
+  AddBigIcon,
+  OptionIcon,
+  FolderIcon,
+  FolderEmptyIcon,
+  TrashIcon,
+  PinIcon,
+  DragIcon, // 🔥 고정 핀 아이콘 추가 (필요시 대체)
+} from '@/assets/icons';
 import FolderOptionsBottomSheet from '@/components/modals/FolderOptionsBottomSheet';
 import AppPromptModal from '@/components/modals/AppPromptModal';
 import { LinearGradient } from 'expo-linear-gradient';
 import DraggableFlatList, {
   ScaleDecorator,
-  RenderItemParams,
 } from 'react-native-draggable-flatlist';
-import {
-  GestureHandlerRootView,
-  TouchableOpacity as RNGHTouchableOpacity,
-} from 'react-native-gesture-handler';
+import { TouchableOpacity as RNGHTouchableOpacity } from 'react-native-gesture-handler';
 import Toast from 'react-native-toast-message';
 
 interface MemoFolderViewProps {
@@ -75,12 +79,12 @@ export default function MemoFolderView({
   >(null);
   const [tempSelectedMemoIds, setTempSelectedMemoIds] = useState<string[]>([]);
 
-  // 🔥 삭제되지 않은 진짜 미지정 메모만 카운트
+  // 삭제되지 않은 진짜 미지정 메모만 카운트
   const uncategorizedMemosCount = useMemo(() => {
     return memos.filter((m) => !m.folderId && !m.deletedAt).length;
   }, [memos]);
 
-  // 🔥 휴지통 메모 카운트
+  // 휴지통 메모 카운트
   const trashedMemosCount = useMemo(() => {
     return memos.filter((m) => m.deletedAt).length;
   }, [memos]);
@@ -92,19 +96,13 @@ export default function MemoFolderView({
     if (uncategorizedMemosCount > 0) {
       virtual.push({
         id: 'uncategorized',
-        name: '폴더 미지정 메모',
+        name: '미분류 메모',
         isPinned: false,
         createdAt: 0,
       });
     }
 
-    // 🔥 휴지통 폴더 추가 (휴지통에 메모가 있을 때만 보이거나 항상 보이게. 여기선 항상 보이게 처리)
-    virtual.push({
-      id: 'trash',
-      name: '휴지통',
-      isPinned: false,
-      createdAt: 0,
-    });
+    // 휴지통은 별도 섹션으로 뺄 것이므로 virtualFolders에서 제거했습니다.
 
     const pinned = folders
       .filter((f) => f.isPinned)
@@ -126,12 +124,9 @@ export default function MemoFolderView({
     const trimmedName = folderNameInput.trim();
     if (!trimmedName) return;
 
-    // 🔥 중복 이름 검사 로직 추가
     const isDuplicate = folders.some((f) => {
       if (f.name === trimmedName) {
-        // '새 폴더 생성'일 때는 이름이 같으면 무조건 중복
         if (promptMode === 'add') return true;
-        // '이름 변경'일 때는 내 원래 이름(editingFolderId)이 아닌데 같은 이름이 있으면 중복
         if (promptMode === 'rename' && f.id !== editingFolderId) return true;
       }
       return false;
@@ -144,7 +139,7 @@ export default function MemoFolderView({
         position: 'top',
         topOffset: 60,
       });
-      return; // ❌ 중복이면 여기서 멈추고 모달을 닫지 않음
+      return;
     }
 
     if (promptMode === 'add') {
@@ -169,9 +164,8 @@ export default function MemoFolderView({
     (item: any, isVirtual: boolean, drag?: () => void, isActive?: boolean) => {
       const isAll = item.id === 'all';
       const isUncategorized = item.id === 'uncategorized';
-      const isTrash = item.id === 'trash'; // 🔥 휴지통 체크
+      const isTrash = item.id === 'trash';
 
-      // 🔥 메모 개수 계산 로직 변경 (삭제된 건 제외)
       const memoCount = isAll
         ? memos.filter((m) => !m.deletedAt).length
         : isUncategorized
@@ -184,6 +178,13 @@ export default function MemoFolderView({
       const TouchableComponent = isEditMode
         ? RNGHTouchableOpacity
         : TouchableOpacity;
+
+      // 상태에 맞는 SVG 아이콘 매핑
+      let IconComponent = FolderIcon;
+      if (isAll) IconComponent = FolderIcon;
+      else if (isUncategorized) IconComponent = FolderEmptyIcon;
+      else if (isTrash) IconComponent = TrashIcon;
+      else if (item.isPinned) IconComponent = PinIcon;
 
       return (
         <TouchableComponent
@@ -199,25 +200,21 @@ export default function MemoFolderView({
             if (isEditMode) return;
             if (isAll) setActiveFolderId(null);
             else if (isUncategorized) setActiveFolderId('uncategorized');
-            else if (isTrash)
-              setActiveFolderId('trash'); // 🔥 휴지통 탭 이동
+            else if (isTrash) setActiveFolderId('trash');
             else setActiveFolderId(item.id);
             onGoToList();
           }}
         >
           <View style={styles.folderInfo}>
-            <AppText style={styles.folderName}>
-              {isAll
-                ? '📚 '
-                : isUncategorized
-                  ? '📝 '
-                  : isTrash
-                    ? '🗑️ '
-                    : item.isPinned
-                      ? '📌 '
-                      : '📁 '}
+            <IconComponent
+              width={22}
+              height={22}
+              color={isDark ? '#ffffff' : '#111111'}
+            />
+            <AppText style={styles.folderName} numberOfLines={1}>
               {item.name}
             </AppText>
+
             <View
               style={[styles.folderCount, isDark && styles.folderCountDark]}
             >
@@ -233,7 +230,11 @@ export default function MemoFolderView({
             <View style={styles.dotsBtn}>
               {isEditMode ? (
                 drag ? (
-                  <DragHandleIcon color={isDark ? '#ffffff' : '#111111'} />
+                  <DragIcon
+                    width={28}
+                    height={28}
+                    color={isDark ? '#ffffff' : '#111111'}
+                  />
                 ) : null
               ) : (
                 <TouchableOpacity
@@ -257,12 +258,12 @@ export default function MemoFolderView({
       isDark,
       memos,
       uncategorizedMemosCount,
+      trashedMemosCount,
       onGoToList,
       setActiveFolderId,
     ],
   );
 
-  // 헤더와 빈 화면(Empty) 컴포넌트는 두 리스트에서 공통으로 사용하므로 분리
   const ListHeader = (
     <>
       <View style={styles.folderHeader}>
@@ -279,7 +280,9 @@ export default function MemoFolderView({
 
       <View style={{ gap: 10, marginBottom: 10 }}>
         {virtualFolders.map((f) => (
-          <View key={f.id}>{renderFolderCard(f, true)}</View>
+          <View key={f.id} style={isEditMode && { opacity: 0.3 }}>
+            {renderFolderCard(f, true)}
+          </View>
         ))}
         {pinnedFolders.map((f) => (
           <View key={f.id}>{renderFolderCard(f, false)}</View>
@@ -288,16 +291,31 @@ export default function MemoFolderView({
     </>
   );
 
+  const ListFooter = (
+    <View style={[styles.trashSection, isEditMode && { opacity: 0.3 }]}>
+      <View style={styles.folderHeader}>
+        <AppText style={styles.headerTitle}>휴지통</AppText>
+      </View>
+      <View style={{ paddingBottom: 10 }}>
+        {renderFolderCard(
+          { id: 'trash', name: '휴지통', isPinned: false, createdAt: 0 },
+          true,
+        )}
+      </View>
+    </View>
+  );
+
   const ListEmpty =
     pinnedFolders.length === 0 && unpinnedFolders.length === 0 ? (
       <View style={styles.emptyContainer}>
-        <AppText style={{ color: '#999' }}>생성된 폴더가 없습니다.</AppText>
+        <AppText style={styles.emptyText}>
+          생성된 폴더가 없어요{'\n'}아래의 + 버튼으로 생성해 보세요
+        </AppText>
       </View>
     ) : null;
 
   return (
     <View style={styles.container}>
-      {/* 🔥 핵심 최적화: 모드에 따라 아예 다른 리스트 컴포넌트를 그립니다. */}
       {isEditMode ? (
         <DraggableFlatList
           data={unpinnedFolders}
@@ -320,6 +338,7 @@ export default function MemoFolderView({
           maxToRenderPerBatch={10}
           windowSize={5}
           ListHeaderComponent={ListHeader}
+          ListFooterComponent={ListFooter} // 휴지통 푸터 추가
           ListEmptyComponent={ListEmpty}
         />
       ) : (
@@ -327,7 +346,6 @@ export default function MemoFolderView({
           data={unpinnedFolders}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContainer}
-          // 평상시엔 쾌적한 속도를 위해 ScaleDecorator나 drag 기능 없이 렌더링
           renderItem={({ item }) => (
             <View style={{ paddingBottom: 10 }}>
               {renderFolderCard(item, false)}
@@ -337,6 +355,7 @@ export default function MemoFolderView({
           maxToRenderPerBatch={10}
           windowSize={5}
           ListHeaderComponent={ListHeader}
+          ListFooterComponent={ListFooter} // 휴지통 푸터 추가
           ListEmptyComponent={ListEmpty}
         />
       )}
@@ -409,19 +428,6 @@ export default function MemoFolderView({
           setActiveMenuFolderId(null);
         }}
         onEditMode={() => setIsEditMode(!isEditMode)}
-
-        onAssignMemos={() => {
-          if (activeMenuFolder) {
-            setSelectedFolderIdForMemos(activeMenuFolder.id);
-            setTempSelectedMemoIds(
-              memos
-                .filter((m) => m.folderId === activeMenuFolder.id)
-                .map((m) => m.id),
-            );
-            setIsSelectMemosVisible(true);
-          }
-          setActiveMenuFolderId(null);
-        }}
         onDelete={() => {
           if (activeMenuFolder) {
             deleteFolder(activeMenuFolder.id);
@@ -445,23 +451,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
-    paddingHorizontal: 4,
+    paddingLeft: 4,
+    paddingRight: 8,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    lineHeight: 24,
   },
-  editBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    backgroundColor: '#eee',
-    borderRadius: 8,
-  },
-  editBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
+  editBtn: {},
+  editBtnText: {},
+  trashSection: {
+    marginTop: 20, // 일반 폴더 목록과 휴지통 그룹의 간격 추가
   },
   folderCard: {
     flexDirection: 'row',
@@ -490,9 +490,14 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8, // 아이콘과 텍스트 간격 미세 조정
   },
-  folderName: { fontSize: 16, fontWeight: 'bold', lineHeight: 20 },
+  folderName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    lineHeight: 20,
+    flexShrink: 1,
+  },
   folderCount: {
     paddingVertical: 3,
     paddingHorizontal: 5,
@@ -504,7 +509,17 @@ const styles = StyleSheet.create({
   },
   countText: { fontSize: 12, fontWeight: 'bold', textAlign: 'center' },
   dotsBtn: { padding: 20, justifyContent: 'center', alignItems: 'center' },
-  emptyContainer: { alignItems: 'center', marginTop: 100 },
+  emptyContainer: {
+    alignItems: 'center',
+    paddingTop: 60,
+    paddingBottom: 40,
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: '#666',
+    fontSize: 14,
+    lineHeight: 24,
+  },
   bottomBtnWrapper: {
     position: 'absolute',
     bottom: 0,

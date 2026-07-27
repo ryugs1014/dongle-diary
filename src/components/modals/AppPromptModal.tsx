@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import AppText from '@/components/atoms/AppText';
 import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
+import AppTextInput from '@/components/atoms/AppTextInput';
 import { useDiaryStore } from '@/store/useDiaryStore';
 
 interface AppPromptModalProps {
@@ -68,18 +69,22 @@ export default function AppPromptModal({
 
   return (
     <Modal visible={visible} transparent animationType="fade">
-      {/* 🔥 KeyboardAvoidingView로 감싸기 */}
+      {/* 🔥 1. 전체 화면 고정 Overlay (키보드 영향 안 받음) */}
+      <Pressable
+        style={[StyleSheet.absoluteFill, styles.backdrop]}
+        onPress={closeOnOverlayPress ? onCancel : undefined}
+      />
+
+      {/* 🔥 2. 키보드 회피 영역 (배경 클릭이 통과하도록 pointerEvents="box-none" 추가) */}
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        pointerEvents="box-none"
       >
-        <Pressable
-          style={styles.alertOverlay}
-          onPress={closeOnOverlayPress ? onCancel : undefined}
-        >
+        <View style={styles.alertCenterWrapper} pointerEvents="box-none">
           <Pressable
             style={[styles.alertBox, isDark && styles.darkMenuBox]}
-            onPress={(e) => e.stopPropagation()}
+            onPress={(e) => e.stopPropagation()} // 내부 클릭 시 배경 클릭 이벤트(닫힘) 방지
           >
             {title && (
               <AppText style={[styles.alertTitle, isDark && styles.darkText]}>
@@ -96,7 +101,7 @@ export default function AppPromptModal({
             )}
 
             <View style={styles.inputContainer}>
-              <TextInput
+              <AppTextInput
                 style={[styles.textInput, isDark && styles.darkTextInput]}
                 value={value}
                 onChangeText={onChangeText}
@@ -134,21 +139,25 @@ export default function AppPromptModal({
               ))}
             </View>
           </Pressable>
-        </Pressable>
+        </View>
       </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  alertOverlay: {
+  // 🔥 추가된 백그라운드 스타일
+  backdrop: {
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  // 🔥 모달을 가운데 정렬하기 위한 래퍼 스타일 (alertOverlay 대체)
+  alertCenterWrapper: {
     flex: 1,
-    // backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center', // KeyboardAvoidingView가 남은 공간을 잡아주면 그 안에서 중앙 정렬됨
+    justifyContent: 'center',
     alignItems: 'center',
   },
   alertBox: {
-    marginTop: 100,
+    marginTop: 100, // 모달을 약간 위로 띄우기 위함
     width: 300,
     backgroundColor: '#ffffff',
     borderRadius: 14,

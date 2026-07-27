@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  useRef,
+} from 'react';
 import {
   View,
   StyleSheet,
@@ -6,6 +12,7 @@ import {
   Modal,
   Pressable,
   useWindowDimensions,
+  Animated,
 } from 'react-native';
 import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
 import { Image } from 'expo-image';
@@ -52,6 +59,72 @@ const nowForRange = new Date();
 const currentMonthNumber = nowForRange.getMonth() + 1;
 const DYNAMIC_PAST_RANGE = 60 + (currentMonthNumber - 1);
 const DYNAMIC_FUTURE_RANGE = 12 - currentMonthNumber + 12;
+
+function WiggleDraftIcon({
+  isDark,
+  isSelected,
+  alwaysShowDate,
+}: {
+  isDark: boolean;
+  isSelected: boolean;
+  alwaysShowDate: boolean;
+}) {
+  const shakeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (isSelected) {
+      // 선택되었을 때 좌우로 흔들리는 애니메이션 루프 실행
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(shakeAnim, {
+            toValue: 1,
+            duration: 150,
+            useNativeDriver: true,
+          }),
+          Animated.timing(shakeAnim, {
+            toValue: 0,
+            duration: 150,
+            useNativeDriver: true,
+          }),
+          Animated.timing(shakeAnim, {
+            toValue: -1,
+            duration: 150,
+            useNativeDriver: true,
+          }),
+          Animated.timing(shakeAnim, {
+            toValue: 0,
+            duration: 150,
+            useNativeDriver: true,
+          }),
+        ]),
+      ).start();
+    } else {
+      shakeAnim.setValue(0);
+    }
+  }, [isSelected, shakeAnim]);
+
+  // -1 ~ 1 의 값을 -10도 ~ 10도 회전 각도로 변환
+  const spin = shakeAnim.interpolate({
+    inputRange: [-1, 1],
+    outputRange: ['-10deg', '10deg'],
+  });
+
+  return (
+    <Animated.View
+      style={[
+        isSelected && styles.selectedEmotionImage,
+        alwaysShowDate && styles.emotionImageShifted,
+        { transform: [{ rotate: spin }] }, // 회전 애니메이션 적용
+      ]}
+    >
+      <DraftPanIcon
+        width={alwaysShowDate ? 28 : 40}
+        height={alwaysShowDate ? 28 : 40}
+        color={isDark ? '#ffffff' : '#111111'}
+      />
+    </Animated.View>
+  );
+}
 
 interface CalendarViewProps {
   isDark: boolean;
@@ -229,18 +302,11 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
 
           {/* 2. 임시저장 아이콘 또는 감정 이미지 */}
           {showDraftIcon ? (
-            <View
-              style={[
-                isSelected && styles.selectedEmotionImage,
-                alwaysShowDate && styles.emotionImageShifted,
-              ]}
-            >
-              <DraftPanIcon
-                width={alwaysShowDate ? 28 : 40}
-                height={alwaysShowDate ? 28 : 40}
-                color={isDark ? '#ffffff' : '#111111'} // 임시저장 텍스트 색상과 통일
-              />
-            </View>
+            <WiggleDraftIcon
+              isDark={isDark}
+              isSelected={isSelected}
+              alwaysShowDate={alwaysShowDate}
+            />
           ) : showEmotion ? (
             <Image
               source={

@@ -80,7 +80,7 @@ export default function SortBottomSheet({
             <View style={styles.dragHandle} />
 
             <RadioSettingItem
-              title="최신순"
+              title="최근 날짜순"
               isSelected={sortOrder === 'desc'}
               isDark={isDark}
               onPress={() => handleSort('desc')}
@@ -91,7 +91,7 @@ export default function SortBottomSheet({
             />
 
             <RadioSettingItem
-              title="과거순"
+              title="오래된 날짜순"
               isSelected={sortOrder === 'asc'}
               isDark={isDark}
               onPress={() => handleSort('asc')}

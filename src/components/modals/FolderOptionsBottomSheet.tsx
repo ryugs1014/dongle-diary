@@ -10,7 +10,6 @@ interface FolderOptionsBottomSheetProps {
   onRename: () => void;
   onTogglePin: () => void;
   onEditMode: () => void;
-  onAssignMemos: () => void;
   onDelete: () => void;
   isDark: boolean;
 }
@@ -24,7 +23,6 @@ export default function FolderOptionsBottomSheet({
   onRename,
   onTogglePin,
   onEditMode,
-  onAssignMemos,
   onDelete,
   isDark,
 }: FolderOptionsBottomSheetProps) {
@@ -124,17 +122,6 @@ export default function FolderOptionsBottomSheet({
                 </AppTouchableOpacity>
               </>
             )}
-
-            <View style={[styles.divider, isDark && styles.darkDivider]} />
-
-            <AppTouchableOpacity
-              style={styles.optionItem}
-              onPress={() => handleAction(onAssignMemos)}
-            >
-              <AppText style={[styles.optionText, isDark && styles.darkText]}>
-                메모 할당하기
-              </AppText>
-            </AppTouchableOpacity>
 
             <View style={[styles.divider, isDark && styles.darkDivider]} />
 

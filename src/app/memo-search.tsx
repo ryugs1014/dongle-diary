@@ -3,7 +3,7 @@ import {
   View,
   TextInput,
   StyleSheet,
-  SectionList, // 🔥 FlatList 대신 SectionList 사용
+  SectionList,
   useColorScheme,
   Keyboard,
   TouchableOpacity,
@@ -23,6 +23,8 @@ import {
   BackIcon,
   OptionIcon,
   LockIcon,
+  FolderIcon,
+  FolderEmptyIcon, // 🔥 FolderIcon 추가
 } from '@/assets/icons';
 import Toast from 'react-native-toast-message';
 
@@ -130,9 +132,7 @@ export default function MemoSearchScreen() {
     Keyboard.dismiss();
   };
 
-  // 🔥 SectionList에 맞춘 검색 및 그룹핑 로직
   const groupedMemos = useMemo(() => {
-    // 1. 휴지통 제외 및 검색어 필터링
     let filtered = memos.filter((m) => !m.deletedAt);
 
     if (submittedText.trim() !== '') {
@@ -156,10 +156,9 @@ export default function MemoSearchScreen() {
         return matchTitle || matchContent || matchDate;
       });
     } else {
-      return []; // 검색어가 없으면 빈 배열 반환
+      return [];
     }
 
-    // 2. 이름순 정렬 그룹핑
     if (sortType === 'nameAsc' || sortType === 'nameDesc') {
       const pinned: any[] = [];
       const unpinned: any[] = [];
@@ -179,7 +178,7 @@ export default function MemoSearchScreen() {
 
       const sections = [];
       if (pinned.length > 0)
-        sections.push({ title: '📌 고정된 메모', data: pinned });
+        sections.push({ title: '고정된 메모', data: pinned });
       if (unpinned.length > 0)
         sections.push({
           title:
@@ -190,7 +189,6 @@ export default function MemoSearchScreen() {
       return sections;
     }
 
-    // 3. 날짜순(최신/과거순) 정렬 그룹핑
     const pinned: any[] = [];
     const unpinned: any[] = [];
 
@@ -199,7 +197,6 @@ export default function MemoSearchScreen() {
       else unpinned.push(memo);
     });
 
-    // 먼저 지정된 순서대로 정렬
     unpinned.sort((a, b) =>
       sortType === 'dateDesc'
         ? b.updatedAt - a.updatedAt
@@ -235,9 +232,8 @@ export default function MemoSearchScreen() {
 
     const sections = [];
     if (pinned.length > 0)
-      sections.push({ title: '📌 고정된 메모', data: pinned });
+      sections.push({ title: '고정된 메모', data: pinned });
 
-    // 🔥 과거순일 때는 그룹 자체도 역순으로 들어가게 처리
     if (sortType === 'dateAsc') {
       const olderKeys = Object.keys(olderMap).sort((a, b) => {
         const parseKey = (key: string) => {
@@ -245,7 +241,7 @@ export default function MemoSearchScreen() {
           if (match) return parseInt(match[1]) * 100 + parseInt(match[2]);
           return 0;
         };
-        return parseKey(a) - parseKey(b); // 오름차순 (과거가 먼저)
+        return parseKey(a) - parseKey(b);
       });
 
       olderKeys.forEach((key) => {
@@ -257,7 +253,6 @@ export default function MemoSearchScreen() {
         sections.push({ title: '어제', data: yesterday });
       if (today.length > 0) sections.push({ title: '오늘', data: today });
     } else {
-      // 기본 최신순
       if (today.length > 0) sections.push({ title: '오늘', data: today });
       if (yesterday.length > 0)
         sections.push({ title: '어제', data: yesterday });
@@ -270,7 +265,7 @@ export default function MemoSearchScreen() {
           if (match) return parseInt(match[1]) * 100 + parseInt(match[2]);
           return 0;
         };
-        return parseKey(b) - parseKey(a); // 내림차순 (최신 월이 먼저)
+        return parseKey(b) - parseKey(a);
       });
 
       olderKeys.forEach((key) => {
@@ -376,7 +371,6 @@ export default function MemoSearchScreen() {
         </View>
       </View>
 
-      {/* 🔥 SectionList로 교체된 검색 결과 리스트 */}
       <SectionList
         sections={groupedMemos}
         keyExtractor={(item) => item.id}
@@ -401,10 +395,10 @@ export default function MemoSearchScreen() {
         renderItem={({ item }) => {
           const formattedDate = formatMemoDate(item.updatedAt);
           const parentFolder = folders.find((f) => f.id === item.folderId);
+
+          // 🔥 MemoListView와 동일한 텍스트 포맷 (이모지 제거)
           const folderText =
-            item.folderId && parentFolder
-              ? ` 📁 ${parentFolder.name}`
-              : ` 📝 폴더 미지정`;
+            item.folderId && parentFolder ? ` ${parentFolder.name}` : ` 미분류`;
 
           return (
             <TouchableOpacity
@@ -454,6 +448,7 @@ export default function MemoSearchScreen() {
                   </TouchableOpacity>
                 </View>
 
+                {/* 🔥 MemoListView와 완벽히 동일한 구조/스타일 반영 */}
                 <View style={styles.memoMetaContainer}>
                   <AppText
                     style={[styles.memoMeta, isDark && styles.darkMetaText]}
@@ -461,11 +456,25 @@ export default function MemoSearchScreen() {
                     {formattedDate}
                   </AppText>
 
-                  <AppText
-                    style={[styles.folderText, isDark && styles.darkMetaText]}
-                  >
-                    {folderText}
-                  </AppText>
+                  {!!folderText && (
+                    <View style={styles.folderWrapper}>
+                      <FolderIcon
+                        width={20}
+                        height={20}
+                        color={isDark ? '#777' : '#999'}
+                      />
+                      <AppText
+                        style={[
+                          styles.folderText,
+                          isDark && styles.darkMetaText,
+                        ]}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                      >
+                        {folderText}
+                      </AppText>
+                    </View>
+                  )}
                 </View>
               </View>
             </TouchableOpacity>
@@ -473,7 +482,6 @@ export default function MemoSearchScreen() {
         }}
       />
 
-      {/* 정렬 바텀시트 */}
       <SortMemoSearchBottomSheet
         visible={isSortModalVisible}
         onClose={() => setIsSortModalVisible(false)}
@@ -482,7 +490,6 @@ export default function MemoSearchScreen() {
         isDark={isDark}
       />
 
-      {/* 단일 메모 옵션 모달 */}
       <MemoOptionsBottomSheet
         visible={!!activeMenuMemoId}
         onClose={() => setActiveMenuMemoId(null)}
@@ -540,7 +547,6 @@ export default function MemoSearchScreen() {
         }}
       />
 
-      {/* 폴더 이동 모달 */}
       <FolderSelectBottomSheet
         visible={isMoveModalVisible}
         onClose={() => {
@@ -550,8 +556,8 @@ export default function MemoSearchScreen() {
         title="이동할 폴더 선택"
         selectedId={currentFolderIdForMove}
         options={[
-          { id: null, name: '폴더 미지정으로 이동', icon: '📝' },
-          ...folders.map((f) => ({ id: f.id, name: f.name, icon: '📁' })),
+          { id: null, name: '미분류 메모', icon: FolderEmptyIcon },
+          ...folders.map((f) => ({ id: f.id, name: f.name, icon: FolderIcon })),
         ]}
         onSelect={(id) => {
           if (memoIdToMove) {
@@ -568,6 +574,7 @@ export default function MemoSearchScreen() {
   );
 }
 
+// 🔥 MemoListView와 100% 동일하게 스타일 맞춤
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FCFBFA' },
   darkContainer: { backgroundColor: '#111111' },
@@ -632,10 +639,10 @@ const styles = StyleSheet.create({
   emptyText: { textAlign: 'center', color: '#888', fontSize: 14 },
   darkSubText: { color: '#aaa' },
 
+  // 🔥 MemoListView의 메모 카드 스타일 동기화
   memoCard: {
     flexDirection: 'row',
     gap: 15,
-    // paddingBottom: 20,
     paddingLeft: 20,
     backgroundColor: '#ffffff',
     borderRadius: 20,
@@ -647,7 +654,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   memoCardDark: { backgroundColor: '#191919' },
-  memoTextContainer: { flex: 1, justifyContent: 'flex-start', gap: 4 },
+  memoTextContainer: { flex: 1, justifyContent: 'flex-start', gap: 8 },
   memoMainContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -656,26 +663,34 @@ const styles = StyleSheet.create({
   memoHeaderContainer: {
     flex: 1,
     paddingTop: 20,
+    paddingRight: 20,
     marginBottom: 12,
+    gap: 4,
   },
   memoTitleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
   },
   memoMetaContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 2,
+    gap: 20,
     paddingRight: 20,
-    marginBottom: 20,
-    height: 20,
+    marginBottom: 16,
+    height: 24,
   },
   memoTitle: { fontSize: 16, fontWeight: 'bold', lineHeight: 24 },
   memoPreview: { fontSize: 14, color: '#666' },
+
+  folderWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexShrink: 1,
+  },
   memoMeta: { fontSize: 12, color: '#999' },
-  folderText: { fontSize: 12, color: '#999' },
+  folderText: { fontSize: 12, color: '#999', flexShrink: 1 },
   darkMetaText: { color: '#777' },
+
   dotsBtn: { padding: 20 },
 });

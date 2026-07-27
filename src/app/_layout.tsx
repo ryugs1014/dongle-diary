@@ -249,7 +249,7 @@ export default function RootLayout() {
             <Stack.Screen
               name="memo-editor"
               options={{
-                animation: 'slide_from_bottom',
+                // animation: 'slide_from_bottom',
                 headerShown: false,
               }}
             />
