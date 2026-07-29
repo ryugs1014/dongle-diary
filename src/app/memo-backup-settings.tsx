@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   StyleSheet,
-  ActivityIndicator,
   useColorScheme,
   ScrollView,
   Animated,
@@ -13,10 +12,10 @@ import AppText from '@/components/atoms/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import * as WebBrowser from 'expo-web-browser';
-import * as ImageManipulator from 'expo-image-manipulator';
-import { useDiaryStore } from '../store/useDiaryStore';
+import * as FileSystem from 'expo-file-system/legacy';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { useMemoStore } from '@/store/useMemoStore'; // 💡 메모 스토어 사용
+import { useDiaryStore } from '@/store/useDiaryStore';
 import {
   BackIcon,
   CloudIcon,
@@ -27,51 +26,46 @@ import {
 import SvgDashedLine from '@/components/ui/SvgDashedLine';
 import Toast from 'react-native-toast-message';
 import CustomSpinner from '@/components/common/CustomSpinner';
-import * as FileSystem from 'expo-file-system/legacy';
-import * as Crypto from 'expo-crypto';
-import { IMAGE_DIR } from '@/utils/image';
 
-WebBrowser.maybeCompleteAuthSession();
-
-// 💡 다중 기기 동기화(병합) 방식에 맞게 안내 문구 수정
 const INFO_LIST = [
   {
-    title: '스마트 데이터 병합 보관',
+    title: '메모 데이터 덮어쓰기 주의',
     desc: [
-      '여러 기기에서 일기를 작성해도 서로 지워지지 않습니다.',
-      '백업 시, 클라우드에 같은 날짜의 일기가 있다면 덮어쓰고, 다른 날짜의 일기들은 그대로 누적 보관됩니다.',
+      '백업을 진행하면 기존 구글 드라이브에 있던 [메모장 백업 데이터]가 현재 기기의 메모와 폴더로 덮어씌워집니다.',
+      '일기장 데이터에는 영향을 주지 않습니다.',
     ],
   },
   {
-    title: '안전한 복원 시스템',
+    title: '복원 시 데이터 유실',
     desc: [
-      '복원을 진행해도 현재 기기에만 있는 일기는 삭제되지 않습니다.',
-      '같은 날짜의 일기만 클라우드 데이터로 업데이트되며 안전하게 병합됩니다.',
+      '복원을 진행하면 기기의 현재 메모와 폴더들이 구글 드라이브의 과거 메모 데이터로 완벽히 대체됩니다.',
     ],
   },
   {
-    title: '사진 및 이미지 데이터',
+    title: '사진 데이터 백업',
     desc: [
-      '일기에 첨부된 사진들도 함께 안전하게 백업됩니다.',
-      '처음 병합하거나 사진 양이 많을 경우 다소 시간이 소요될 수 있습니다.',
+      '메모 내용에 포함된 사진 이미지들도 텍스트로 변환되어 함께 백업됩니다.',
+      '이미지가 많을 경우 백업에 다소 시간이 소요될 수 있습니다.',
     ],
   },
 ];
 
 type LoadingType = 'auth' | 'backup' | 'restore' | null;
 
-export default function BackupSettingsScreen() {
+export default function MemoBackupSettingsScreen() {
+  const { theme, setIsSystemAction } = useDiaryStore();
+
+  // 💡 메모 전용 상태 및 액션
   const {
-    diaries,
-    restoreDiaries,
-    theme,
+    memos,
+    folders,
+    restoreMemoData,
     googleToken,
     googleEmail,
     lastBackupDate,
     setGoogleAuth,
     setLastBackupDate,
-    setIsSystemAction,
-  } = useDiaryStore();
+  } = useMemoStore();
 
   const systemColorScheme = useColorScheme();
   const isDark =
@@ -147,14 +141,12 @@ export default function BackupSettingsScreen() {
       });
     } catch (error: any) {
       console.log('Google Native Login Error:', error);
-
       Toast.show({
         type: 'info',
         text1: '로그인이 중단되었어요',
         position: 'top',
         topOffset: 60,
       });
-
       setLoadingType(null);
     }
   };
@@ -164,16 +156,15 @@ export default function BackupSettingsScreen() {
     try {
       const userRes = await fetch(
         'https://www.googleapis.com/oauth2/v3/userinfo',
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
+        { headers: { Authorization: `Bearer ${token}` } },
       );
       if (!userRes.ok) throw new Error('Token Expired');
       const userData = await userRes.json();
       setGoogleAuth(token, userData.email);
 
+      // 💡 메모 전용 백업 파일명: memo_backup.json
       const fileRes = await fetch(
-        "https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='diary_backup.json'&fields=files(id, modifiedTime)",
+        "https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='memo_backup.json'&fields=files(id, modifiedTime)",
         { headers: { Authorization: `Bearer ${token}` } },
       );
       const fileData = await fileRes.json();
@@ -189,7 +180,6 @@ export default function BackupSettingsScreen() {
       }
     } catch (error: any) {
       console.log('Google Auth Error:', error);
-
       if (error.message === 'Token Expired' || error.message.includes('401')) {
         setGoogleAuth(null, null);
       }
@@ -200,67 +190,30 @@ export default function BackupSettingsScreen() {
 
   const findBackupFileId = async (token: string) => {
     const res = await fetch(
-      "https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='diary_backup.json'&fields=files(id)",
+      "https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='memo_backup.json'&fields=files(id)",
       { headers: { Authorization: `Bearer ${token}` } },
     );
     const data = await res.json();
     return data.files && data.files.length > 0 ? data.files[0].id : null;
   };
 
-  // 💡 백업 (로컬 일기를 구글 드라이브에 "병합")
   const executeBackup = async () => {
     setBackupModalVisible(false);
     setLoadingType('backup');
 
     try {
-      const fileId = await findBackupFileId(googleToken!);
-      let cloudDiaries: any[] = [];
+      // 메모와 폴더 데이터 복사
+      const backupMemos = JSON.parse(JSON.stringify(memos));
+      const backupFolders = JSON.parse(JSON.stringify(folders));
 
-      // 1. 기존 드라이브에 백업 파일이 있다면 다운로드 (병합을 위해)
-      if (fileId) {
-        const res = await fetch(
-          `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
-          { headers: { Authorization: `Bearer ${googleToken}` } },
-        );
-        if (res.ok) {
-          const downloaded = await res.json();
-          if (Array.isArray(downloaded)) {
-            cloudDiaries = downloaded;
-          }
-        }
-      }
-
-      // 2. 기기에 있는 현재 일기들을 복사 후 이미지 추출 (Base64 인코딩)
-      const localDiariesCopy = JSON.parse(JSON.stringify(diaries));
-
-      for (let diary of localDiariesCopy) {
-        if (diary.blocks && Array.isArray(diary.blocks)) {
-          for (let block of diary.blocks) {
-            if (block.type === 'image' && block.value.startsWith('file://')) {
-              try {
-                const manipResult = await ImageManipulator.manipulateAsync(
-                  block.value,
-                  [{ resize: { width: 1080 } }],
-                  {
-                    compress: 0.8,
-                    format: ImageManipulator.SaveFormat.JPEG,
-                    base64: true,
-                  },
-                );
-                if (manipResult.base64) {
-                  block.value = `data:image/jpeg;base64,${manipResult.base64}`;
-                }
-              } catch (imgError) {}
-            }
-          }
-        }
-
-        if (diary.content && diary.content.includes('file://')) {
+      // 💡 기기에 저장된 메모 이미지를 Base64 텍스트로 변환하여 파일 안에 임베딩
+      for (let memo of backupMemos) {
+        if (memo.content && memo.content.includes('file://')) {
           const regex = /src=["']?(file:\/\/[^"'\s>]+)["']?/gi;
           let match;
-          let newContent = diary.content;
+          let newContent = memo.content;
 
-          while ((match = regex.exec(diary.content)) !== null) {
+          while ((match = regex.exec(memo.content)) !== null) {
             const fileUri = match[1];
             try {
               const fileInfo = await FileSystem.getInfoAsync(fileUri);
@@ -271,35 +224,25 @@ export default function BackupSettingsScreen() {
                 const ext = fileUri.split('.').pop()?.toLowerCase() || 'jpg';
                 const mimeType = ext === 'jpg' || ext === 'jpeg' ? 'jpeg' : ext;
                 const base64Src = `data:image/${mimeType};base64,${base64Data}`;
+
                 newContent = newContent.replace(fileUri, base64Src);
               }
-            } catch (imgError) {}
+            } catch (imgError) {
+              console.log('메모 이미지 변환 실패:', imgError);
+            }
           }
-          diary.content = newContent;
+          memo.content = newContent;
         }
       }
 
-      // 💡 3. 데이터 병합 로직 (기준키: date)
-      const mergedMap = new Map();
+      const backupData = {
+        memos: backupMemos,
+        folders: backupFolders,
+      };
 
-      // 먼저 기존 클라우드 데이터를 맵에 세팅
-      cloudDiaries.forEach((diary) => {
-        if (diary.date) mergedMap.set(diary.date, diary);
-      });
+      const fileContent = JSON.stringify(backupData);
+      const fileId = await findBackupFileId(googleToken!);
 
-      // 로컬 데이터로 덮어쓰거나(동일 날짜) 새로 추가(없는 날짜)
-      localDiariesCopy.forEach((diary: any) => {
-        if (diary.date) mergedMap.set(diary.date, diary);
-      });
-
-      // 다시 배열로 변환 후 날짜순 정렬 (내림차순)
-      const mergedDiaries = Array.from(mergedMap.values()).sort((a, b) =>
-        b.date.localeCompare(a.date),
-      );
-
-      const fileContent = JSON.stringify(mergedDiaries);
-
-      // 4. 업로드 실행
       if (fileId) {
         await fetch(
           `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`,
@@ -322,7 +265,7 @@ export default function BackupSettingsScreen() {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              name: 'diary_backup.json',
+              name: 'memo_backup.json', // 💡 일기와 완전히 독립된 파일명
               parents: ['appDataFolder'],
             }),
           },
@@ -345,7 +288,7 @@ export default function BackupSettingsScreen() {
       setLastBackupDate(new Date().toLocaleString('ko-KR'));
       Toast.show({
         type: 'success',
-        text1: '일기 데이터가 안전하게 동기화되었어요',
+        text1: '메모장이 안전하게 백업되었어요',
         position: 'top',
         topOffset: 60,
       });
@@ -362,7 +305,6 @@ export default function BackupSettingsScreen() {
     }
   };
 
-  // 💡 복원 (구글 드라이브 일기를 로컬 기기에 "병합")
   const executeRestore = async () => {
     setRestoreModalVisible(false);
     setLoadingType('restore');
@@ -372,7 +314,7 @@ export default function BackupSettingsScreen() {
       if (!fileId) {
         Toast.show({
           type: 'info',
-          text1: '구글 드라이브에 백업된 데이터가 없어요',
+          text1: '구글 드라이브에 백업된 메모 데이터가 없어요',
           position: 'top',
           topOffset: 60,
         });
@@ -387,83 +329,14 @@ export default function BackupSettingsScreen() {
 
       const downloadedData = await res.json();
 
-      if (Array.isArray(downloadedData)) {
-        try {
-          const dirInfo = await FileSystem.getInfoAsync(IMAGE_DIR);
-          if (!dirInfo.exists) {
-            await FileSystem.makeDirectoryAsync(IMAGE_DIR, {
-              intermediates: true,
-            });
-          }
-        } catch (e) {}
-
-        const processedCloudData = [];
-
-        // 1. 다운로드 받은 데이터의 Base64 이미지를 로컬 파일로 저장
-        for (let d of downloadedData) {
-          let processedContent = d.content || '';
-
-          if (processedContent.includes('data:image')) {
-            const regex =
-              /src=["']?(data:image\/([^;]+);base64,([^"'>\s]+))["']?/gi;
-            const matches = [...processedContent.matchAll(regex)];
-
-            for (const match of matches) {
-              const fullSrc = match[1];
-              const ext = match[2] === 'jpeg' ? 'jpg' : match[2];
-              const base64Data = match[3];
-
-              try {
-                const hash = await Crypto.digestStringAsync(
-                  Crypto.CryptoDigestAlgorithm.SHA256,
-                  base64Data.substring(0, 500) + base64Data.length,
-                );
-                const fileName = `${hash}.${ext}`;
-                const fileUri = IMAGE_DIR + fileName;
-
-                const fileInfo = await FileSystem.getInfoAsync(fileUri);
-                if (!fileInfo.exists) {
-                  await FileSystem.writeAsStringAsync(fileUri, base64Data, {
-                    encoding: FileSystem.EncodingType.Base64,
-                  });
-                }
-                processedContent = processedContent.replace(fullSrc, fileUri);
-              } catch (e) {}
-            }
-          }
-
-          processedCloudData.push({
-            ...d,
-            content: processedContent,
-            emotions: d.emotions || (d.emotion ? [d.emotion] : []),
-            blocks: d.blocks || [],
-          });
-        }
-
-        // 💡 2. 데이터 병합 로직 (기준키: date)
-        const localMap = new Map();
-
-        // 현재 기기에 있는 일기들을 맵에 세팅
-        diaries.forEach((diary) => {
-          if (diary.date) localMap.set(diary.date, diary);
-        });
-
-        // 클라우드에서 내려받은 데이터로 덮어쓰거나(동일 날짜) 새로 추가(없는 날짜)
-        processedCloudData.forEach((cloudDiary) => {
-          if (cloudDiary.date) localMap.set(cloudDiary.date, cloudDiary);
-        });
-
-        // 다시 배열로 변환 후 날짜순 정렬 (내림차순)
-        const mergedLocalDiaries = Array.from(localMap.values()).sort((a, b) =>
-          b.date.localeCompare(a.date),
-        );
-
-        // 스토어 업데이트
-        restoreDiaries(mergedLocalDiaries);
+      if (downloadedData.memos && downloadedData.folders) {
+        // 💡 복원 시 MemoEditorScreen의 processHtmlForLoad 로직이
+        // HTML 내의 Base64를 감지해서 자동으로 기기 내 파일로 저장해줍니다.
+        restoreMemoData(downloadedData.memos, downloadedData.folders);
 
         Toast.show({
           type: 'success',
-          text1: '데이터가 성공적으로 병합되었어요',
+          text1: '메모 데이터가 복원되었어요',
           position: 'top',
           topOffset: 60,
         });
@@ -486,7 +359,9 @@ export default function BackupSettingsScreen() {
   const handleChangeAccount = async () => {
     try {
       await GoogleSignin.signOut();
-    } catch (error) {}
+    } catch (error) {
+      console.log('SignOut Error', error);
+    }
     setGoogleAuth(null, null);
     setLastBackupDate(null);
 
@@ -536,16 +411,12 @@ export default function BackupSettingsScreen() {
             height={60}
             color={isDark ? '#ffffff' : '#111111'}
           />
-
           <AppText style={[styles.mainTitle, isDark && styles.darkText]}>
-            일기장 백업 · 복원
+            메모장 백업 · 복원
           </AppText>
           <AppText style={[styles.mainDesc, isDark && styles.darkSubText]}>
-            소중하게 작성한 일기를 안전하게 보관하세요.{'\n'}
-            기기를 바꿔도 불러올 수 있어요.
-          </AppText>
-          <AppText style={[styles.mainDesc, isDark && styles.darkSubText]}>
-            * iOS (아이폰 · 아이패드), 안드로이드 간 병합 공유 가능
+            작성한 메모와 폴더를 안전하게 보관하세요.{'\n'}
+            일기장과는 별도로 관리됩니다.
           </AppText>
         </View>
 
@@ -645,7 +516,6 @@ export default function BackupSettingsScreen() {
               <AppText style={[styles.infoTitle, isDark && styles.darkText]}>
                 {info.title}
               </AppText>
-
               {info.desc.map((descItem, descIndex) => (
                 <View key={descIndex} style={styles.descRow}>
                   <AppText style={styles.infoBullet}>*</AppText>
@@ -685,7 +555,6 @@ export default function BackupSettingsScreen() {
             height={24}
             color={isDark ? '#111111' : '#ffffff'}
           />
-
           <AppText
             style={[styles.backupBtnText, isDark && styles.darkBackupBtnText]}
           >
@@ -710,7 +579,6 @@ export default function BackupSettingsScreen() {
             height={24}
             color={isDark ? '#ffffff' : '#111111'}
           />
-
           <AppText style={[styles.restoreBtnText, isDark && styles.darkText]}>
             복원
           </AppText>
@@ -723,14 +591,13 @@ export default function BackupSettingsScreen() {
         </View>
       )}
 
-      {/* 💡 모달 문구 동기화 방식에 맞게 수정 */}
       <AppConfirmModal
         visible={backupModalVisible}
-        title="데이터 백업"
+        title="메모 백업"
         message={
-          '현재 기기의 일기를\n구글 드라이브에 안전하게 보관합니다.\n\n* 겹치는 날짜의 일기만 덮어쓰며\n나머지 과거 일기는 안전하게 누적됩니다.'
+          '현재 기기의 모든 메모와 폴더를\n구글 드라이브에 백업하시겠습니까?\n\n* 기존 메모 백업 데이터를 덮어씁니다.'
         }
-        confirmText="백업하기"
+        confirmText="백업"
         confirmColor="#FF6262"
         onCancel={() => setBackupModalVisible(false)}
         onConfirm={executeBackup}
@@ -738,11 +605,11 @@ export default function BackupSettingsScreen() {
 
       <AppConfirmModal
         visible={restoreModalVisible}
-        title="데이터 복원"
+        title="메모 복원"
         message={
-          '구글 드라이브에 저장된 데이터로\n복원을 진행하시겠습니까?\n\n* 현재 기기에만 작성된 일기는 유지되며\n겹치는 날짜만 복원 데이터로 업데이트됩니다.'
+          '구글 드라이브에 저장된 메모로\n복원을 진행하시겠습니까?\n\n* 현재 기기에 작성된 메모를 덮어씁니다.'
         }
-        confirmText="복원하기"
+        confirmText="복원"
         confirmColor="#FF6262"
         onCancel={() => setRestoreModalVisible(false)}
         onConfirm={executeRestore}

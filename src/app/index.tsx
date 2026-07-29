@@ -18,11 +18,21 @@ import {
 
 let hasCheckedDraftGlobal = false;
 
+let hasHandledStartupRedirect = false; // 전역 변수로 앱 실행 시 1회만 리다이렉트 되도록 방어
+
 export default function MainSwipeScreen() {
   const pagerRef = useRef<PagerView>(null);
 
-  const { language, theme, draft, setSelectedDate, isAppReady } =
-    useDiaryStore();
+  const {
+    language,
+    theme,
+    draft,
+    setSelectedDate,
+    isAppReady,
+    startupScreen,
+    lastVisitedScreen,
+    setLastVisitedScreen,
+  } = useDiaryStore();
   const systemColorScheme = useColorScheme();
   const isDark =
     theme === 'system' ? systemColorScheme === 'dark' : theme === 'dark';
@@ -34,6 +44,28 @@ export default function MainSwipeScreen() {
 
   const [draftAlertVisible, setDraftAlertVisible] = useState(false);
   // const hasCheckedDraft = useRef(false);
+
+  // 💡 시작 화면 리다이렉트 및 접속 기록 남기기
+  useEffect(() => {
+    // 앱이 처음 로드되었을 때 1회만 실행
+    if (!hasHandledStartupRedirect) {
+      hasHandledStartupRedirect = true;
+
+      let targetScreen = 'diary';
+      if (startupScreen === 'memo') targetScreen = 'memo';
+      else if (startupScreen === 'last_visited')
+        targetScreen = lastVisitedScreen;
+
+      // 목표 화면이 메모장이면 즉시 메모장으로 이동
+      if (targetScreen === 'memo') {
+        router.replace('/memo-list'); // 메모장 경로
+        return;
+      }
+    }
+
+    // 위에서 return 되지 않고 남아있다면, 현재 사용자가 '일기장'을 보고 있는 것임
+    setLastVisitedScreen('diary');
+  }, [startupScreen, lastVisitedScreen, setLastVisitedScreen]);
 
   useEffect(() => {
     // 전역 변수로 체크

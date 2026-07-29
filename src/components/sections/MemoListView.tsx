@@ -3,7 +3,6 @@ import {
   View,
   StyleSheet,
   SectionList,
-  Alert,
   TouchableOpacity,
   Animated,
 } from 'react-native';
@@ -13,25 +12,25 @@ import { useMemoStore } from '@/store/useMemoStore';
 import {
   AddBigIcon,
   ArrowDownIcon,
-  BackIcon,
-  EmptyEmotionIcon,
   FolderEmptyIcon,
   FolderIcon,
-  LockIcon,
+  LockTitleIcon,
+  MemoEmptyIcon,
   OptionIcon,
-  SearchIcon,
+  PinIcon,
   SelectCheckIcon,
   TrashIcon,
 } from '@/assets/icons';
 import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
 import { LinearGradient } from 'expo-linear-gradient';
-
 import MemoOptionsBottomSheet from '@/components/modals/MemoOptionsBottomSheet';
 import SortMemoBottomSheet, {
   MemoSortType,
 } from '@/components/modals/SortMemoBottomSheet';
 import FolderSelectBottomSheet from '@/components/modals/FolderSelectBottomSheet';
 import Toast from 'react-native-toast-message';
+// 💡 모달 컴포넌트 임포트
+import AppConfirmModal from '@/components/modals/AppConfirmModal';
 
 interface MemoListViewProps {
   isDark: boolean;
@@ -75,6 +74,22 @@ const formatMemoDate = (timestamp: number) => {
   return `${targetDate.getFullYear()}. ${targetDate.getMonth() + 1}. ${targetDate.getDate()}`;
 };
 
+const getRemainingDaysText = (
+  deletedAt?: number,
+  autoDeleteDays: number = 30,
+) => {
+  if (!deletedAt) return null;
+  if (autoDeleteDays === 0) return '자동 삭제 안 함';
+
+  const interval = autoDeleteDays * 24 * 60 * 60 * 1000;
+  const expirationDate = deletedAt + interval;
+  const now = Date.now();
+  const diffDays = Math.ceil((expirationDate - now) / (1000 * 60 * 60 * 24));
+
+  if (diffDays <= 0) return '곧 삭제됨';
+  return `${diffDays}일 후 삭제`;
+};
+
 export default function MemoListView({
   isDark,
   t,
@@ -95,6 +110,7 @@ export default function MemoListView({
     duplicateMemo,
     moveMultipleMemos,
     addFolder,
+    autoDeleteDays,
   } = useMemoStore();
 
   const isTrashMode = activeFolderId === 'trash';
@@ -107,6 +123,15 @@ export default function MemoListView({
   const [isMoveModalVisible, setIsMoveModalVisible] = useState(false);
   const [memoIdToMove, setMemoIdToMove] = useState<string | null>(null);
 
+  // 💡 새롭게 추가된 모달 가시성 상태 관리
+  const [emptyTrashModalVisible, setEmptyTrashModalVisible] = useState(false);
+  const [deleteMultipleModalVisible, setDeleteMultipleModalVisible] =
+    useState(false);
+  const [trashMemoModalVisible, setTrashMemoModalVisible] = useState(false);
+  const [selectedTrashMemoId, setSelectedTrashMemoId] = useState<string | null>(
+    null,
+  );
+
   const sectionListRef = useRef<SectionList>(null);
 
   const scrollToTop = () => {
@@ -117,15 +142,12 @@ export default function MemoListView({
 
   const currentFolderIdForMove = useMemo(() => {
     if (isTrashMode) return undefined;
-
     if (memoIdToMove) {
       const memo = memos.find((m) => m.id === memoIdToMove);
       return memo?.folderId || null;
     }
-
     if (activeFolderId === null) return undefined;
     if (activeFolderId === 'uncategorized') return null;
-
     return activeFolderId;
   }, [memoIdToMove, memos, activeFolderId, isTrashMode]);
 
@@ -137,7 +159,6 @@ export default function MemoListView({
 
   useEffect(() => {
     if (showBottomBar) {
-      // 1개 이상 선택 시 부드럽게 위로(0) 올라옴
       Animated.spring(slideAnim, {
         toValue: 0,
         friction: 8,
@@ -145,12 +166,9 @@ export default function MemoListView({
         useNativeDriver: true,
       }).start();
     } else {
-      // 선택을 해제해서 0개가 되었을 때의 처리
       if (!isSelectMode) {
-        // 1. '취소' 버튼을 눌러 선택 모드 자체가 꺼진 경우 (즉시 초기 위치로 리셋)
         slideAnim.setValue(200);
       } else {
-        // 2. 선택 모드는 유지 중인데 체크만 다 풀어서 0개가 된 경우 (스르륵 내려감)
         Animated.timing(slideAnim, {
           toValue: 200,
           duration: 250,
@@ -158,7 +176,14 @@ export default function MemoListView({
         }).start();
       }
     }
-  }, [showBottomBar, isSelectMode, slideAnim]); // 의존성 배열에 isSelectMode 추가
+  }, [showBottomBar, isSelectMode, slideAnim]);
+
+  // 💡 앱을 켜거나 화면에 처음 진입했을 때 마지막 위치가 '휴지통'이면 '전체 메모'로 초기화
+  useEffect(() => {
+    if (activeFolderId === 'trash') {
+      setActiveFolderId(null);
+    }
+  }, []);
 
   useEffect(() => {
     if (
@@ -298,28 +323,7 @@ export default function MemoListView({
       });
       return;
     }
-
-    Alert.alert(
-      '휴지통 전체 비우기',
-      '휴지통에 있는 모든 메모를 영구 삭제하시겠습니까?',
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '비우기',
-          style: 'destructive',
-          onPress: () => {
-            deleteMultipleMemos(trashedIds);
-            scrollToTop();
-            Toast.show({
-              type: 'success',
-              text1: '휴지통을 모두 비웠습니다.',
-              position: 'top',
-              topOffset: 60,
-            });
-          },
-        },
-      ],
-    );
+    setEmptyTrashModalVisible(true);
   };
 
   const renderHeader = () => (
@@ -379,13 +383,23 @@ export default function MemoListView({
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <TrashIcon width={80} height={80} color={isDark ? '#333' : '#ccc'} />
+      {isTrashMode ? (
+        <TrashIcon width={80} height={80} color={isDark ? '#333' : '#ccc'} />
+      ) : (
+        <MemoEmptyIcon
+          width={80}
+          height={80}
+          color={isDark ? '#333' : '#ccc'}
+        />
+      )}
 
       <AppText style={[styles.emptyText, isDark && styles.emptyTextDark]}>
         {isTrashMode ? (
           <>
             휴지통이 비었어요{'\n'}
-            삭제된 메모는 30일 동안 보관되요
+            {autoDeleteDays === 0
+              ? '삭제된 메모는 수동으로 비우기 전까지 보관돼요'
+              : `삭제된 메모는 ${autoDeleteDays}일 동안 보관돼요`}
           </>
         ) : (
           <>
@@ -428,7 +442,16 @@ export default function MemoListView({
         sections={groupedMemos}
         keyExtractor={(item) => item.id}
         renderSectionHeader={({ section: { title } }) => (
-          <AppText style={styles.sectionTitle}>{title}</AppText>
+          <View style={styles.sectionTitleWrapper}>
+            {title === '고정된 메모' && (
+              <PinIcon
+                width={20}
+                height={20}
+                color={isDark ? '#ffffff' : '#111111'}
+              />
+            )}
+            <AppText style={styles.sectionTitle}>{title}</AppText>
+          </View>
         )}
         renderItem={({ item }) => {
           const formattedDate = formatMemoDate(item.updatedAt);
@@ -441,6 +464,10 @@ export default function MemoListView({
               : ` 미분류`
             : '';
 
+          const remainingDaysText = isTrashMode
+            ? getRemainingDaysText(item.deletedAt, autoDeleteDays)
+            : null;
+
           return (
             <TouchableOpacity
               style={[styles.memoCard, isDark && styles.memoCardDark]}
@@ -449,18 +476,9 @@ export default function MemoListView({
                 if (isSelectMode) {
                   toggleSelection(item.id);
                 } else if (isTrashMode) {
-                  Alert.alert('휴지통 메모', '이 메모를 복구하시겠습니까?', [
-                    { text: '취소', style: 'cancel' },
-                    {
-                      text: '영구 삭제',
-                      style: 'destructive',
-                      onPress: () => {
-                        deleteMemo(item.id);
-                        scrollToTop();
-                      },
-                    },
-                    { text: '복구', onPress: () => restoreMemo(item.id) },
-                  ]);
+                  // 💡 휴지통 메모 선택 시 3버튼 커스텀 모달 호출
+                  setSelectedTrashMemoId(item.id);
+                  setTrashMemoModalVisible(true);
                 } else {
                   router.push({
                     pathname: '/memo-editor',
@@ -495,7 +513,7 @@ export default function MemoListView({
                   <View style={styles.memoHeaderContainer}>
                     <View style={styles.memoTitleContainer}>
                       {item.isLocked && (
-                        <LockIcon
+                        <LockTitleIcon
                           width={20}
                           height={20}
                           color={isDark ? '#ffffff' : '#111111'}
@@ -536,25 +554,35 @@ export default function MemoListView({
                     {formattedDate}
                   </AppText>
 
-                  {!!folderText && (
-                    <View style={styles.folderWrapper}>
-                      <FolderIcon
-                        width={20}
-                        height={20}
-                        color={isDark ? '#777' : '#999'}
-                      />
-
-                      <AppText
-                        style={[
-                          styles.folderText,
-                          isDark && styles.darkMetaText,
-                        ]}
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                      >
-                        {folderText}
-                      </AppText>
-                    </View>
+                  {isTrashMode && remainingDaysText ? (
+                    <AppText
+                      style={[
+                        styles.remainingDaysText,
+                        isDark && styles.remainingDaysTextDark,
+                      ]}
+                    >
+                      {remainingDaysText}
+                    </AppText>
+                  ) : (
+                    !!folderText && (
+                      <View style={styles.folderWrapper}>
+                        <FolderIcon
+                          width={20}
+                          height={20}
+                          color={isDark ? '#777' : '#999'}
+                        />
+                        <AppText
+                          style={[
+                            styles.folderText,
+                            isDark && styles.darkMetaText,
+                          ]}
+                          numberOfLines={1}
+                          ellipsizeMode="tail"
+                        >
+                          {folderText}
+                        </AppText>
+                      </View>
+                    )
                   )}
                 </View>
               </View>
@@ -563,10 +591,9 @@ export default function MemoListView({
         }}
       />
 
-      {/* 🔥 선택 모드 시 표시되는 래퍼 (그라데이션은 배경으로 고정, 안의 Animated.View만 승강 애니메이션 적용) */}
       {isSelectMode && (
         <LinearGradient
-          pointerEvents="box-none" // 스크롤 시 터치 통과 허용
+          pointerEvents="box-none"
           style={styles.bottomBarWrapper}
           colors={
             isDark
@@ -581,7 +608,7 @@ export default function MemoListView({
           end={{ x: 0, y: 0.7 }}
         >
           <Animated.View
-            pointerEvents={showBottomBar ? 'auto' : 'none'} // 아이템이 선택되었을 때만 버튼 터치 활성화
+            pointerEvents={showBottomBar ? 'auto' : 'none'}
             style={[
               styles.bottomBar,
               isDark && styles.bottomBarDark,
@@ -598,7 +625,7 @@ export default function MemoListView({
                     setSelectedIds([]);
                     Toast.show({
                       type: 'success',
-                      text1: '메모가 복구되었습니다.',
+                      text1: '메모가 복구되었어요',
                       position: 'top',
                       topOffset: 60,
                     });
@@ -615,25 +642,7 @@ export default function MemoListView({
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.actionBtn, isDark && styles.actionBtnDark]}
-                  onPress={() => {
-                    Alert.alert(
-                      '영구 삭제',
-                      '선택한 메모를 영구적으로 삭제하시겠습니까?',
-                      [
-                        { text: '취소', style: 'cancel' },
-                        {
-                          text: '삭제',
-                          style: 'destructive',
-                          onPress: () => {
-                            deleteMultipleMemos(selectedIds);
-                            scrollToTop();
-                            setIsSelectMode(false);
-                            setSelectedIds([]);
-                          },
-                        },
-                      ],
-                    );
-                  }}
+                  onPress={() => setDeleteMultipleModalVisible(true)}
                 >
                   <AppText
                     style={[
@@ -651,7 +660,7 @@ export default function MemoListView({
                   style={[styles.actionBtn, isDark && styles.actionBtnDark]}
                   onPress={() => setIsMoveModalVisible(true)}
                 >
-                  <AppText style={{ fontWeight: 'bold' }}>폴더 이동</AppText>
+                  <AppText style={{ fontWeight: 'bold' }}>이동</AppText>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.actionBtn, isDark && styles.actionBtnDark]}
@@ -664,7 +673,7 @@ export default function MemoListView({
                     if (hasLockedMemo) {
                       Toast.show({
                         type: 'error',
-                        text1: '잠긴 메모가 포함되어 삭제할 수 없습니다.',
+                        text1: '잠긴 메모가 있어 삭제할 수 없어요.',
                         position: 'top',
                         topOffset: 60,
                       });
@@ -677,7 +686,7 @@ export default function MemoListView({
                     setSelectedIds([]);
                     Toast.show({
                       type: 'success',
-                      text1: '휴지통으로 이동되었습니다.',
+                      text1: '휴지통으로 이동되었어요',
                       position: 'top',
                       topOffset: 60,
                     });
@@ -726,6 +735,84 @@ export default function MemoListView({
         </LinearGradient>
       )}
 
+      {/* 💡 1. 휴지통 전체 비우기 모달 */}
+      <AppConfirmModal
+        visible={emptyTrashModalVisible}
+        title="휴지통 전체 비우기"
+        message="휴지통에 있는 모든 메모를 영구 삭제하시겠습니까?"
+        cancelText="취소"
+        confirmText="비우기"
+        confirmColor="#FF3B30"
+        onCancel={() => setEmptyTrashModalVisible(false)}
+        onConfirm={() => {
+          const trashedIds = memos.filter((m) => m.deletedAt).map((m) => m.id);
+          deleteMultipleMemos(trashedIds);
+          scrollToTop();
+          Toast.show({
+            type: 'success',
+            text1: '휴지통을 모두 비웠어요',
+            position: 'top',
+            topOffset: 60,
+          });
+          setEmptyTrashModalVisible(false);
+        }}
+      />
+
+      {/* 💡 2. 다중 영구 삭제 모달 */}
+      <AppConfirmModal
+        visible={deleteMultipleModalVisible}
+        title="영구 삭제"
+        message="선택한 메모를 영구적으로 삭제하시겠습니까?"
+        cancelText="취소"
+        confirmText="삭제"
+        confirmColor="#FF3B30"
+        onCancel={() => setDeleteMultipleModalVisible(false)}
+        onConfirm={() => {
+          deleteMultipleMemos(selectedIds);
+          scrollToTop();
+          setIsSelectMode(false);
+          setSelectedIds([]);
+          setDeleteMultipleModalVisible(false);
+        }}
+      />
+
+      {/* 💡 3. 휴지통 개별 메모 선택 모달 (3버튼 커스텀) */}
+      <AppConfirmModal
+        visible={trashMemoModalVisible}
+        title="휴지통 메모"
+        message="이 메모를 복구하시겠습니까?"
+        topBtnText="영구 삭제"
+        topBtnColor="#FF3B30"
+        onTopBtnPress={() => {
+          if (selectedTrashMemoId) {
+            deleteMemo(selectedTrashMemoId);
+            scrollToTop();
+          }
+          setTrashMemoModalVisible(false);
+          setSelectedTrashMemoId(null);
+        }}
+        cancelText="취소"
+        confirmText="복구"
+        confirmColor="#007AFF"
+        onCancel={() => {
+          setTrashMemoModalVisible(false);
+          setSelectedTrashMemoId(null);
+        }}
+        onConfirm={() => {
+          if (selectedTrashMemoId) {
+            restoreMemo(selectedTrashMemoId);
+            Toast.show({
+              type: 'success',
+              text1: '메모가 복구되었어요',
+              position: 'top',
+              topOffset: 60,
+            });
+          }
+          setTrashMemoModalVisible(false);
+          setSelectedTrashMemoId(null);
+        }}
+      />
+
       <SortMemoBottomSheet
         visible={isSortModalVisible}
         onClose={() => setIsSortModalVisible(false)}
@@ -740,16 +827,8 @@ export default function MemoListView({
         title="폴더 선택"
         selectedId={activeFolderId}
         options={[
-          {
-            id: null,
-            name: '전체 메모',
-            icon: FolderIcon,
-          },
-          {
-            id: 'uncategorized',
-            name: '미분류 메모',
-            icon: FolderEmptyIcon,
-          },
+          { id: null, name: '전체 메모', icon: FolderIcon },
+          { id: 'uncategorized', name: '미분류 메모', icon: FolderEmptyIcon },
           ...folders.map((f) => ({ id: f.id, name: f.name, icon: FolderIcon })),
           { id: 'trash', name: '휴지통', icon: TrashIcon },
         ]}
@@ -780,7 +859,13 @@ export default function MemoListView({
             setSelectedIds([]);
           }
           setIsMoveModalVisible(false);
-          Alert.alert('이동 완료', '메모가 성공적으로 이동되었습니다.');
+          // 💡 질문형 알림이 아닌 이동 완료 알림은 일관성을 위해 Toast 메시지로 대체
+          Toast.show({
+            type: 'success',
+            text1: '메모가 이동되었어요',
+            position: 'top',
+            topOffset: 60,
+          });
         }}
         onCreateFolder={addFolder}
         isDark={isDark}
@@ -815,16 +900,14 @@ export default function MemoListView({
           setActiveMenuMemoId(null);
         }}
         onDuplicate={() => {
-          if (activeMenuMemo) {
-            duplicateMemo(activeMenuMemo.id);
-          }
+          if (activeMenuMemo) duplicateMemo(activeMenuMemo.id);
           setActiveMenuMemoId(null);
         }}
         onDelete={() => {
           if (activeMenuMemo?.isLocked) {
             Toast.show({
               type: 'error',
-              text1: '잠긴 메모는 삭제할 수 없습니다.',
+              text1: '잠긴 메모는 삭제할 수 없어요',
               position: 'top',
               topOffset: 60,
             });
@@ -837,7 +920,7 @@ export default function MemoListView({
             scrollToTop();
             Toast.show({
               type: 'success',
-              text1: '휴지통으로 이동되었습니다.',
+              text1: '휴지통으로 이동되었어요',
               position: 'top',
               topOffset: 60,
             });
@@ -880,11 +963,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexShrink: 0,
   },
+  sectionTitleWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 20,
+  },
   sectionTitle: {
     paddingHorizontal: 4,
     fontSize: 16,
     fontWeight: 'bold',
-    marginTop: 20,
   },
   memoCard: {
     flexDirection: 'row',
@@ -897,7 +984,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 5,
-    elevation: 2,
+    elevation: 16,
   },
   memoCardDark: { backgroundColor: '#191919' },
   memoTextContainer: { flex: 1, justifyContent: 'flex-start', gap: 8 },
@@ -936,6 +1023,13 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   memoMeta: { fontSize: 12, color: '#999' },
+  remainingDaysText: {
+    fontSize: 12,
+    color: '#FF3B30',
+  },
+  remainingDaysTextDark: {
+    color: '#FF6B6B',
+  },
   folderText: { fontSize: 12, color: '#999', flexShrink: 1 },
   darkMetaText: { color: '#777' },
   checkbox: {
@@ -980,7 +1074,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 10,
-    elevation: 5,
+    elevation: 16,
   },
   bottomBarDark: {
     backgroundColor: '#2A2A2A',
@@ -990,7 +1084,6 @@ const styles = StyleSheet.create({
   actionBtn: {
     flex: 1,
     padding: 20,
-    // marginHorizontal: 5,
     backgroundColor: '#f5f5f5',
     borderRadius: 12,
     alignItems: 'center',

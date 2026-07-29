@@ -15,7 +15,6 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as ImageManipulator from 'expo-image-manipulator';
-import { Asset } from 'expo-asset';
 import { useDiaryStore } from '../store/useDiaryStore';
 import {
   BackIcon,
@@ -24,7 +23,6 @@ import {
   DownloadIcon,
 } from '@/assets/icons';
 import SvgDashedLine from '@/components/ui/SvgDashedLine';
-import { EMOTION_IMAGE_MAP } from '@/constants/emotions';
 import Toast from 'react-native-toast-message';
 import CustomSpinner from '@/components/common/CustomSpinner';
 import { EMOTION_BASE64_MAP } from '@/constants/emotionBase64';
@@ -87,17 +85,13 @@ export default function PdfExportScreen() {
             <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
             <meta charset="utf-8" />
             <style>
-              /* 선택된 폰트 CSS 주입 */
               ${getFontStyles(diaryFontFamily || 'System')}
               
-              /*@page { padding: 40px; }*/
               body { margin-left: 30px; margin-right: 30px; color: #333; line-height: 1.6; }
               
-              /* 한 페이지에 1개의 일기씩 출력 */
               .diary-entry { page-break-after: always; margin-bottom: 20px; }
               .diary-entry:last-child { page-break-after: auto; }
               
-              /* 날짜 및 감정 */
               .date { font-size: 20px; font-weight: bold; color: #444; margin-top: 40px; margin-bottom: 30px; }
               .emotion-container { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; }
               .emotion-img { width: 80px; height: 80px; object-fit: contain; }
@@ -105,12 +99,10 @@ export default function PdfExportScreen() {
               .diary-title { font-size: 22px; font-weight: bold; color: #333; margin-top: 0; margin-bottom: 15px; }
               .text-block { font-size: 16px; margin-top: 10px; white-space: pre-wrap; }
               
-              /* 첨부 이미지 강제 30% (CSS 우선순위 확보) */
               .image-block { width: 30% !important; height: auto !important; border-radius: 8px; margin-top: 15px; display: block; object-fit: cover; }
               .error-block { padding: 20px; background: #eee; text-align: center; color: #888; border-radius: 8px; margin-top: 15px; font-size: 14px; }
               
               .rich-content { font-size: 16px; margin-top: 10px; line-height: 1.6; }
-              /* 웹 에디터 이미지 강제 30% */
               .rich-content img { width: 30% !important; height: auto !important; display: block; margin: 15px 0; border-radius: 8px; }
             </style>
           </head>
@@ -130,13 +122,10 @@ export default function PdfExportScreen() {
       for (const diary of monthDiaries) {
         htmlContent += `<div class="diary-entry">`;
 
-        // 날짜 출력
-        // 날짜 포맷 변환 (2026-07-01 -> 2026.07.01.월요일)
         const dateObj = new Date(diary.date);
         const dayString = dayNames[dateObj.getDay()];
         const formattedDate = `${diary.date.replace(/-/g, '.')}.${dayString}`;
 
-        // 변환된 날짜로 출력
         htmlContent += `<div class="date">${formattedDate}</div>`;
 
         const emotionList =
@@ -146,32 +135,54 @@ export default function PdfExportScreen() {
               ? [diary.emotion]
               : [];
 
-        // 감정 이미지 출력
         if (emotionList.length > 0) {
           htmlContent += `<div class="emotion-container">`;
 
           for (const emo of emotionList) {
-            // 💡 파일 시스템 접근 없이, 메모리에 올려둔 Base64 문자열을 즉시 가져옵니다.
             const base64String = EMOTION_BASE64_MAP[emo];
-
             if (base64String) {
               htmlContent += `<img class="emotion-img" src="${base64String}" />`;
-            } else {
-              console.log(`${emo}에 해당하는 Base64 문자열이 없습니다.`);
             }
           }
-
           htmlContent += `</div>`;
         }
 
-        // 일기 제목 및 내용
         if (diary.title) {
           htmlContent += `<h2 class="diary-title">${diary.title}</h2>`;
         }
 
+        // 💡 신버전(HTML 구조) 데이터 PDF 변환 처리
         if (diary.content !== undefined) {
-          htmlContent += `<div class="rich-content">${diary.content}</div>`;
-        } else if (diary.blocks) {
+          let processedContent = diary.content;
+          const regex = /src=["']?(file:\/\/[^"'\s>]+)["']?/gi;
+          const matches = [...processedContent.matchAll(regex)];
+
+          for (const match of matches) {
+            const fileUri = match[1];
+            try {
+              // PDF 출력에 적합하도록 이미지를 최적화(리사이징/압축) 후 Base64로 치환
+              const manipResult = await ImageManipulator.manipulateAsync(
+                fileUri,
+                [{ resize: { width: 600 } }],
+                {
+                  compress: 0.7,
+                  format: ImageManipulator.SaveFormat.JPEG,
+                  base64: true,
+                },
+              );
+
+              if (manipResult.base64) {
+                const base64Src = `data:image/jpeg;base64,${manipResult.base64}`;
+                processedContent = processedContent.replace(fileUri, base64Src);
+              }
+            } catch (err) {
+              console.log('PDF 이미지 로드 실패 (파일 유실 등):', err);
+            }
+          }
+          htmlContent += `<div class="rich-content">${processedContent}</div>`;
+        }
+        // 💡 구버전(blocks 구조) 데이터 하위 호환 처리
+        else if (diary.blocks) {
           for (const block of diary.blocks) {
             if (block.type === 'text') {
               htmlContent += `<div class="text-block">${block.value}</div>`;
@@ -196,12 +207,9 @@ export default function PdfExportScreen() {
                 );
 
                 if (manipResult.base64) {
-                  // 인라인 스타일로 한 번 더 width 30%를 강제 적용
                   htmlContent += `<img class="image-block" style="width: 30%; height: auto;" src="data:image/jpeg;base64,${manipResult.base64}" />`;
                 }
               } catch (compressError) {
-                console.log('이미지 압축 실패, 원본 변환 시도:', compressError);
-
                 try {
                   const base64Image = await FileSystem.readAsStringAsync(
                     imageUri,
@@ -214,7 +222,6 @@ export default function PdfExportScreen() {
                     : 'jpeg';
                   htmlContent += `<img class="image-block" style="width: 30%; height: auto;" src="data:image/${ext};base64,${base64Image}" />`;
                 } catch (fsError) {
-                  console.log('이미지 로드 완전 실패:', fsError);
                   htmlContent += `<div class="error-block">[이미지를 불러올 수 없습니다: 원본 파일이 삭제되었거나 경로가 잘못되었습니다]</div>`;
                 }
               }
@@ -222,7 +229,7 @@ export default function PdfExportScreen() {
           }
         }
 
-        htmlContent += `</div>`; // diary-entry 닫기
+        htmlContent += `</div>`;
       }
 
       htmlContent += `</body></html>`;
@@ -232,32 +239,21 @@ export default function PdfExportScreen() {
         base64: false,
       });
 
-      // 원하는 파일명 설정 (예: 2026-07_나의일기.pdf)
       const fileName = `${monthStr}_동글일기.pdf`;
       const newUri = `${FileSystem.cacheDirectory}${fileName}`;
 
-      // 기존 복잡한 이름의 파일을 우리가 정한 이름으로 이동(변경)
       await FileSystem.moveAsync({
         from: uri,
         to: newUri,
       });
 
-      // 안드로이드 공유 창 호출 시 잠금화면 방어 플래그 ON
       setIsSystemAction(true);
 
-      // 변경된 이름의 파일로 공유/저장 실행
       await Sharing.shareAsync(newUri, {
         UTI: '.pdf',
         mimeType: 'application/pdf',
-        dialogTitle: `${monthStr} 일기 저장`, // 안드로이드 공유 창 타이틀
+        dialogTitle: `${monthStr} 일기 저장`,
       });
-
-      // Toast.show({
-      //   type: 'success',
-      //   text1: 'PDF가 생성되었어요',
-      //   position: 'top',
-      //   topOffset: 60,
-      // });
     } catch (error) {
       Toast.show({
         type: 'error',
@@ -265,7 +261,6 @@ export default function PdfExportScreen() {
         position: 'top',
         topOffset: 60,
       });
-
       console.error(error);
     } finally {
       setIsExporting(false);
@@ -274,10 +269,7 @@ export default function PdfExportScreen() {
   };
 
   const handleGoToWrite = () => {
-    // 현재 화면에서 2단계를 뒤로가기(Pop)하여 메인으로 돌아갑니다.
     router.dismiss(2);
-
-    // 뒤로가기 애니메이션이 끝날 즈음 모달 띄우기
     setTimeout(() => {
       router.push('/emotion-select');
     }, 300);
@@ -393,7 +385,6 @@ export default function PdfExportScreen() {
         }}
       />
 
-      {/* 전체 화면 반투명 로딩 오버레이 */}
       {isExporting && (
         <View style={styles.fullScreenOverlay}>
           <CustomSpinner />
@@ -407,7 +398,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FCFBFA' },
   darkContainer: { backgroundColor: '#111111' },
 
-  // Header Styles
   customHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -440,7 +430,6 @@ const styles = StyleSheet.create({
 
   dividerWrapper: { paddingHorizontal: 20, paddingVertical: 15 },
 
-  // Empty State Styles
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -454,9 +443,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginBottom: 10,
   },
-  emptyTextDark: {
-    color: '#aaa',
-  },
+  emptyTextDark: { color: '#aaa' },
   emptyButton: {
     backgroundColor: '#111111',
     height: 50,
@@ -466,17 +453,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     textAlign: 'center',
   },
-  emptyButtonDark: {
-    backgroundColor: '#ffffff',
-  },
-  emptyButtonText: {
-    color: '#ffffff',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  emptyButtonTextDark: {
-    color: '#111111',
-  },
+  emptyButtonDark: { backgroundColor: '#ffffff' },
+  emptyButtonText: { color: '#ffffff', fontWeight: 'bold', fontSize: 14 },
+  emptyButtonTextDark: { color: '#111111' },
 
   monthCard: {
     flexDirection: 'row',
@@ -494,7 +473,6 @@ const styles = StyleSheet.create({
   monthText: { fontSize: 14, color: '#111111' },
   darkText: { color: '#ffffff' },
 
-  // Full Screen Loading Overlay
   fullScreenOverlay: {
     position: 'absolute',
     top: 0,
@@ -504,6 +482,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 999, // 가장 위에 위치하도록 설정
+    zIndex: 999,
   },
 });

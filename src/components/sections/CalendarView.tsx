@@ -537,6 +537,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     alignItems: 'center',
     gap: 2,
+    paddingRight: 20,
   },
   rightIconsWrapper: {
     flexDirection: 'row',
@@ -625,7 +626,7 @@ const styles = StyleSheet.create({
   // Modal Styles
   modalOverlay: {
     flex: 1,
-    // backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'flex-start',
     alignItems: 'flex-start',
     paddingTop: 100,
@@ -640,7 +641,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
-    elevation: 5,
+    elevation: 16,
   },
   darkMenuBox: { backgroundColor: '#1e1e1e' },
   menuItem: {

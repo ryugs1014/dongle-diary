@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, Modal, StyleSheet, Animated, Dimensions } from 'react-native';
 import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
 import RadioSettingItem from '@/components/common/RadioSettingItem';
+import { OrderIcon, OrderOldIcon } from '@/assets/icons';
 
 interface SortBottomSheetProps {
   visible: boolean;
@@ -84,6 +85,7 @@ export default function SortBottomSheet({
               isSelected={sortOrder === 'desc'}
               isDark={isDark}
               onPress={() => handleSort('desc')}
+              icon={OrderIcon as any}
             />
 
             <View
@@ -95,6 +97,7 @@ export default function SortBottomSheet({
               isSelected={sortOrder === 'asc'}
               isDark={isDark}
               onPress={() => handleSort('asc')}
+              icon={OrderOldIcon as any}
             />
           </AppTouchableOpacity>
         </Animated.View>

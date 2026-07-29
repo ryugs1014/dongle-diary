@@ -22,13 +22,12 @@ import {
   DeleteIcon,
   BackIcon,
   OptionIcon,
-  LockIcon,
   FolderIcon,
-  FolderEmptyIcon, // 🔥 FolderIcon 추가
+  FolderEmptyIcon,
+  LockTitleIcon,
+  PinIcon,
 } from '@/assets/icons';
 import Toast from 'react-native-toast-message';
-
-// 사용되는 모달 컴포넌트들
 import MemoOptionsBottomSheet from '@/components/modals/MemoOptionsBottomSheet';
 import FolderSelectBottomSheet from '@/components/modals/FolderSelectBottomSheet';
 import SortMemoSearchBottomSheet, {
@@ -416,9 +415,9 @@ export default function MemoSearchScreen() {
                   <View style={styles.memoHeaderContainer}>
                     <View style={styles.memoTitleContainer}>
                       {item.isLocked && (
-                        <LockIcon
+                        <LockTitleIcon
                           width={20}
-                          height={20}
+                          height={24}
                           color={isDark ? '#ffffff' : '#111111'}
                         />
                       )}
@@ -426,6 +425,14 @@ export default function MemoSearchScreen() {
                       <AppText style={styles.memoTitle} numberOfLines={1}>
                         {item.title}
                       </AppText>
+
+                      {item.isPinned && (
+                        <PinIcon
+                          width={20}
+                          height={24}
+                          color={isDark ? '#ffffff' : '#111111'}
+                        />
+                      )}
                     </View>
 
                     <AppText
@@ -565,7 +572,13 @@ export default function MemoSearchScreen() {
             setMemoIdToMove(null);
           }
           setIsMoveModalVisible(false);
-          Alert.alert('이동 완료', '메모가 성공적으로 이동되었습니다.');
+
+          Toast.show({
+            type: 'success',
+            text1: '메모가 이동되었어요',
+            position: 'top',
+            topOffset: 60,
+          });
         }}
         onCreateFolder={addFolder}
         isDark={isDark}
@@ -651,7 +664,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 5,
-    elevation: 2,
+    elevation: 16,
   },
   memoCardDark: { backgroundColor: '#191919' },
   memoTextContainer: { flex: 1, justifyContent: 'flex-start', gap: 8 },

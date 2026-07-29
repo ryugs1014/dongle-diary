@@ -1,20 +1,23 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react'; // useCallback 추가
 import {
   View,
   useColorScheme,
   StyleSheet,
   Modal,
   Pressable,
+  BackHandler, // BackHandler 추가
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, Stack } from 'expo-router';
+import { router, Stack, useFocusEffect } from 'expo-router'; // useFocusEffect 추가
 import PagerView from 'react-native-pager-view';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import MemoListView from '@/components/sections/MemoListView';
 import MemoFolderView from '@/components/sections/MemoFolderView';
 import { useDiaryStore } from '@/store/useDiaryStore';
+import { useMemoStore } from '@/store/useMemoStore'; // useMemoStore 추가
 import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
+import AppConfirmModal from '@/components/modals/AppConfirmModal'; // 모달 추가
 import {
   CalandarIcon,
   DocumentIcon,
@@ -28,7 +31,9 @@ export default function MemoMainScreen() {
   const pagerRef = useRef<PagerView>(null);
   const [menuVisible, setMenuVisible] = useState(false);
 
-  const { language, theme } = useDiaryStore();
+  const { language, theme, setLastVisitedScreen } = useDiaryStore();
+  const { memoStartupScreen, lastVisitedMemoScreen, setLastVisitedMemoScreen } =
+    useMemoStore(); // 💡 추가
 
   const systemColorScheme = useColorScheme();
   const isDark =
@@ -36,12 +41,49 @@ export default function MemoMainScreen() {
   const t = (koText: string, enText: string) =>
     language === 'en' ? enText : koText;
 
-  // 💡 작성된 순서에 맞게 인덱스를 수정합니다.
-  // FolderView가 Index 0 (왼쪽), ListView가 Index 1 (오른쪽)입니다.
+  // 💡 설정에 따른 최초 진입 페이지 계산
+  const initialPageIndex = (() => {
+    if (memoStartupScreen === 'folder') return 0;
+    if (memoStartupScreen === 'list') return 1;
+    return lastVisitedMemoScreen === 'folder' ? 0 : 1;
+  })();
+
+  const [currentPage, setCurrentPage] = useState(initialPageIndex);
+  const [exitModalVisible, setExitModalVisible] = useState(false);
+
   const slideToFolders = () => pagerRef.current?.setPage(0);
   const slideToList = () => pagerRef.current?.setPage(1);
 
   const bgColor = isDark ? '#111111' : '#fcfbfa';
+
+  useEffect(() => {
+    setLastVisitedScreen('memo');
+  }, [setLastVisitedScreen]);
+
+  // 💡 뒤로 가기 제어 로직 추가
+  useFocusEffect(
+    useCallback(() => {
+      const backAction = () => {
+        if (currentPage === 1) {
+          // 리스트 뷰(1)에 있을 때 뒤로 가기를 누르면 폴더 뷰(0)로 이동
+          slideToFolders();
+          return true;
+        } else if (currentPage === 0) {
+          // 폴더 뷰(0)에 있을 때 앱 종료 모달 띄우기
+          setExitModalVisible(true);
+          return true;
+        }
+        return false;
+      };
+
+      const backHandler = BackHandler.addEventListener(
+        'hardwareBackPress',
+        backAction,
+      );
+
+      return () => backHandler.remove();
+    }, [currentPage]),
+  );
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -89,9 +131,15 @@ export default function MemoMainScreen() {
 
         <PagerView
           style={{ flex: 1 }}
-          initialPage={1} // 💡 첫 화면을 Index 1 (MemoListView)로 강제 지정합니다.
+          initialPage={initialPageIndex} // 💡 동적으로 설정된 초기 페이지 적용
           ref={pagerRef}
           overdrag={false}
+          onPageSelected={(e) => {
+            // 💡 스와이프 할 때마다 현재 페이지 기억
+            const page = e.nativeEvent.position;
+            setCurrentPage(page);
+            setLastVisitedMemoScreen(page === 0 ? 'folder' : 'list');
+          }}
         >
           {/* Index 0 (왼쪽): 폴더 뷰 */}
           <View key="folder" style={{ flex: 1 }}>
@@ -109,6 +157,7 @@ export default function MemoMainScreen() {
         </PagerView>
 
         <Modal visible={menuVisible} transparent animationType="fade">
+          {/* 모달 내용 기존과 동일하여 생략 (그대로 유지하세요) */}
           <Pressable
             style={styles.modalOverlay}
             onPress={() => setMenuVisible(false)}
@@ -118,7 +167,6 @@ export default function MemoMainScreen() {
                 style={[styles.menuItem, isDark && styles.darkMenuItem]}
                 onPress={() => {
                   setMenuVisible(false);
-
                   router.replace('/');
                 }}
               >
@@ -133,11 +181,8 @@ export default function MemoMainScreen() {
               </AppTouchableOpacity>
 
               <AppTouchableOpacity
-                style={[styles.menuItem, styles.lastMenuItem]} // 💡 여기에 lastMenuItem 적용
-                onPress={() => {
-                  setMenuVisible(false);
-                  // 현재 달력 화면이므로 창만 닫습니다.
-                }}
+                style={[styles.menuItem, styles.lastMenuItem]}
+                onPress={() => setMenuVisible(false)}
               >
                 <DocumentIcon
                   width={24}
@@ -151,6 +196,21 @@ export default function MemoMainScreen() {
             </View>
           </Pressable>
         </Modal>
+
+        {/* 💡 앱 종료 모달 추가 */}
+        <AppConfirmModal
+          visible={exitModalVisible}
+          title={t('동글일기', 'Exit App')}
+          message={t('앱을 종료하시겠어요?', 'Are you sure you want to exit?')}
+          cancelText={t('취소', 'Cancel')}
+          confirmText={t('종료', 'Exit')}
+          confirmColor="#FF6F61"
+          onCancel={() => setExitModalVisible(false)}
+          onConfirm={() => {
+            setExitModalVisible(false);
+            BackHandler.exitApp();
+          }}
+        />
       </SafeAreaView>
     </GestureHandlerRootView>
   );
@@ -169,6 +229,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     alignItems: 'center',
     gap: 2,
+    paddingRight: 20,
   },
   rightIconsWrapper: {
     flexDirection: 'row',
@@ -180,7 +241,7 @@ const styles = StyleSheet.create({
   // Modal Styles
   modalOverlay: {
     flex: 1,
-    // backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'flex-start',
     alignItems: 'flex-start',
     paddingTop: 100,
@@ -195,7 +256,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
-    elevation: 5,
+    elevation: 16,
   },
   darkMenuBox: { backgroundColor: '#1e1e1e' },
   menuItem: {

@@ -10,7 +10,7 @@ import {
   FolderEmptyIcon,
   TrashIcon,
   PinIcon,
-  DragIcon, // 🔥 고정 핀 아이콘 추가 (필요시 대체)
+  DragIcon,
 } from '@/assets/icons';
 import FolderOptionsBottomSheet from '@/components/modals/FolderOptionsBottomSheet';
 import AppPromptModal from '@/components/modals/AppPromptModal';
@@ -175,9 +175,8 @@ export default function MemoFolderView({
             : memos.filter((m) => m.folderId === item.id && !m.deletedAt)
                 .length;
 
-      const TouchableComponent = isEditMode
-        ? RNGHTouchableOpacity
-        : TouchableOpacity;
+      const TouchableComponent =
+        isEditMode && !isVirtual ? RNGHTouchableOpacity : TouchableOpacity;
 
       // 상태에 맞는 SVG 아이콘 매핑
       let IconComponent = FolderIcon;
@@ -195,6 +194,7 @@ export default function MemoFolderView({
             styles.folderCard,
             isDark && styles.folderCardDark,
             isActive && styles.activeDragCard,
+            isEditMode && isVirtual && { elevation: 0, shadowOpacity: 0 },
           ]}
           onPress={() => {
             if (isEditMode) return;
@@ -475,7 +475,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 5,
-    elevation: 2,
+    elevation: 16,
   },
   folderCardDark: {
     backgroundColor: '#191919',
@@ -483,7 +483,7 @@ const styles = StyleSheet.create({
   activeDragCard: {
     shadowOpacity: 0.2,
     shadowRadius: 10,
-    elevation: 5,
+    elevation: 16,
     transform: [{ scale: 1.02 }],
   },
   folderInfo: {

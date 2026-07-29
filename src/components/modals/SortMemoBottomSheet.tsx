@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, Modal, StyleSheet, Animated, Dimensions } from 'react-native';
 import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
 import RadioSettingItem from '@/components/common/RadioSettingItem';
+import { SortDownIcon, SortUpIcon, OrderIcon } from '@/assets/icons';
 
 export type MemoSortType = 'dateDesc' | 'nameAsc' | 'nameDesc';
 
@@ -82,6 +83,7 @@ export default function SortMemoBottomSheet({
                 setSortType('dateDesc');
                 handleClose();
               }}
+              icon={OrderIcon as any}
             />
 
             <View
@@ -96,6 +98,7 @@ export default function SortMemoBottomSheet({
                 setSortType('nameAsc');
                 handleClose();
               }}
+              icon={SortDownIcon as any}
             />
 
             <View
@@ -110,6 +113,7 @@ export default function SortMemoBottomSheet({
                 setSortType('nameDesc');
                 handleClose();
               }}
+              icon={SortUpIcon as any}
             />
           </AppTouchableOpacity>
         </Animated.View>

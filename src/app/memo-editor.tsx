@@ -6,7 +6,6 @@ import {
   View,
   Keyboard,
   AppState,
-  TextInput,
   useColorScheme,
 } from 'react-native';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
@@ -46,6 +45,11 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { IMAGE_DIR } from '@/utils/image';
 import * as Sharing from 'expo-sharing';
 
+// 💡 새롭게 분리한 컴포넌트와 유틸리티 불러오기
+import MemoOptionMenu from '@/components/modals/MemoOptionMenu';
+import { exportMemoToPdf } from '@/utils/memoPdfExport';
+import CustomSpinner from '@/components/common/CustomSpinner';
+
 const getWebFontCss = (fontFamily: string) => {
   switch (fontFamily) {
     case 'NanumSquareRound':
@@ -63,7 +67,6 @@ const getWebFontCss = (fontFamily: string) => {
 
 const processHtmlForSave = async (html: string) => {
   let processedHtml = html;
-
   const regex = /src=["']?(data:image\/([^;]+);base64,([^"'>\s]+))["']?/gi;
   const matches = [...html.matchAll(regex)];
 
@@ -93,73 +96,50 @@ const processHtmlForSave = async (html: string) => {
       await FileSystem.writeAsStringAsync(fileUri, base64Data, {
         encoding: FileSystem.EncodingType.Base64,
       });
-      console.log(`✅ [저장 3단계] 새 로컬 파일 생성됨: ${fileName}`);
-    } else {
-      console.log(
-        `🔄 [저장 3단계] 이미 동일한 로컬 파일이 존재함: ${fileName}`,
-      );
     }
 
     processedHtml = processedHtml.replace(fullSrc, fileUri);
   }
-
   return processedHtml;
 };
 
 const processHtmlForLoad = async (html: string) => {
   if (!html) return '<h1></h1>';
   let processedHtml = html;
-
   const regex = /src=["']?([^"'\s>]+)["']?/gi;
   const matches = [...html.matchAll(regex)];
 
   for (const match of matches) {
     const fullSrc = match[1];
-
-    if (fullSrc.startsWith('data:')) {
-      continue;
-    }
+    if (fullSrc.startsWith('data:')) continue;
 
     let fileUri = fullSrc;
     if (!fileUri.startsWith('file://') && !fileUri.startsWith('http')) {
       fileUri = 'file://' + fileUri.replace(/^[/\\]+/, '/');
     }
-
     const targetFileName = fullSrc.split('/').pop()?.split('?')[0] || '';
 
     try {
       let fileInfo = await FileSystem.getInfoAsync(fileUri);
-
       if (!fileInfo.exists && targetFileName) {
         const safeDir = IMAGE_DIR.endsWith('/') ? IMAGE_DIR : `${IMAGE_DIR}/`;
         fileUri = safeDir + targetFileName;
         fileInfo = await FileSystem.getInfoAsync(fileUri);
       }
-
-      if (fileInfo.exists) {
-        if (fileInfo.size === 0) {
-          continue;
-        }
-
+      if (fileInfo.exists && fileInfo.size !== 0) {
         const base64Data = await FileSystem.readAsStringAsync(fileUri, {
           encoding: FileSystem.EncodingType.Base64,
         });
-
         const ext = targetFileName.split('.').pop()?.toLowerCase() || 'jpg';
         const mimeType = ext === 'jpg' || ext === 'jpeg' ? 'jpeg' : ext;
-
         const cleanBase64 = base64Data.replace(/(\r\n|\n|\r|\s)/gm, '');
         const base64Src = `data:image/${mimeType};base64,${cleanBase64}`;
-
         processedHtml = processedHtml.replace(fullSrc, base64Src);
-      } else {
-        console.log(`🚨 [로드 실패] 기기에서 끝내 이미지를 찾을 수 없음`);
       }
     } catch (e) {
       console.log(`❌ [로드 중 에러 발생]:`, e);
     }
   }
-
   return processedHtml;
 };
 
@@ -167,7 +147,6 @@ export default function MemoEditorScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { memos } = useMemoStore();
   const existingMemo = memos.find((m) => m.id === id);
-
   const { theme } = useDiaryStore();
   const systemColorScheme = useColorScheme();
   const isDark =
@@ -187,14 +166,10 @@ export default function MemoEditorScreen() {
     prepareHtml();
   }, [existingMemo?.content]);
 
-  // 💡 플리커링 방지: 초기 로딩 배경색을 다크모드 여부에 따라 다르게 지정
   if (initialHtml === null) {
     return (
       <View
-        style={{
-          flex: 1,
-          backgroundColor: isDark ? '#111111' : '#FCFBFA',
-        }}
+        style={{ flex: 1, backgroundColor: isDark ? '#111111' : '#FCFBFA' }}
       />
     );
   }
@@ -214,7 +189,7 @@ function MemoEditor({
   id: string | undefined;
 }) {
   const insets = useSafeAreaInsets();
-  const { theme, diaryFontFamily } = useDiaryStore();
+  const { theme, diaryFontFamily, setIsSystemAction } = useDiaryStore(); // 💡 setIsSystemAction 추가
   const { addMemo, updateMemo, deleteMemo, activeFolderId, moveToTrash } =
     useMemoStore();
 
@@ -224,6 +199,7 @@ function MemoEditor({
 
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
   const [isMenuVisible, setMenuVisible] = useState(false);
+  const [isExporting, setIsExporting] = useState(false); // 💡 PDF 내보내기 로딩 상태
 
   const [files, setFiles] = useState<MemoFile[]>(existingMemo?.files || []);
   const filesRef = useRef(files);
@@ -236,7 +212,6 @@ function MemoEditor({
 
   const currentMemoState = existingMemo;
 
-  // 💡 툴바 버튼 배경색(#ffffff)이 다크모드에서 흰색 박스를 만들던 문제 수정 (#111111 적용)
   const editorTheme = {
     webview: { backgroundColor: isDark ? '#111111' : '#FCFBFA' },
     editor: {
@@ -248,11 +223,11 @@ function MemoEditor({
       toolbarBody: {
         backgroundColor: isDark ? '#111111' : '#ffffff',
         borderTopColor: isDark
-          ? 'rgba(0, 0, 0, 0.2)'
-          : 'rgba(255, 255, 255, 0.2)',
+          ? 'rgba(255, 255, 255, 0.05)'
+          : 'rgba(0, 0, 0, 0.05)',
         borderBottomColor: 'rgba(0,0,0,0)',
       },
-      toolbarButton: { backgroundColor: isDark ? '#111111' : '#ffffff' }, // 수정됨
+      toolbarButton: { backgroundColor: isDark ? '#111111' : '#ffffff' },
       iconWrapperActive: { backgroundColor: isDark ? '#111111' : '#e5e5e5' },
       icon: { tintColor: isDark ? '#ffffff' : '#111111' },
       iconWrapper: { backgroundColor: isDark ? '#111111' : '#ffffff' },
@@ -268,31 +243,19 @@ function MemoEditor({
 
   const customCss = `
     ${fontCss}
-    * {
-      ${fontFamilyRule}
-      color: ${textColor} !important;
-    }
-    .ProseMirror {
-      padding: 20px 20px !important;
-      min-height: 100%;
-      font-size: 18px;
-    }
+    * { ${fontFamilyRule} color: ${textColor} !important; }
+    .ProseMirror { padding: 20px 20px !important; min-height: 100%; font-size: 16px; }
+    
+    .ProseMirror h1 { font-size: 28px !important; font-weight: normal !important; line-height: 1.3 !important; }
+    .ProseMirror h2 { font-size: 24px !important; font-weight: normal !important; line-height: 1.3 !important; }
+    .ProseMirror h3 { font-size: 20px !important; font-weight: normal !important; line-height: 1.4 !important; }
+    .ProseMirror h4 { font-size: 18px !important; font-weight: normal !important; line-height: 1.4 !important; }
+    .ProseMirror h5 { font-size: 16px !important; font-weight: normal !important; line-height: 1.5 !important; }
+    
     .ProseMirror p, .ProseMirror h1, .ProseMirror h2, .ProseMirror h3, 
     .ProseMirror h4, .ProseMirror h5, .ProseMirror h6, 
-    .ProseMirror ul, .ProseMirror ol {
-      margin-top: 0px !important;
-      margin-bottom: 4px !important;
-    }
-    img {
-      width: 100%;
-      min-height: 150px;
-      background-color: #e1e2e3; 
-      object-fit: contain;
-      border-radius: 8px;
-      margin-top: 10px;
-      margin-bottom: 10px;
-      display: block;
-    }
+    .ProseMirror ul, .ProseMirror ol { margin-top: 0px !important; margin-bottom: 4px !important; }
+    img { width: 100%; min-height: 150px; background-color: #e1e2e3; object-fit: contain; border-radius: 8px; margin-top: 10px; margin-bottom: 10px; display: block; }
   `;
 
   const editor = useEditorBridge({
@@ -319,17 +282,13 @@ function MemoEditor({
 
   useEffect(() => {
     filesRef.current = files;
-    if (editorState.isReady) {
-      performSave();
-    }
+    if (editorState.isReady) performSave();
   }, [files]);
 
   const isPickingFile = useRef(false);
 
   const performSave = async () => {
-    if (!editor) return;
-
-    if (isSavingRef.current) return;
+    if (!editor || isSavingRef.current) return;
     isSavingRef.current = true;
 
     try {
@@ -348,13 +307,9 @@ function MemoEditor({
         .filter((line) => line.length > 0);
 
       let title = '새 메모';
-      if (lines.length > 0) {
-        title = lines[0];
-      } else if (htmlContent.includes('<img')) {
-        title = '사진 메모';
-      } else if (filesRef.current.length > 0) {
-        title = '파일 첨부 메모';
-      }
+      if (lines.length > 0) title = lines[0];
+      else if (htmlContent.includes('<img')) title = '사진 메모';
+      else if (filesRef.current.length > 0) title = '파일 첨부 메모';
 
       const previewText = lines.slice(1).join(' ');
       let preview = previewText;
@@ -380,7 +335,6 @@ function MemoEditor({
           preview,
           files: filesRef.current,
         };
-
         if (isNewRef.current) {
           addMemo({
             id: currentIdRef.current,
@@ -420,9 +374,8 @@ function MemoEditor({
       if (
         nextAppState.match(/inactive|background/) &&
         !isPickingMediaRef.current
-      ) {
+      )
         performSave();
-      }
     });
 
     return () => {
@@ -432,6 +385,40 @@ function MemoEditor({
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     };
   }, [editor]);
+
+  // 💡 PDF 내보내기 핸들러
+  const handleExportPdf = async () => {
+    setMenuVisible(false);
+    setIsExporting(true);
+
+    try {
+      await performSave(); // 현재 타이핑 중인 최신 상태를 반영하기 위해 저장
+      const htmlContent = (await editor?.getHTML()) || '';
+
+      const textWithBreaks = htmlContent
+        .replace(/<[^>]+>/g, '')
+        .replace(/&nbsp;/g, ' ');
+      const lines = textWithBreaks
+        .split('\n')
+        .map((l) => l.trim())
+        .filter((l) => l.length > 0);
+      let exportTitle = '새 메모';
+      if (lines.length > 0) exportTitle = lines[0];
+      else if (htmlContent.includes('<img')) exportTitle = '사진 메모';
+      else if (filesRef.current.length > 0) exportTitle = '파일 첨부 메모';
+
+      await exportMemoToPdf(
+        exportTitle,
+        htmlContent,
+        diaryFontFamily,
+        setIsSystemAction,
+      );
+    } catch (error) {
+      console.log('PDF 내보내기 실패:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const handleAttachImage = () => {
     setMenuVisible(false);
@@ -490,26 +477,21 @@ function MemoEditor({
     setTimeout(async () => {
       try {
         const hasImage = await Clipboard.hasImageAsync();
-
         if (hasImage) {
           const image = await Clipboard.getImageAsync({
             format: 'jpeg',
             jpegQuality: 0.7,
           });
-
           isPickingMediaRef.current = false;
 
           if (image && image.data) {
             isSavingRef.current = true;
             Toast.show({ type: 'info', text1: '이미지 렌더링 중...' });
-
             const cleanBase64 = image.data.replace(
               /^data:image\/\w+;base64,/,
               '',
             );
-            const base64Uri = `data:image/jpeg;base64,${cleanBase64}`;
-
-            editor?.setImage(base64Uri);
+            editor?.setImage(`data:image/jpeg;base64,${cleanBase64}`);
 
             setTimeout(() => {
               editor?.focus('end');
@@ -536,7 +518,6 @@ function MemoEditor({
 
   const handleAttachFile = () => {
     setMenuVisible(false);
-
     if (currentMemoState?.isLocked) {
       Toast.show({ type: 'error', text1: '잠긴 메모는 수정할 수 없습니다.' });
       return;
@@ -547,13 +528,11 @@ function MemoEditor({
 
     setTimeout(async () => {
       if (isPickingFile.current) return;
-
       try {
         isPickingFile.current = true;
         const result = await DocumentPicker.getDocumentAsync({
           copyToCacheDirectory: true,
         });
-
         isPickingMediaRef.current = false;
 
         if (!result.canceled && result.assets && result.assets.length > 0) {
@@ -575,11 +554,8 @@ function MemoEditor({
   const handleOpenFile = async (fileUri: string) => {
     try {
       const isAvailable = await Sharing.isAvailableAsync();
-      if (isAvailable) {
-        await Sharing.shareAsync(fileUri);
-      } else {
-        Toast.show({ type: 'error', text1: '파일을 열 수 없습니다.' });
-      }
+      if (isAvailable) await Sharing.shareAsync(fileUri);
+      else Toast.show({ type: 'error', text1: '파일을 열 수 없습니다.' });
     } catch (error) {
       console.log('파일 열기 에러:', error);
     }
@@ -602,9 +578,7 @@ function MemoEditor({
   const handleBack = async () => {
     Keyboard.dismiss();
     editor?.blur();
-
     await new Promise((resolve) => setTimeout(resolve, 300));
-
     await performSave();
     router.back();
   };
@@ -627,14 +601,13 @@ function MemoEditor({
           </AppTouchableOpacity>
         </View>
         <View style={styles.rightIconsWrapper}>
-          {currentMemoState?.isLocked && (
+          {currentMemoState?.isLocked ? (
             <LockIcon
               width={28}
               height={28}
               color={isDark ? '#ffffff' : '#111111'}
             />
-          )}
-          {!currentMemoState?.isLocked && (
+          ) : (
             <>
               <AppTouchableOpacity
                 disabled={!editorState.canUndo}
@@ -647,7 +620,6 @@ function MemoEditor({
                   color={isDark ? '#ffffff' : '#111111'}
                 />
               </AppTouchableOpacity>
-
               <AppTouchableOpacity
                 disabled={!editorState.canRedo}
                 onPress={() => editor?.redo()}
@@ -745,7 +717,16 @@ function MemoEditor({
       </KeyboardAvoidingView>
 
       {!isKeyboardVisible && (
-        <View style={[styles.footer, isDark && styles.darkFooter]}>
+        <View
+          style={[
+            styles.footer,
+            isDark && styles.darkFooter,
+            {
+              height: 50 + (isKeyboardVisible ? 0 : insets.bottom),
+              paddingBottom: isKeyboardVisible ? 0 : insets.bottom,
+            },
+          ]}
+        >
           <View>
             <AppTouchableOpacity
               onPress={async () => {
@@ -763,99 +744,50 @@ function MemoEditor({
         </View>
       )}
 
-      {isMenuVisible && (
-        <View style={StyleSheet.absoluteFill}>
-          <AppTouchableOpacity
-            style={styles.modalOverlay}
-            activeOpacity={1}
-            onPress={() => setMenuVisible(false)}
-          >
-            <View style={[styles.menuBox, isDark && styles.darkMenuBox]}>
-              <AppTouchableOpacity
-                style={[
-                  styles.menuItem,
-                  isDark && styles.darkMenuItem,
-                  !editorState.isFocused && { opacity: 0.4 },
-                ]}
-                onPress={handleAttachImage}
-                disabled={!editorState.isFocused}
-              >
-                <AppText>사진 첨부하기</AppText>
-              </AppTouchableOpacity>
+      {/* 💡 분리된 옵션 메뉴 컴포넌트 마운트 */}
+      <MemoOptionMenu
+        visible={isMenuVisible}
+        onClose={() => setMenuVisible(false)}
+        isDark={isDark}
+        isFocused={editorState.isFocused}
+        isPinned={!!currentMemoState?.isPinned}
+        isLocked={!!currentMemoState?.isLocked}
+        onAttachImage={handleAttachImage}
+        onPasteImage={handlePasteImage}
+        onAttachFile={handleAttachFile}
+        onTogglePin={() => {
+          updateMemo(currentIdRef.current, {
+            isPinned: !currentMemoState?.isPinned,
+          });
+          setMenuVisible(false);
+        }}
+        onToggleLock={() => {
+          updateMemo(currentIdRef.current, {
+            isLocked: !currentMemoState?.isLocked,
+          });
+          setMenuVisible(false);
+        }}
+        onExportPdf={handleExportPdf}
+        onDelete={() => {
+          setMenuVisible(false);
+          if (currentMemoState?.isLocked) {
+            Toast.show({
+              type: 'error',
+              text1: '잠긴 메모는 삭제할 수 없습니다.',
+              position: 'top',
+              topOffset: 60,
+            });
+            return;
+          }
+          moveToTrash(currentIdRef.current);
+          router.back();
+        }}
+      />
 
-              <AppTouchableOpacity
-                style={[
-                  styles.menuItem,
-                  isDark && styles.darkMenuItem,
-                  !editorState.isFocused && { opacity: 0.4 },
-                ]}
-                onPress={handlePasteImage}
-                disabled={!editorState.isFocused}
-              >
-                <AppText>복사한 이미지 붙여넣기</AppText>
-              </AppTouchableOpacity>
-
-              <AppTouchableOpacity
-                style={[
-                  styles.menuItem,
-                  isDark && styles.darkMenuItem,
-                  !editorState.isFocused && { opacity: 0.4 },
-                ]}
-                onPress={handleAttachFile}
-                disabled={!editorState.isFocused}
-              >
-                <AppText>파일 첨부하기</AppText>
-              </AppTouchableOpacity>
-
-              <AppTouchableOpacity
-                style={[styles.menuItem, isDark && styles.darkMenuItem]}
-                onPress={() => {
-                  updateMemo(currentIdRef.current, {
-                    isPinned: !currentMemoState?.isPinned,
-                  });
-                  setMenuVisible(false);
-                }}
-              >
-                <AppText>
-                  {currentMemoState?.isPinned ? '고정 해제' : '메모 고정'}
-                </AppText>
-              </AppTouchableOpacity>
-
-              <AppTouchableOpacity
-                style={[styles.menuItem, isDark && styles.darkMenuItem]}
-                onPress={() => {
-                  updateMemo(currentIdRef.current, {
-                    isLocked: !currentMemoState?.isLocked,
-                  });
-                  setMenuVisible(false);
-                }}
-              >
-                <AppText>
-                  {currentMemoState?.isLocked ? '잠금 해제' : '메모 잠금'}
-                </AppText>
-              </AppTouchableOpacity>
-
-              <AppTouchableOpacity
-                style={[styles.menuItem, styles.lastMenuItem]}
-                onPress={() => {
-                  setMenuVisible(false);
-                  if (currentMemoState?.isLocked) {
-                    Toast.show({
-                      type: 'error',
-                      text1: '잠긴 메모는 삭제할 수 없습니다.',
-                      position: 'top',
-                      topOffset: 60,
-                    });
-                    return;
-                  }
-                  moveToTrash(currentIdRef.current);
-                  router.back();
-                }}
-              >
-                <AppText style={{ color: 'red' }}>삭제</AppText>
-              </AppTouchableOpacity>
-            </View>
-          </AppTouchableOpacity>
+      {/* 💡 PDF 생성 중 스피너 오버레이 */}
+      {isExporting && (
+        <View style={styles.fullScreenOverlay}>
+          <CustomSpinner />
         </View>
       )}
     </SafeAreaView>
@@ -885,17 +817,6 @@ const styles = StyleSheet.create({
     borderTopColor: '#eee',
   },
   darkToolbar: { backgroundColor: '#111111', borderTopColor: '#333' },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    height: 50,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f2f3',
-  },
-  headerBtnText: { fontSize: 16, color: '#666' },
-  searchInput: { flex: 1, marginRight: 10, fontSize: 16, paddingVertical: 5 },
   keyboardContainer: { flex: 1 },
   filesContainer: {
     paddingHorizontal: 20,
@@ -927,39 +848,27 @@ const styles = StyleSheet.create({
   },
   footer: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingBottom: 20,
     alignItems: 'center',
     justifyContent: 'flex-end',
+    height: 50,
+    paddingHorizontal: 20,
     borderTopWidth: 1,
-    borderColor: '#f1f1f1',
+    borderColor: 'rgba(0, 0, 0, 0.05)',
     backgroundColor: '#FCFBFA',
-    height: 80,
   },
   darkFooter: {
-    borderColor: '#333333',
+    borderColor: 'rgba(255, 255, 255, 0.05)',
     backgroundColor: '#111111',
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.1)',
-    justifyContent: 'flex-start',
-    alignItems: 'flex-end',
-    paddingTop: 100,
-    paddingRight: 20,
+  fullScreenOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
   },
-  menuBox: {
-    backgroundColor: '#ffffff',
-    width: 220,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  darkMenuBox: { backgroundColor: '#1e1e1e' },
-  menuItem: { padding: 16, borderBottomWidth: 1, borderBottomColor: '#f1f2f3' },
-  lastMenuItem: { borderBottomWidth: 0 },
-  darkMenuItem: { borderBottomColor: '#333' },
 });

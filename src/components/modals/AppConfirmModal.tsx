@@ -1,4 +1,3 @@
-// components/AppConfirmModal.tsx
 import React from 'react';
 import {
   View,
@@ -15,6 +14,12 @@ interface AppConfirmModalProps {
   visible: boolean;
   title?: string;
   message: string;
+
+  // 💡 상단에 단독으로 추가되는 버튼 (옵션)
+  topBtnText?: string;
+  topBtnColor?: string;
+  onTopBtnPress?: () => void;
+
   cancelText?: string;
   confirmText?: string;
   confirmColor?: string;
@@ -28,6 +33,9 @@ export default function AppConfirmModal({
   visible,
   title,
   message,
+  topBtnText,
+  topBtnColor = '#007AFF',
+  onTopBtnPress,
   cancelText = '취소',
   confirmText = '확인',
   confirmColor = '#007AFF',
@@ -79,6 +87,18 @@ export default function AppConfirmModal({
           <AppText style={[styles.alertMessage, isDark && styles.darkSubText]}>
             {message}
           </AppText>
+
+          {/* 💡 3가지 옵션을 위한 상단 추가 버튼 */}
+          {topBtnText && (
+            <AppTouchableOpacity
+              style={[styles.topBtn, isDark && styles.darkMenuItem]}
+              onPress={onTopBtnPress}
+            >
+              <AppText style={[styles.alertBtnText, { color: topBtnColor }]}>
+                {topBtnText}
+              </AppText>
+            </AppTouchableOpacity>
+          )}
 
           <View style={[styles.alertButtons, isDark && styles.darkMenuItem]}>
             {orderedButtons.map((btn, index) => (
@@ -136,12 +156,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   darkSubText: { color: '#aaa' },
+  topBtn: {
+    paddingVertical: 18,
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderColor: '#eee',
+  },
   alertButtons: {
     flexDirection: 'row',
     borderTopWidth: 1,
     borderColor: '#eee',
   },
-  darkMenuItem: { borderTopColor: '#333' },
-  alertBtn: { flex: 1, paddingVertical: 20, alignItems: 'center' },
+  darkMenuItem: { borderColor: '#333', borderTopColor: '#333' },
+  alertBtn: { flex: 1, paddingVertical: 18, alignItems: 'center' },
   alertBtnText: { fontSize: 16, color: '#007AFF' },
 });

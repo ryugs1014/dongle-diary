@@ -2,6 +2,12 @@ import React, { useEffect, useRef } from 'react';
 import { View, Modal, StyleSheet, Animated, Dimensions } from 'react-native';
 import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
 import RadioSettingItem from '@/components/common/RadioSettingItem';
+import {
+  OrderIcon,
+  OrderOldIcon,
+  SortDownIcon,
+  SortUpIcon,
+} from '@/assets/icons';
 
 export type MemoSearchSortType =
   'dateDesc' | 'dateAsc' | 'nameAsc' | 'nameDesc';
@@ -86,6 +92,7 @@ export default function SortMemoSearchBottomSheet({
               isSelected={sortType === 'dateDesc'}
               isDark={isDark}
               onPress={() => handleSort('dateDesc')}
+              icon={OrderIcon as any}
             />
             <View
               style={[styles.sortDivider, isDark && styles.darkSortDivider]}
@@ -96,6 +103,7 @@ export default function SortMemoSearchBottomSheet({
               isSelected={sortType === 'dateAsc'}
               isDark={isDark}
               onPress={() => handleSort('dateAsc')}
+              icon={OrderOldIcon as any}
             />
             <View
               style={[styles.sortDivider, isDark && styles.darkSortDivider]}
@@ -106,6 +114,7 @@ export default function SortMemoSearchBottomSheet({
               isSelected={sortType === 'nameAsc'}
               isDark={isDark}
               onPress={() => handleSort('nameAsc')}
+              icon={SortDownIcon as any}
             />
             <View
               style={[styles.sortDivider, isDark && styles.darkSortDivider]}
@@ -116,6 +125,7 @@ export default function SortMemoSearchBottomSheet({
               isSelected={sortType === 'nameDesc'}
               isDark={isDark}
               onPress={() => handleSort('nameDesc')}
+              icon={SortUpIcon as any}
             />
           </AppTouchableOpacity>
         </Animated.View>

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as FileSystem from 'expo-file-system/legacy'; // 💡 파일 시스템 추가
 
 export type DiaryBlock = {
   id: string;
@@ -30,6 +31,9 @@ export interface DraftEntry {
 export type AppLanguage = 'system' | 'ko' | 'en';
 export type AppTheme = 'system' | 'light' | 'dark';
 
+export type AppScreen = 'diary' | 'memo';
+export type StartupScreen = 'diary' | 'memo' | 'last_visited';
+
 interface DiaryStore {
   diaries: DiaryEntry[];
   selectedDate: string;
@@ -54,14 +58,13 @@ interface DiaryStore {
 
   addDiary: (diary: Omit<DiaryEntry, 'id' | 'timestamp'>) => void;
   updateDiary: (id: string, updated: Partial<DiaryEntry>) => void;
-  deleteDiary: (id: string) => void;
+  deleteDiary: (id: string) => void; // 💡 여기서 실제 파일도 지우게 됨
 
   saveDraft: (draft: DraftEntry) => void;
   clearDraft: () => void;
   isAppReady: boolean;
   setAppReady: (ready: boolean) => void;
 
-  // 추가: 시스템 팝업(공유 창 등) 호출 여부 방어 플래그
   isSystemAction: boolean;
   setIsSystemAction: (value: boolean) => void;
 
@@ -82,6 +85,11 @@ interface DiaryStore {
 
   setCalendarStartMonday: (enabled: boolean) => void;
   setAlwaysShowDate: (enabled: boolean) => void;
+
+  lastVisitedScreen: AppScreen;
+  setLastVisitedScreen: (screen: AppScreen) => void;
+  startupScreen: StartupScreen;
+  setStartupScreen: (screen: StartupScreen) => void;
 }
 
 const getLocalToday = () => {
@@ -96,9 +104,81 @@ const today = getLocalToday();
 const defaultAlarmTime = new Date();
 defaultAlarmTime.setHours(22, 0, 0, 0);
 
+// 💡 [핵심] 일기 삭제 시 실제 기기 용량을 비워주는 파일 삭제 함수
+const deleteDiaryFiles = async (
+  diariesToDelete: DiaryEntry[],
+  allDiaries: DiaryEntry[],
+) => {
+  try {
+    const urisToDelete = new Set<string>();
+
+    // 1. 삭제할 일기에서 파일 경로 추출 (HTML content 안의 이미지 및 구버전 blocks)
+    diariesToDelete.forEach((diary) => {
+      if (diary.content) {
+        const regex = /src=["']?(file:\/\/[^"'\s>]+)["']?/gi;
+        let match;
+        while ((match = regex.exec(diary.content)) !== null) {
+          urisToDelete.add(match[1]);
+        }
+      }
+
+      // 구버전(blocks) 일기 데이터 하위 호환성 유지
+      if (diary.blocks) {
+        diary.blocks.forEach((block) => {
+          if (block.type === 'image' && block.value.startsWith('file://')) {
+            urisToDelete.add(block.value);
+          }
+        });
+      }
+    });
+
+    if (urisToDelete.size === 0) return;
+
+    // 2. 남은 일기들에서 파일 경로 추출 (교집합으로 인한 오작동 방어)
+    const remainingDiaries = allDiaries.filter(
+      (d) => !diariesToDelete.some((rd) => rd.id === d.id),
+    );
+    const urisToKeep = new Set<string>();
+
+    remainingDiaries.forEach((diary) => {
+      if (diary.content) {
+        const regex = /src=["']?(file:\/\/[^"'\s>]+)["']?/gi;
+        let match;
+        while ((match = regex.exec(diary.content)) !== null) {
+          urisToKeep.add(match[1]);
+        }
+      }
+      if (diary.blocks) {
+        diary.blocks.forEach((block) => {
+          if (block.type === 'image' && block.value.startsWith('file://')) {
+            urisToKeep.add(block.value);
+          }
+        });
+      }
+    });
+
+    // 3. 사용 중이지 않은 파일만 실제 기기에서 삭제 처리
+    for (const uri of urisToDelete) {
+      if (!urisToKeep.has(uri)) {
+        const fileInfo = await FileSystem.getInfoAsync(uri);
+        if (fileInfo.exists) {
+          await FileSystem.deleteAsync(uri, { idempotent: true });
+          console.log(
+            '🗑️ [완전 삭제] 더 이상 쓰이지 않는 일기 이미지 삭제됨:',
+            uri,
+          );
+        }
+      }
+    }
+  } catch (error) {
+    console.log('로컬 일기 파일 삭제 중 에러 발생:', error);
+  }
+};
+
 export const useDiaryStore = create<DiaryStore>()(
   persist(
-    (set) => ({
+    // 💡 get()을 사용하기 위해 set 옆에 get 추가
+    (set, get) => ({
       diaries: [],
       selectedDate: today,
       selectedEmotions: [],
@@ -132,10 +212,22 @@ export const useDiaryStore = create<DiaryStore>()(
             d.id === id ? { ...d, ...updated } : d,
           ),
         })),
-      deleteDiary: (id) =>
+
+      // 💡 진짜 영구 삭제 시 백그라운드에서 파일 삭제
+      deleteDiary: (id) => {
+        const state = get();
+        const diaryToDelete = state.diaries.find((d) => d.id === id);
+
+        // UI 즉시 반영을 위해 상태 먼저 업데이트
         set((state) => ({
           diaries: state.diaries.filter((d) => d.id !== id),
-        })),
+        }));
+
+        // 백그라운드에서 안전하게 파일 정리
+        if (diaryToDelete) {
+          deleteDiaryFiles([diaryToDelete], state.diaries).catch(console.error);
+        }
+      },
 
       saveDraft: (draft) => set({ draft }),
       clearDraft: () => set({ draft: null }),
@@ -163,6 +255,11 @@ export const useDiaryStore = create<DiaryStore>()(
       setCalendarStartMonday: (enabled) =>
         set({ calendarStartMonday: enabled }),
       setAlwaysShowDate: (enabled) => set({ alwaysShowDate: enabled }),
+
+      lastVisitedScreen: 'diary',
+      setLastVisitedScreen: (screen) => set({ lastVisitedScreen: screen }),
+      startupScreen: 'diary',
+      setStartupScreen: (screen) => set({ startupScreen: screen }),
     }),
     {
       name: 'diary-storage',
@@ -175,7 +272,6 @@ export const useDiaryStore = create<DiaryStore>()(
         },
       }),
       partialize: (state) => {
-        // selectedDate는 저장 목록에서 빼고(앱 켤때마다 오늘 날짜로 초기화), 나머지만 저장합니다.
         const { selectedDate, isAppReady, ...rest } = state;
         return rest;
       },

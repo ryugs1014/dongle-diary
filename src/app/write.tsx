@@ -47,8 +47,119 @@ import { FONT_SIZES } from '@/constants/font';
 import EmotionSelectModal from '@/components/modals/EmotionSelectModal';
 import Toast from 'react-native-toast-message';
 
+// 💡 메모장에서 사용하던 파일 시스템 및 암호화 라이브러리 임포트
+import * as Crypto from 'expo-crypto';
+import * as FileSystem from 'expo-file-system/legacy';
+import { IMAGE_DIR } from '@/utils/image';
+
 // 지워지지 않는 기본 블록 상수화 (좌측 정렬 + 빈 줄)
 const BASE_BLOCK = '<div style="text-align: left;"><br></div>';
+
+// 💡 메모장의 이미지 분리 저장 로직 추가
+const processHtmlForSave = async (html: string) => {
+  let processedHtml = html;
+
+  const regex = /src=["']?(data:image\/([^;]+);base64,([^"'>\s]+))["']?/gi;
+  const matches = [...html.matchAll(regex)];
+
+  try {
+    const dirInfo = await FileSystem.getInfoAsync(IMAGE_DIR);
+    if (!dirInfo.exists) {
+      await FileSystem.makeDirectoryAsync(IMAGE_DIR, { intermediates: true });
+    }
+  } catch (dirError) {
+    console.log('디렉토리 생성 실패:', dirError);
+  }
+
+  for (const match of matches) {
+    const fullSrc = match[1];
+    const ext = match[2] === 'jpeg' ? 'jpg' : match[2];
+    const base64Data = match[3];
+
+    // 해시값을 이용하여 동일 이미지 중복 저장 방지
+    const hash = await Crypto.digestStringAsync(
+      Crypto.CryptoDigestAlgorithm.SHA256,
+      base64Data.substring(0, 500) + base64Data.length,
+    );
+    const fileName = `${hash}.${ext}`;
+    const fileUri = IMAGE_DIR + fileName;
+
+    const fileInfo = await FileSystem.getInfoAsync(fileUri);
+    if (!fileInfo.exists) {
+      await FileSystem.writeAsStringAsync(fileUri, base64Data, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      console.log(`✅ [저장 3단계] 새 로컬 파일 생성됨: ${fileName}`);
+    } else {
+      console.log(
+        `🔄 [저장 3단계] 이미 동일한 로컬 파일이 존재함: ${fileName}`,
+      );
+    }
+
+    // HTML 내부의 엄청나게 긴 base64 소스를 짧은 file:// 경로로 치환
+    processedHtml = processedHtml.replace(fullSrc, fileUri);
+  }
+
+  return processedHtml;
+};
+
+// 💡 메모장의 이미지 불러오기(로컬파일 -> Base64 변환) 로직 추가
+const processHtmlForLoad = async (html: string) => {
+  if (!html) return '<h1></h1>';
+  let processedHtml = html;
+
+  const regex = /src=["']?([^"'\s>]+)["']?/gi;
+  const matches = [...html.matchAll(regex)];
+
+  for (const match of matches) {
+    const fullSrc = match[1];
+
+    if (fullSrc.startsWith('data:')) {
+      continue;
+    }
+
+    let fileUri = fullSrc;
+    if (!fileUri.startsWith('file://') && !fileUri.startsWith('http')) {
+      fileUri = 'file://' + fileUri.replace(/^[/\\]+/, '/');
+    }
+
+    const targetFileName = fullSrc.split('/').pop()?.split('?')[0] || '';
+
+    try {
+      let fileInfo = await FileSystem.getInfoAsync(fileUri);
+
+      if (!fileInfo.exists && targetFileName) {
+        const safeDir = IMAGE_DIR.endsWith('/') ? IMAGE_DIR : `${IMAGE_DIR}/`;
+        fileUri = safeDir + targetFileName;
+        fileInfo = await FileSystem.getInfoAsync(fileUri);
+      }
+
+      if (fileInfo.exists) {
+        if (fileInfo.size === 0) {
+          continue;
+        }
+
+        const base64Data = await FileSystem.readAsStringAsync(fileUri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+
+        const ext = targetFileName.split('.').pop()?.toLowerCase() || 'jpg';
+        const mimeType = ext === 'jpg' || ext === 'jpeg' ? 'jpeg' : ext;
+
+        const cleanBase64 = base64Data.replace(/(\r\n|\n|\r|\s)/gm, '');
+        const base64Src = `data:image/${mimeType};base64,${cleanBase64}`;
+
+        processedHtml = processedHtml.replace(fullSrc, base64Src);
+      } else {
+        console.log(`🚨 [로드 실패] 기기에서 끝내 이미지를 찾을 수 없음`);
+      }
+    } catch (e) {
+      console.log(`❌ [로드 중 에러 발생]:`, e);
+    }
+  }
+
+  return processedHtml;
+};
 
 export default function WriteScreen() {
   const insets = useSafeAreaInsets();
@@ -122,10 +233,7 @@ export default function WriteScreen() {
 
   useEffect(() => {
     const backAction = () => {
-      // 뒤로 가기 버튼을 눌렀을 때 취소 모달을 띄웁니다.
       setCancelModalVisible(true);
-
-      // true를 반환하면 안드로이드 기본 뒤로 가기 동작(화면 이탈)을 막습니다.
       return true;
     };
 
@@ -137,7 +245,6 @@ export default function WriteScreen() {
     return () => backHandler.remove();
   }, []);
 
-  // 모달이 떠 있을 때는 에디터 포커스를 강제로 해제
   useEffect(() => {
     if (draftModalVisible || cancelModalVisible || emotionModalVisible) {
       Keyboard.dismiss();
@@ -145,7 +252,6 @@ export default function WriteScreen() {
     }
   }, [draftModalVisible, cancelModalVisible, emotionModalVisible]);
 
-  // 텍스트가 완전히 비어있는지 체크하는 유틸리티 함수
   const checkIsEmptyText = (html: string) => {
     const plainText = html
       .replace(/<[^>]*>?/gm, '')
@@ -173,7 +279,6 @@ export default function WriteScreen() {
       }
     } else {
       if (draft && draft.date === selectedDate) {
-        // 인덱스에서 넘어온 자동 로드 신호가 있다면 모달 없이 즉시 세팅
         if (autoLoadDraft === 'true') {
           setTitle(draft.title || '');
           if (draft.title) setIsTitleActive(true);
@@ -187,26 +292,30 @@ export default function WriteScreen() {
     }
   }, [editId, selectedDate, autoLoadDraft]);
 
-  const handleEditorInit = () => {
+  // 💡 데이터 로드 시 HTML 안의 로컬 파일을 다시 에디터 렌더링용 Base64로 복원
+  const handleEditorInit = async () => {
     richText.current?.sendAction(actions.alignLeft, 'result');
 
     if (editId) {
       const existingDiary = diaries.find((d) => d.id === editId);
       if (existingDiary) {
         isInitializingRef.current = true;
+        const loadedHtml = await processHtmlForLoad(
+          existingDiary.content || BASE_BLOCK,
+        );
 
         setTimeout(() => {
-          richText.current?.setContentHTML(existingDiary.content || BASE_BLOCK);
-
+          richText.current?.setContentHTML(loadedHtml);
           forceLayoutReflow(true);
         }, 500);
       }
     } else if (autoLoadDraft === 'true' && draft) {
-      // 🌟 에디터 초기화 시점에 임시저장 HTML 세팅
       isInitializingRef.current = true;
+      const loadedHtml = await processHtmlForLoad(draft.content || BASE_BLOCK);
+
       setTimeout(() => {
-        richText.current?.setContentHTML(draft.content || BASE_BLOCK);
-        setIsPlaceholderVisible(checkIsEmptyText(draft.content || ''));
+        richText.current?.setContentHTML(loadedHtml);
+        setIsPlaceholderVisible(checkIsEmptyText(loadedHtml));
         forceLayoutReflow(true);
       }, 500);
     } else {
@@ -223,16 +332,13 @@ export default function WriteScreen() {
 
   const handleEmotionToggle = (id: string) => {
     if (selectedEmotions.includes(id)) {
-      // 이미 선택된 감정을 다시 누르면 해제
       setSelectedEmotions(selectedEmotions.filter((e) => e !== id));
     } else {
       if (selectedEmotions.length >= 4) {
-        // 경고창(Alert)을 띄우지 않고, 4번째 감정을 새로운 감정으로 교체합니다.
         const newEmotions = [...selectedEmotions];
         newEmotions[3] = id;
         setSelectedEmotions(newEmotions);
       } else {
-        // 4개 미만일 때는 자연스럽게 추가
         setSelectedEmotions([...selectedEmotions, id]);
       }
     }
@@ -246,10 +352,13 @@ export default function WriteScreen() {
       '',
     );
 
+    // 💡 저장 전 처리: HTML에서 Base64를 추출하고 기기에 분리 저장
+    const processedContent = await processHtmlForSave(currentContent);
+
     saveDraft({
       date: selectedDate,
       title,
-      content: currentContent,
+      content: processedContent,
       emotions: selectedEmotions,
     });
     Toast.show({
@@ -298,9 +407,12 @@ export default function WriteScreen() {
 
     clearDraft();
 
+    // 💡 저장 전 처리: HTML에서 Base64를 추출하고 기기에 분리 저장
+    const processedContent = await processHtmlForSave(currentContent);
+
     const diaryData = {
       title,
-      content: currentContent,
+      content: processedContent,
       emotions: selectedEmotions,
     };
 
@@ -318,17 +430,11 @@ export default function WriteScreen() {
 
   const forceLayoutReflow = (isInit = false) => {
     setTimeout(() => {
-      // 1. 투명하고 크기가 없는 더미 이미지를 에디터에 밀어 넣습니다.
-      // 2. 존재하지 않는 주소(dummy_url)이므로 에러(onerror)가 즉시 발생합니다.
-      // 3. 에러 발생 시 스스로를 DOM에서 완벽하게 삭제(removeChild)합니다.
-      // => 결과적으로 정렬이나 텍스트에는 1%도 영향을 주지 않고, 웹뷰의 강제 높이 재계산만 발생합니다!
       const selfDestructingTag = `<img src="dummy_url" style="position: absolute; top: -9999px; left: -9999px;width:0;height:0;display:none;" onerror="this.parentNode.removeChild(this);" />`;
       richText.current?.insertHTML(selfDestructingTag);
 
       if (isInit) {
-        // 초기화 중에 삽입 명령어가 실행되면서 포커스를 빼앗지 못하도록 방어
         richText.current?.blurContentEditor();
-
         setTimeout(() => {
           isInitializingRef.current = false;
         }, 1500);
@@ -336,19 +442,21 @@ export default function WriteScreen() {
     }, 800);
   };
 
-  // 중복되는 임시저장 로드 로직을 함수로 분리
-  const loadDraftData = () => {
+  const loadDraftData = async () => {
     if (!draft) return;
 
     setTitle(draft?.title || '');
     if (draft?.title) setIsTitleActive(true);
     setSelectedEmotions(draft?.emotions || []);
 
-    // 🌟 autoLoadDraft와 완전히 동일한 방식으로 동작하도록 보강
     isInitializingRef.current = true;
+
+    // 💡 데이터 로드 시에도 이미지 분리 처리를 거칩니다.
+    const loadedHtml = await processHtmlForLoad(draft?.content || BASE_BLOCK);
+
     setTimeout(() => {
-      richText.current?.setContentHTML(draft?.content || BASE_BLOCK);
-      setIsPlaceholderVisible(checkIsEmptyText(draft?.content || ''));
+      richText.current?.setContentHTML(loadedHtml);
+      setIsPlaceholderVisible(checkIsEmptyText(loadedHtml));
       forceLayoutReflow(true);
     }, 300);
   };
@@ -358,7 +466,7 @@ export default function WriteScreen() {
       mediaTypes: ['images'],
       allowsEditing: true,
       quality: 0.8,
-      base64: true,
+      base64: true, // 에디터에는 Base64로 던져주고, 저장할 때 processHtmlForSave가 처리합니다.
     });
 
     if (!result.canceled && result.assets[0].base64) {
@@ -371,8 +479,6 @@ export default function WriteScreen() {
     `);
 
       setIsPlaceholderVisible(false);
-
-      // 이미지가 삽입된 후에도 레이아웃 강제 새로고침
       forceLayoutReflow();
 
       setTimeout(() => {
@@ -443,7 +549,7 @@ export default function WriteScreen() {
   useEffect(() => {
     Animated.timing(fadePlus, {
       toValue: showPlusBtn ? 1 : 0,
-      duration: 200, // 0.2초
+      duration: 200,
       useNativeDriver: true,
     }).start();
 
@@ -510,18 +616,13 @@ export default function WriteScreen() {
           <View style={styles.contentWrapper}>
             <View style={styles.infoArea}>
               <AppTouchableOpacity
-                // onPress={() => setEmotionModalVisible(true)}
                 onPress={() => {
-                  // 모달을 열기 전에 키보드를 내리고 에디터 포커스를 완벽히 해제합니다.
                   Keyboard.dismiss();
                   richText.current?.blurContentEditor();
-
-                  // 약간의 딜레이를 주어 키보드가 내려간 후 모달이 뜨도록 처리
                   setTimeout(() => {
                     setEmotionModalVisible(true);
                   }, 100);
                 }}
-
                 style={styles.selectedEmotionsContainer}
               >
                 {selectedEmotions.length > 0 ? (
@@ -533,7 +634,7 @@ export default function WriteScreen() {
                         EMOTION_IMAGE_MAP[emotionId]
                       }
                       style={styles.topEmotionImage}
-                      contentFit="contain" // resizeMode 대신 contentFit
+                      contentFit="contain"
                     />
                   ))
                 ) : (
@@ -564,7 +665,6 @@ export default function WriteScreen() {
                 style={[
                   styles.titleInput,
                   {
-                    // height: 'auto',
                     fontFamily:
                       diaryFontFamily === 'System'
                         ? undefined
@@ -582,10 +682,9 @@ export default function WriteScreen() {
                 onChangeText={(val) => setTitle(val.replace(/\n/g, ''))}
               />
 
-              {/* (+) 제목 추가 버튼: showPlusBtn이 true일 때 나타남 */}
               <Animated.View
                 style={[styles.addTitleBtn, { opacity: fadePlus }]}
-                pointerEvents={showPlusBtn ? 'auto' : 'none'} // 투명할 땐 터치 무시
+                pointerEvents={showPlusBtn ? 'auto' : 'none'}
               >
                 <AppTouchableOpacity
                   activeOpacity={1}
@@ -608,10 +707,9 @@ export default function WriteScreen() {
                 </AppTouchableOpacity>
               </Animated.View>
 
-              {/* (-) 제목 빼기 버튼: showPlusBtn이 false일 때 나타남 */}
               <Animated.View
                 style={[styles.addDisabledTitleBtn, { opacity: fadeMinus }]}
-                pointerEvents={!showPlusBtn ? 'auto' : 'none'} // 투명할 땐 터치 무시
+                pointerEvents={!showPlusBtn ? 'auto' : 'none'}
               >
                 <AppTouchableOpacity
                   activeOpacity={1}
@@ -641,9 +739,6 @@ export default function WriteScreen() {
                 { minHeight: Math.max(300, editorHeight) },
               ]}
             >
-              {/* 커스텀 Placeholder
-                  pointerEvents="none" 속성 덕분에
-                  플레이스홀더 영역을 터치해도 그 뒤의 에디터가 정상적으로 포커스됩니다. */}
               {isPlaceholderVisible && (
                 <View style={styles.customPlaceholder} pointerEvents="none">
                   <AppText
@@ -670,24 +765,15 @@ export default function WriteScreen() {
                 scrollEnabled={false}
                 useCharacter={false}
                 androidHardwareAccelerationDisabled
-
-                // 1. 에디터를 터치하면 포커스 상태 켜기
                 onFocus={() => {
                   isEditorFocusedRef.current = true;
                 }}
-
-                // 2. 에디터 밖을 터치(키보드 닫힘 등)하면 포커스 끄기
                 onBlur={() => {
                   isEditorFocusedRef.current = false;
                 }}
-
-                // 4. 웹뷰 내부 높이가 변할 때 React Native 부모 컴포넌트 강제 리렌더링
                 onHeightChange={(height) => {
-                  // 50px 정도 여유 공간을 더해주어 하단 커서 잘림을 완벽히 방지
                   setEditorHeight(height + 50);
                 }}
-
-                // 5. 공식 문서 해결책 적용: 커서 이동 시 해당 위치로 자동 스크롤
                 onCursorPosition={(scrollY) => {
                   if (isInitializingRef.current || !isEditorFocusedRef.current)
                     return;
@@ -697,14 +783,11 @@ export default function WriteScreen() {
                     animated: true,
                   });
                 }}
-
                 onChange={(html) => {
                   if (isInitializingRef.current) return;
 
-                  // 1. Placeholder 가시성 업데이트 로직
                   setIsPlaceholderVisible(checkIsEmptyText(html));
 
-                  // 2. 안드로이드 백스페이스 방어 로직
                   const isTagEmpty =
                     html === '' ||
                     html === '<br>' ||
@@ -716,7 +799,6 @@ export default function WriteScreen() {
                     richText.current?.setContentHTML(BASE_BLOCK);
                   }
                 }}
-
                 editorStyle={{
                   backgroundColor: isDark ? '#111111' : '#FCFBFA',
                   color: isDark ? '#ffffff' : '#111111',
@@ -822,7 +904,7 @@ export default function WriteScreen() {
         }}
         onConfirm={() => {
           setDraftModalVisible(false);
-          loadDraftData(); // 분리된 함수 사용
+          loadDraftData();
         }}
         closeOnOverlayPress={false}
       />
@@ -990,11 +1072,11 @@ const styles = StyleSheet.create({
     height: 50,
     paddingHorizontal: 20,
     borderTopWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(0, 0, 0, 0.05)',
     backgroundColor: '#FCFBFA',
   },
   darkBottomArea: {
-    borderColor: 'rgba(0, 0, 0, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.05)',
     backgroundColor: '#111111',
   },
   toolbar: { flexDirection: 'row', gap: 10 },

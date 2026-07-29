@@ -4,71 +4,42 @@ import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
 import AppText from '@/components/atoms/AppText';
 import { Stack, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useDiaryStore } from '../store/useDiaryStore';
+import { useDiaryStore } from '@/store/useDiaryStore';
+import { useMemoStore } from '@/store/useMemoStore';
 import {
   BackIcon,
   ArrowRightIcon,
-  LockIcon,
-  ThemeIcon,
-  FontIcon,
-  LanguageIcon,
-  InfoIcon,
-  CalandarIcon,
-  DocumentIcon,
+  TrashIcon,
   ScreenIcon,
-} from '../../assets/icons'; // DocumentIcon 추가 필요할 수 있음
+  BackupIcon,
+  PdfIcon,
+} from '@/assets/icons';
 import SvgDashedLine from '@/components/ui/SvgDashedLine';
 
-export default function SettingsScreen() {
-  const {
-    language,
-    theme,
-    diaryFontSize,
-    startupScreen,
-    isLockEnabled,
-    isBiometricEnabled,
-  } = useDiaryStore();
+export default function MemoSettingsScreen() {
+  const { theme } = useDiaryStore();
+  const { autoDeleteDays, memoStartupScreen } = useMemoStore();
 
   const systemColorScheme = useColorScheme();
   const isDark =
     theme === 'system' ? systemColorScheme === 'dark' : theme === 'dark';
 
-  const getLanguageText = () => {
-    if (language === 'ko') return '한국어';
-    if (language === 'en') return 'English';
-    return '시스템 기본값';
-  };
-
-  const getThemeText = () => {
-    if (theme === 'light') return '라이트 모드';
-    if (theme === 'dark') return '다크 모드';
-    return '시스템 기본값';
-  };
-
-  const getStartupText = () => {
-    if (startupScreen === 'diary') return '일기장';
-    if (startupScreen === 'memo') return '메모장';
+  const getMemoStartupText = () => {
+    if (memoStartupScreen === 'folder') return '폴더 목록';
+    if (memoStartupScreen === 'list') return '메모 목록';
     return '마지막 접속 화면';
   };
 
-  const getLockText = () => {
-    if (!isLockEnabled) return '꺼짐';
-    if (isBiometricEnabled) return '켜짐 (생체인증)';
-    return '켜짐';
+  const getAutoDeleteText = () => {
+    if (autoDeleteDays === 0) return '꺼짐';
+    return `${autoDeleteDays}일`;
   };
 
-  const SettingItem = ({
-    IconComponent,
-    title,
-    onPress,
-    rightText,
-    hideChevron,
-  }: any) => (
+  const SettingItem = ({ IconComponent, title, onPress, rightText }: any) => (
     <AppTouchableOpacity
       style={styles.settingItem}
       onPress={onPress}
-      disabled={!onPress}
-      activeOpacity={onPress ? 0.7 : 1}
+      activeOpacity={0.7}
     >
       <View style={styles.settingLeft}>
         <View style={styles.settingIcon}>
@@ -84,23 +55,15 @@ export default function SettingsScreen() {
       </View>
       <View style={styles.settingRight}>
         {rightText && (
-          <AppText
-            style={[
-              styles.rightText,
-              isDark && styles.darkSubText,
-              hideChevron && styles.hideChevron,
-            ]}
-          >
+          <AppText style={[styles.rightText, isDark && styles.darkSubText]}>
             {rightText}
           </AppText>
         )}
-        {!hideChevron && onPress && (
-          <ArrowRightIcon
-            width={28}
-            height={28}
-            color={isDark ? '#666' : '#ccc'}
-          />
-        )}
+        <ArrowRightIcon
+          width={28}
+          height={28}
+          color={isDark ? '#666' : '#ccc'}
+        />
       </View>
     </AppTouchableOpacity>
   );
@@ -111,7 +74,6 @@ export default function SettingsScreen() {
       style={[styles.container, isDark && styles.darkContainer]}
     >
       <Stack.Screen options={{ headerShown: false }} />
-
       <View style={[styles.customHeader, isDark && styles.darkCustomHeader]}>
         <View style={styles.leftIconsWrapper}>
           <AppTouchableOpacity onPress={() => router.back()}>
@@ -126,7 +88,7 @@ export default function SettingsScreen() {
           <AppText
             style={[styles.customHeaderTitle, isDark && styles.darkText]}
           >
-            설정
+            설정 - 메모장
           </AppText>
         </View>
         <View style={styles.rightIconsWrapper} />
@@ -136,68 +98,27 @@ export default function SettingsScreen() {
         style={styles.scrollWrapper}
         contentContainerStyle={{ paddingBottom: 40, paddingTop: 10 }}
       >
-        {/* 💡 새로 만든 설정 카테고리 진입점 */}
         <SettingItem
-          IconComponent={CalandarIcon}
-          title="일기장"
-          onPress={() => router.push('/diary-settings')}
-        />
-        <SettingItem
-          IconComponent={DocumentIcon}
-          title="메모장"
-          onPress={() => router.push('/memo-settings')}
+          IconComponent={BackupIcon}
+          title="드라이브 백업 · 복원"
+          onPress={() => router.push('/memo-backup-settings')}
         />
 
         <View style={styles.dividerWrapper}>
           <SvgDashedLine />
         </View>
 
-        {/* 앱 공통 설정 */}
         <SettingItem
           IconComponent={ScreenIcon}
-          title="시작 화면"
-          rightText={getStartupText()}
-          onPress={() => router.push('/start-settings')}
+          title="메모장 시작 화면"
+          rightText={getMemoStartupText()}
+          onPress={() => router.push('/memo-start-settings')}
         />
         <SettingItem
-          IconComponent={LockIcon}
-          title="암호 잠금"
-          rightText={getLockText()}
-          onPress={() => router.push('/lock-settings')}
-        />
-
-        <View style={styles.dividerWrapper}>
-          <SvgDashedLine />
-        </View>
-
-        <SettingItem
-          IconComponent={ThemeIcon}
-          title="화면 테마"
-          rightText={getThemeText()}
-          onPress={() => router.push('/theme-settings')}
-        />
-        <SettingItem
-          IconComponent={FontIcon}
-          title="글꼴 · 크기"
-          rightText={`크기 ${diaryFontSize}단계`}
-          onPress={() => router.push('/font-settings')}
-        />
-        <SettingItem
-          IconComponent={LanguageIcon}
-          title="언어 · Language"
-          rightText={getLanguageText()}
-          onPress={() => router.push('/language-settings')}
-        />
-
-        <View style={styles.dividerWrapper}>
-          <SvgDashedLine />
-        </View>
-
-        <SettingItem
-          IconComponent={InfoIcon}
-          title="버전 정보"
-          rightText="v1.0.0"
-          hideChevron={true}
+          IconComponent={TrashIcon}
+          title="자동 삭제"
+          rightText={getAutoDeleteText()}
+          onPress={() => router.push('/memo-delete-settings')}
         />
       </ScrollView>
     </SafeAreaView>
@@ -225,6 +146,7 @@ const styles = StyleSheet.create({
   },
   headerTitleWrapper: { flex: 2, alignItems: 'center' },
   customHeaderTitle: { fontSize: 16, fontWeight: 'bold' },
+  darkText: { color: '#ffffff' },
   rightIconsWrapper: { flex: 1 },
   settingItem: {
     flexDirection: 'row',
@@ -237,10 +159,8 @@ const styles = StyleSheet.create({
   settingRight: { flexDirection: 'row', alignItems: 'center' },
   settingIcon: { marginRight: 10 },
   settingTitle: { fontSize: 16, color: '#333' },
-  darkText: { color: '#ffffff' },
   rightText: { fontSize: 14, color: '#888', marginRight: 10 },
   darkSubText: { color: '#aaa' },
-  hideChevron: { fontSize: 16, marginRight: 10 },
   scrollWrapper: { paddingVertical: 10 },
   dividerWrapper: { paddingHorizontal: 20, paddingVertical: 10 },
 });

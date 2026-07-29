@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as FileSystem from 'expo-file-system/legacy';
 
 export interface MemoFile {
   uri: string;
@@ -30,6 +31,9 @@ export interface FolderEntry {
   createdAt: number;
 }
 
+export type MemoScreenType = 'folder' | 'list';
+export type MemoStartupType = 'folder' | 'list' | 'last_visited';
+
 interface MemoStore {
   memos: MemoEntry[];
   addMemo: (
@@ -58,11 +62,88 @@ interface MemoStore {
   activeFolderId: string | null;
   setActiveFolderId: (id: string | null) => void;
   reorderFolders: (newFolders: FolderEntry[]) => void;
+
+  autoDeleteDays: number;
+  setAutoDeleteDays: (days: number) => void;
+
+  lastVisitedMemoScreen: MemoScreenType;
+  setLastVisitedMemoScreen: (screen: MemoScreenType) => void;
+  memoStartupScreen: MemoStartupType;
+  setMemoStartupScreen: (screen: MemoStartupType) => void;
+
+  // 💡 구글 드라이브 백업용 상태
+  googleToken: string | null;
+  googleEmail: string | null;
+  lastBackupDate: string | null;
+  setGoogleAuth: (token: string | null, email: string | null) => void;
+  setLastBackupDate: (date: string | null) => void;
+  restoreMemoData: (memos: MemoEntry[], folders: FolderEntry[]) => void;
 }
+
+// 💡 [핵심] 영구 삭제 시 실제 기기 용량을 비워주는 안전한 파일 삭제 함수
+const deleteMemoFiles = async (
+  memosToDelete: MemoEntry[],
+  allMemos: MemoEntry[],
+) => {
+  try {
+    const urisToDelete = new Set<string>();
+
+    // 1. 삭제할 메모들에서 파일 경로 추출 (본문 이미지 + 첨부파일)
+    memosToDelete.forEach((memo) => {
+      const regex = /src=["']?(file:\/\/[^"'\s>]+)["']?/gi;
+      let match;
+      while ((match = regex.exec(memo.content)) !== null) {
+        urisToDelete.add(match[1]);
+      }
+      if (memo.files) {
+        memo.files.forEach((f) => {
+          if (f.uri.startsWith('file://')) urisToDelete.add(f.uri);
+        });
+      }
+    });
+
+    if (urisToDelete.size === 0) return;
+
+    // 2. 삭제되지 않고 "남아있는" 나머지 메모들의 파일 경로 추출 (교집합 방지)
+    const remainingMemos = allMemos.filter(
+      (m) => !memosToDelete.some((rm) => rm.id === m.id),
+    );
+    const urisToKeep = new Set<string>();
+
+    remainingMemos.forEach((memo) => {
+      const regex = /src=["']?(file:\/\/[^"'\s>]+)["']?/gi;
+      let match;
+      while ((match = regex.exec(memo.content)) !== null) {
+        urisToKeep.add(match[1]);
+      }
+      if (memo.files) {
+        memo.files.forEach((f) => {
+          if (f.uri.startsWith('file://')) urisToKeep.add(f.uri);
+        });
+      }
+    });
+
+    // 3. 사용 중이지 않은 파일만 실제 기기에서 삭제 처리
+    for (const uri of urisToDelete) {
+      if (!urisToKeep.has(uri)) {
+        const fileInfo = await FileSystem.getInfoAsync(uri);
+        if (fileInfo.exists) {
+          await FileSystem.deleteAsync(uri, { idempotent: true });
+          console.log(
+            '🗑️ [완전 삭제] 더 이상 쓰이지 않는 이미지/파일 삭제됨:',
+            uri,
+          );
+        }
+      }
+    }
+  } catch (error) {
+    console.log('로컬 파일 삭제 중 에러 발생:', error);
+  }
+};
 
 export const useMemoStore = create<MemoStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       memos: [],
       addMemo: (memo) =>
         set((state) => {
@@ -81,13 +162,33 @@ export const useMemoStore = create<MemoStore>()(
           ),
         })),
 
-      // 진짜 영구 삭제 (휴지통 비우기 등에서 사용)
-      deleteMemo: (id) =>
-        set((state) => ({ memos: state.memos.filter((m) => m.id !== id) })),
-      deleteMultipleMemos: (ids) =>
+      // 💡 진짜 영구 삭제 시 백그라운드에서 파일 삭제
+      deleteMemo: (id) => {
+        const state = get();
+        const memoToDelete = state.memos.find((m) => m.id === id);
+
+        // UI 즉시 반영을 위해 상태 먼저 업데이트
+        set((state) => ({ memos: state.memos.filter((m) => m.id !== id) }));
+
+        // 백그라운드에서 안전하게 파일 정리
+        if (memoToDelete) {
+          deleteMemoFiles([memoToDelete], state.memos).catch(console.error);
+        }
+      },
+
+      // 💡 다중 영구 삭제 시 백그라운드에서 파일 삭제
+      deleteMultipleMemos: (ids) => {
+        const state = get();
+        const memosToDelete = state.memos.filter((m) => ids.includes(m.id));
+
         set((state) => ({
           memos: state.memos.filter((m) => !ids.includes(m.id)),
-        })),
+        }));
+
+        if (memosToDelete.length > 0) {
+          deleteMemoFiles(memosToDelete, state.memos).catch(console.error);
+        }
+      },
 
       // 🔥 휴지통 이동 로직 (deletedAt 스탬프 찍기)
       moveToTrash: (id) =>
@@ -119,17 +220,31 @@ export const useMemoStore = create<MemoStore>()(
           ),
         })),
 
-      // 🔥 30일 경과한 휴지통 메모 자동 청소
-      cleanupTrash: () =>
-        set((state) => {
-          const now = Date.now();
-          const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
-          return {
-            memos: state.memos.filter(
-              (m) => !m.deletedAt || now - m.deletedAt < THIRTY_DAYS,
-            ),
-          };
-        }),
+      autoDeleteDays: 30,
+      setAutoDeleteDays: (days) => set({ autoDeleteDays: days }),
+
+      // 💡 자동 삭제(30일 경과) 시 백그라운드에서 파일 삭제
+      cleanupTrash: () => {
+        const state = get();
+        if (state.autoDeleteDays === 0) return;
+
+        const now = Date.now();
+        const DELETE_INTERVAL = state.autoDeleteDays * 24 * 60 * 60 * 1000;
+
+        const memosToDelete = state.memos.filter(
+          (m) => m.deletedAt && now - m.deletedAt >= DELETE_INTERVAL,
+        );
+
+        set((state) => ({
+          memos: state.memos.filter(
+            (m) => !m.deletedAt || now - m.deletedAt < DELETE_INTERVAL,
+          ),
+        }));
+
+        if (memosToDelete.length > 0) {
+          deleteMemoFiles(memosToDelete, state.memos).catch(console.error);
+        }
+      },
 
       folders: [],
       addFolder: (name) =>
@@ -177,6 +292,22 @@ export const useMemoStore = create<MemoStore>()(
       activeFolderId: null,
       setActiveFolderId: (id) => set({ activeFolderId: id }),
       reorderFolders: (newFolders) => set({ folders: newFolders }),
+
+      lastVisitedMemoScreen: 'list',
+      setLastVisitedMemoScreen: (screen) =>
+        set({ lastVisitedMemoScreen: screen }),
+      memoStartupScreen: 'list',
+      setMemoStartupScreen: (screen) => set({ memoStartupScreen: screen }),
+
+      // 💡 구글 드라이브 액션 초기화
+      googleToken: null,
+      googleEmail: null,
+      lastBackupDate: null,
+      setGoogleAuth: (token, email) =>
+        set({ googleToken: token, googleEmail: email }),
+      setLastBackupDate: (date) => set({ lastBackupDate: date }),
+      restoreMemoData: (newMemos, newFolders) =>
+        set({ memos: newMemos, folders: newFolders }),
     }),
     {
       name: 'memo-storage',

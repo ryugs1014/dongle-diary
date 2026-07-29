@@ -2,6 +2,14 @@ import React, { useEffect, useRef } from 'react';
 import { View, Modal, StyleSheet, Animated, Dimensions } from 'react-native';
 import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
 import AppText from '@/components/atoms/AppText';
+import {
+  DragIcon,
+  TrashIcon,
+  FolderIcon,
+  PinIcon,
+  PinUnsetIcon,
+} from '@/assets/icons';
+import Toast from 'react-native-toast-message';
 
 interface FolderOptionsBottomSheetProps {
   visible: boolean;
@@ -86,50 +94,99 @@ export default function FolderOptionsBottomSheet({
           <AppTouchableOpacity activeOpacity={1} style={{ width: '100%' }}>
             <View style={styles.dragHandle} />
 
+            {/* 🔥 최상단 가로형 메뉴 (순서 변경, 삭제) */}
+            <View style={styles.topActionsContainer}>
+              <AppTouchableOpacity
+                style={[
+                  styles.topActionBtn,
+                  folder.isPinned && { opacity: 0.2 },
+                ]}
+                onPress={() => {
+                  if (folder.isPinned) {
+                    // 💡 모달을 먼저 닫고 전역 토스트를 호출하여 원래 디자인 유지
+                    Animated.timing(slideY, {
+                      toValue: SCREEN_HEIGHT,
+                      duration: 250,
+                      useNativeDriver: true,
+                    }).start(() => {
+                      onClose();
+                      Toast.show({
+                        type: 'error',
+                        text1: '고정된 항목은 순서 변경이 안 됩니다.',
+                        position: 'top',
+                        topOffset: 60,
+                      });
+                    });
+                    return;
+                  }
+                  handleAction(onEditMode);
+                }}
+              >
+                <DragIcon
+                  width={24}
+                  height={24}
+                  color={isDark ? '#ffffff' : '#111111'}
+                />
+                <AppText
+                  style={[styles.topActionText, isDark && styles.darkText]}
+                >
+                  순서 변경
+                </AppText>
+              </AppTouchableOpacity>
+
+              {/* 세로 구분선 */}
+              <View
+                style={[styles.verticalDivider, isDark && styles.darkDivider]}
+              />
+
+              <AppTouchableOpacity
+                style={styles.topActionBtn}
+                onPress={() => handleAction(onDelete)}
+              >
+                <TrashIcon width={24} height={24} color="#FF3B30" />
+                <AppText style={styles.deleteText}>삭제</AppText>
+              </AppTouchableOpacity>
+            </View>
+
+            {/* 🔥 상단 메뉴 아래 구분선 */}
+            <View style={[styles.divider, isDark && styles.darkDivider]} />
+
+            {/* 나머지 세로형 메뉴들 */}
             <AppTouchableOpacity
               style={styles.optionItem}
               onPress={() => handleAction(onRename)}
             >
+              <FolderIcon
+                width={24}
+                height={24}
+                color={isDark ? '#ffffff' : '#111111'}
+              />
               <AppText style={[styles.optionText, isDark && styles.darkText]}>
-                이름 변경
+                폴더 이름 변경
               </AppText>
             </AppTouchableOpacity>
-
-            <View style={[styles.divider, isDark && styles.darkDivider]} />
 
             <AppTouchableOpacity
               style={styles.optionItem}
               onPress={() => handleAction(onTogglePin)}
             >
+              {folder.isPinned ? (
+                <PinIcon
+                  width={24}
+                  height={24}
+                  color={isDark ? '#ffffff' : '#111111'}
+                />
+              ) : (
+                <PinUnsetIcon
+                  width={24}
+                  height={24}
+                  color={isDark ? '#ffffff' : '#111111'}
+                />
+              )}
+
               <AppText style={[styles.optionText, isDark && styles.darkText]}>
-                {folder.isPinned ? '고정 해제' : '고정'}
+                {folder.isPinned ? '고정 해제' : '폴더 고정'}
               </AppText>
-            </AppTouchableOpacity>
-
-            {!folder.isPinned && (
-              <>
-                <View style={[styles.divider, isDark && styles.darkDivider]} />
-
-                <AppTouchableOpacity
-                  style={styles.optionItem}
-                  onPress={() => handleAction(onEditMode)}
-                >
-                  <AppText
-                    style={[styles.optionText, isDark && styles.darkText]}
-                  >
-                    순서 변경
-                  </AppText>
-                </AppTouchableOpacity>
-              </>
-            )}
-
-            <View style={[styles.divider, isDark && styles.darkDivider]} />
-
-            <AppTouchableOpacity
-              style={styles.optionItem}
-              onPress={() => handleAction(onDelete)}
-            >
-              <AppText style={styles.deleteText}>삭제</AppText>
             </AppTouchableOpacity>
           </AppTouchableOpacity>
         </Animated.View>
@@ -166,12 +223,32 @@ const styles = StyleSheet.create({
     backgroundColor: '#ddd',
     borderRadius: 2,
     alignSelf: 'center',
-    marginBottom: 20,
+    marginBottom: 10,
+  },
+  topActionsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  topActionBtn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    gap: 8,
+  },
+  topActionText: {
+    fontSize: 16,
+    color: '#111',
+    fontWeight: '500',
   },
   optionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: 16,
     paddingHorizontal: 24,
-    alignItems: 'center',
+    gap: 16,
   },
   optionText: {
     fontSize: 16,
@@ -189,6 +266,12 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#eee',
     marginHorizontal: 20,
+    marginBottom: 8,
+  },
+  verticalDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: '#eee',
   },
   darkDivider: {
     backgroundColor: '#333',
