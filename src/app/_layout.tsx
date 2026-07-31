@@ -234,19 +234,19 @@ export default function RootLayout() {
             <Stack.Screen
               name="index"
               options={{
-                animation: 'fade_from_bottom',
+                animation: 'fade',
               }}
             />
             <Stack.Screen
               name="memo-list"
               options={{
-                animation: 'fade_from_bottom',
+                animation: 'fade',
               }}
             />
             <Stack.Screen
               name="check-list"
               options={{
-                animation: 'fade_from_bottom',
+                animation: 'fade',
               }}
             />
             <Stack.Screen name="emotion-select" />
