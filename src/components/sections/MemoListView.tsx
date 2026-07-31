@@ -362,19 +362,21 @@ export default function MemoListView({
           {isTrashMode && (
             <TouchableOpacity
               onPress={handleEmptyTrash}
-              style={{ marginRight: 15 }}
+              style={{ marginRight: 10 }}
             >
-              <AppText style={{ color: 'red' }}>비우기</AppText>
+              <AppText style={[styles.editBtnText, styles.trashButtonText]}>
+                비우기
+              </AppText>
             </TouchableOpacity>
           )}
           <TouchableOpacity
             onPress={() => setIsSortModalVisible(true)}
-            style={{ marginRight: 15 }}
+            style={[{ marginRight: 10 }]}
           >
-            <AppText>정렬</AppText>
+            <AppText style={styles.editBtnText}>정렬</AppText>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setIsSelectMode(true)}>
-            <AppText>선택</AppText>
+            <AppText style={styles.editBtnText}>선택</AppText>
           </TouchableOpacity>
         </View>
       )}
@@ -963,6 +965,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexShrink: 0,
   },
+  editBtnText: { padding: 4 },
+  trashButtonText: { color: '#FF6262' },
   sectionTitleWrapper: {
     flexDirection: 'row',
     alignItems: 'center',

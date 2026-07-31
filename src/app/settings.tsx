@@ -160,29 +160,6 @@ export default function SettingsScreen() {
           <SvgDashedLine />
         </View>
 
-        {/* 앱 공통 설정 */}
-        <SettingItem
-          IconComponent={ScreenIcon}
-          title="시작 화면"
-          rightText={getStartupText()}
-          onPress={() => router.push('/start-settings')}
-        />
-        <SettingItem
-          IconComponent={LockIcon}
-          title="암호 잠금"
-          rightText={getLockText()}
-          onPress={() => router.push('/lock-settings')}
-        />
-        <SettingItem
-          IconComponent={ResetIcon}
-          title="초기화"
-          onPress={() => router.push('/reset-settings')}
-        />
-
-        <View style={styles.dividerWrapper}>
-          <SvgDashedLine />
-        </View>
-
         <SettingItem
           IconComponent={ThemeIcon}
           title="화면 테마"
@@ -200,6 +177,29 @@ export default function SettingsScreen() {
           title="언어 · Language"
           rightText={getLanguageText()}
           onPress={() => router.push('/language-settings')}
+        />
+
+        <View style={styles.dividerWrapper}>
+          <SvgDashedLine />
+        </View>
+
+        {/* 앱 공통 설정 */}
+        <SettingItem
+          IconComponent={LockIcon}
+          title="암호 잠금"
+          rightText={getLockText()}
+          onPress={() => router.push('/lock-settings')}
+        />
+        <SettingItem
+          IconComponent={ScreenIcon}
+          title="시작 화면"
+          rightText={getStartupText()}
+          onPress={() => router.push('/start-settings')}
+        />
+        <SettingItem
+          IconComponent={ResetIcon}
+          title="초기화"
+          onPress={() => router.push('/reset-settings')}
         />
 
         <View style={styles.dividerWrapper}>

@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
     height: ITEM_HEIGHT * 3,
     position: 'relative',
     marginBottom: 10,
-    paddingHorizontal: 10,
+    paddingHorizontal: 20,
     overflow: 'hidden',
   },
   pickerHighlight: {

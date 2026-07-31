@@ -459,7 +459,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   editBtn: {},
-  editBtnText: {},
+  editBtnText: { padding: 4 },
   trashSection: {
     marginTop: 20, // 일반 폴더 목록과 휴지통 그룹의 간격 추가
   },

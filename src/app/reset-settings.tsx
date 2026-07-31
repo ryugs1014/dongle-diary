@@ -321,7 +321,7 @@ export default function ResetSettingsScreen() {
         value={promptValue}
         onChangeText={setPromptValue}
         placeholder={
-          resetTarget ? ` [${modalConfig[resetTarget].title}] 입력` : ''
+          resetTarget ? `[${modalConfig[resetTarget].title}] 입력` : ''
         }
         confirmText="초기화"
         confirmColor="#FF6262"
@@ -330,6 +330,7 @@ export default function ResetSettingsScreen() {
           setModalVisible(false);
           setResetTarget(null);
         }}
+        centerPlaceholder={true}
       />
 
       {isResetting && (

@@ -290,5 +290,5 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
   darkMenuItem: { borderBottomColor: '#333' },
-  menuText: { fontSize: 14 },
+  menuText: { fontSize: 16 },
 });

@@ -615,21 +615,21 @@ export default function ChecklistView({ isDark, t }: ChecklistViewProps) {
             </AppText>
 
             <View style={styles.yearMonthRow}>
-              <View style={styles.monthWeekRow}>
-                <AppText
-                  style={[styles.todayYear, isDark && styles.todayYearDark]}
-                >
-                  {todayObj.getFullYear()}
-                </AppText>
+              <AppText
+                style={[styles.todayYear, isDark && styles.todayYearDark]}
+              >
+                {todayObj.getFullYear()}
+              </AppText>
 
+              <View style={styles.monthWeekRow}>
                 <AppText
                   style={[styles.todayMonth, isDark && styles.textWhite]}
                 >
                   {todayMonthStr}
                 </AppText>
-              </View>
 
-              <AppText style={styles.todayWeekName}>{todayWeekStr}</AppText>
+                <AppText style={styles.todayWeekName}>{todayWeekStr}</AppText>
+              </View>
             </View>
           </AppTouchableOpacity>
         </View>
@@ -964,19 +964,19 @@ const styles = StyleSheet.create({
   },
   todayDateRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
   yearMonthRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
     flex: 1,
-    marginBottom: 12,
+    gap: 4,
+    marginBottom: 4,
   },
   monthWeekRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     gap: 5,
   },
   todayDay: {
     fontSize: 80,
     fontWeight: 'bold',
-    lineHeight: 80,
     letterSpacing: -2,
     color: '#FF5900',
   },
@@ -994,15 +994,11 @@ const styles = StyleSheet.create({
   todayMonth: {
     fontSize: 24,
     fontWeight: 'bold',
-    lineHeight: 24,
     textTransform: 'uppercase',
-    flex: 1,
-    maxHeight: 24,
   },
   todayWeekName: {
     fontSize: 24,
     fontWeight: 'bold',
-    lineHeight: 24,
     textAlign: 'right',
   },
 

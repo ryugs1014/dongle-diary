@@ -26,6 +26,7 @@ interface AppPromptModalProps {
   confirmColor?: string;
   reverseButtons?: boolean;
   closeOnOverlayPress?: boolean;
+  centerPlaceholder?: boolean;
   onCancel: () => void;
   onConfirm: () => void;
 }
@@ -42,6 +43,7 @@ export default function AppPromptModal({
   confirmColor = '#007AFF',
   reverseButtons = false,
   closeOnOverlayPress = true,
+  centerPlaceholder = false,
   onCancel,
   onConfirm,
 }: AppPromptModalProps) {
@@ -102,7 +104,11 @@ export default function AppPromptModal({
 
             <View style={styles.inputContainer}>
               <AppTextInput
-                style={[styles.textInput, isDark && styles.darkTextInput]}
+                style={[
+                  styles.textInput,
+                  isDark && styles.darkTextInput,
+                  centerPlaceholder && styles.alignCenter,
+                ]}
                 value={value}
                 onChangeText={onChangeText}
                 placeholder={placeholder}
@@ -190,7 +196,8 @@ const styles = StyleSheet.create({
     borderColor: '#eee',
     borderRadius: 8,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    // paddingVertical: 10,
+    height: 50,
     fontSize: 16,
     color: '#111',
     backgroundColor: '#fafafa',
@@ -199,6 +206,9 @@ const styles = StyleSheet.create({
     borderColor: '#333',
     color: '#fff',
     backgroundColor: '#121212',
+  },
+  alignCenter: {
+    textAlign: 'center',
   },
   alertButtons: {
     flexDirection: 'row',
