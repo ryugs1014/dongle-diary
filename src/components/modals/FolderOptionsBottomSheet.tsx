@@ -143,7 +143,7 @@ export default function FolderOptionsBottomSheet({
                 style={styles.topActionBtn}
                 onPress={() => handleAction(onDelete)}
               >
-                <TrashIcon width={24} height={24} color="#FF3B30" />
+                <TrashIcon width={24} height={24} color="#FF6262" />
                 <AppText style={styles.deleteText}>삭제</AppText>
               </AppTouchableOpacity>
             </View>
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     paddingTop: 12,
     paddingBottom: 40,
-    elevation: 10,
+    // elevation: 10,
     shadowColor: '#191919',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
   },
   deleteText: {
     fontSize: 16,
-    color: '#FF3B30',
+    color: '#FF6262',
     fontWeight: 'bold',
   },
   divider: {

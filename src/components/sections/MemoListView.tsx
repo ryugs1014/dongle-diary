@@ -317,7 +317,7 @@ export default function MemoListView({
     if (trashedIds.length === 0) {
       Toast.show({
         type: 'info',
-        text1: '비울 메모가 없습니다.',
+        text1: '비울 메모가 없어요',
         position: 'top',
         topOffset: 60,
       });
@@ -739,10 +739,10 @@ export default function MemoListView({
       <AppConfirmModal
         visible={emptyTrashModalVisible}
         title="휴지통 전체 비우기"
-        message="휴지통에 있는 모든 메모를 영구 삭제하시겠습니까?"
+        message="휴지통에 있는 모든 메모를 영구 삭제할까요?"
         cancelText="취소"
         confirmText="비우기"
-        confirmColor="#FF3B30"
+        confirmColor="#FF6262"
         onCancel={() => setEmptyTrashModalVisible(false)}
         onConfirm={() => {
           const trashedIds = memos.filter((m) => m.deletedAt).map((m) => m.id);
@@ -762,10 +762,10 @@ export default function MemoListView({
       <AppConfirmModal
         visible={deleteMultipleModalVisible}
         title="영구 삭제"
-        message="선택한 메모를 영구적으로 삭제하시겠습니까?"
+        message="선택한 메모를 영구적으로 삭제할까요?"
         cancelText="취소"
         confirmText="삭제"
-        confirmColor="#FF3B30"
+        confirmColor="#FF6262"
         onCancel={() => setDeleteMultipleModalVisible(false)}
         onConfirm={() => {
           deleteMultipleMemos(selectedIds);
@@ -780,9 +780,9 @@ export default function MemoListView({
       <AppConfirmModal
         visible={trashMemoModalVisible}
         title="휴지통 메모"
-        message="이 메모를 복구하시겠습니까?"
+        message="이 메모를 복구할까요?"
         topBtnText="영구 삭제"
-        topBtnColor="#FF3B30"
+        topBtnColor="#FF6262"
         onTopBtnPress={() => {
           if (selectedTrashMemoId) {
             deleteMemo(selectedTrashMemoId);
@@ -984,7 +984,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 5,
-    elevation: 16,
+    // elevation: 16,
   },
   memoCardDark: { backgroundColor: '#191919' },
   memoTextContainer: { flex: 1, justifyContent: 'flex-start', gap: 8 },
@@ -1025,7 +1025,7 @@ const styles = StyleSheet.create({
   memoMeta: { fontSize: 12, color: '#999' },
   remainingDaysText: {
     fontSize: 12,
-    color: '#FF3B30',
+    color: '#FF6262',
   },
   remainingDaysTextDark: {
     color: '#FF6B6B',
@@ -1074,10 +1074,10 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 10,
-    elevation: 16,
+    // elevation: 16,
   },
   bottomBarDark: {
-    backgroundColor: '#2A2A2A',
+    backgroundColor: '#191919',
     shadowColor: '#000',
     shadowOpacity: 0.5,
   },
@@ -1090,7 +1090,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   actionBtnDark: {
-    backgroundColor: '#3a3a3a',
+    backgroundColor: '#202020',
   },
 
   emptyContainer: {

@@ -475,7 +475,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 5,
-    elevation: 16,
+    // elevation: 16,
   },
   folderCardDark: {
     backgroundColor: '#191919',
@@ -483,7 +483,7 @@ const styles = StyleSheet.create({
   activeDragCard: {
     shadowOpacity: 0.2,
     shadowRadius: 10,
-    elevation: 16,
+    // elevation: 16,
     transform: [{ scale: 1.02 }],
   },
   folderInfo: {

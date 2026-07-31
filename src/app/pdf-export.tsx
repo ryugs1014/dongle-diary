@@ -323,7 +323,7 @@ export default function PdfExportScreen() {
             <SearchIcon
               width={60}
               height={60}
-              color={isDark ? '#888' : '#666'}
+              color={isDark ? '#333' : '#ccc'}
             />
 
             <AppText style={[styles.emptyText, isDark && styles.emptyTextDark]}>

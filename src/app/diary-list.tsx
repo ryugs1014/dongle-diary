@@ -13,7 +13,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AppText from '@/components/atoms/AppText';
 import { Stack, router } from 'expo-router';
 import { useDiaryStore } from '../store/useDiaryStore';
-import { CloseIcon, SearchIcon, OrderIcon } from '../../assets/icons';
+import {
+  CloseIcon,
+  SearchIcon,
+  OrderIcon,
+  EmptyEmotionIcon,
+} from '../../assets/icons';
 import SvgDashedLine from '@/components/ui/SvgDashedLine';
 import { EMOTION_IMAGE_MAP } from '@/constants/emotions';
 import SortBottomSheet from '@/components/modals/SortBottomSheet';
@@ -102,6 +107,15 @@ export default function DiaryListScreen() {
     );
   };
 
+  const handleGoToWrite = () => {
+    router.back();
+
+    // 뒤로가기 애니메이션이 끝날 즈음 모달 띄우기
+    setTimeout(() => {
+      router.push('/emotion-select');
+    }, 300);
+  };
+
   return (
     <SafeAreaView
       edges={['top', 'left', 'right']}
@@ -157,6 +171,34 @@ export default function DiaryListScreen() {
         data={filteredDiaries}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <EmptyEmotionIcon
+              width={80}
+              height={80}
+              color={isDark ? '#888' : '#666'}
+            />
+
+            <AppText style={[styles.emptyText, isDark && styles.emptyTextDark]}>
+              작성한 일기가 없어요{'\n'}지나간 오늘 하루, 어떤 일이 있었나요?
+            </AppText>
+
+            <AppTouchableOpacity
+              style={[styles.emptyButton, isDark && styles.emptyButtonDark]}
+              onPress={handleGoToWrite}
+            >
+              <AppText
+                style={[
+                  styles.emptyButtonText,
+                  isDark && styles.emptyButtonTextDark,
+                ]}
+              >
+                오늘 하루 기록하기
+              </AppText>
+            </AppTouchableOpacity>
+          </View>
+        }
+
         ListFooterComponent={renderFooter}
         onScrollToIndexFailed={(info) => {
           setTimeout(() => {

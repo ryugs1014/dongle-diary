@@ -31,8 +31,8 @@ export interface DraftEntry {
 export type AppLanguage = 'system' | 'ko' | 'en';
 export type AppTheme = 'system' | 'light' | 'dark';
 
-export type AppScreen = 'diary' | 'memo';
-export type StartupScreen = 'diary' | 'memo' | 'last_visited';
+export type AppScreen = 'diary' | 'memo' | 'checklist';
+export type StartupScreen = 'diary' | 'memo' | 'checklist' | 'last_visited';
 
 interface DiaryStore {
   diaries: DiaryEntry[];
@@ -90,6 +90,9 @@ interface DiaryStore {
   setLastVisitedScreen: (screen: AppScreen) => void;
   startupScreen: StartupScreen;
   setStartupScreen: (screen: StartupScreen) => void;
+
+  clearAllDiaries: () => void; // 일기장 초기화
+  resetSettings: () => void; // 설정 초기화
 }
 
 const getLocalToday = () => {
@@ -260,6 +263,36 @@ export const useDiaryStore = create<DiaryStore>()(
       setLastVisitedScreen: (screen) => set({ lastVisitedScreen: screen }),
       startupScreen: 'diary',
       setStartupScreen: (screen) => set({ startupScreen: screen }),
+
+      // 🔥 일기장 초기화 (상태 비우기 + 로컬 파일 완전 삭제)
+      clearAllDiaries: () => {
+        const state = get();
+        const allDiaries = [...state.diaries];
+
+        set({ diaries: [] }); // UI 즉시 비우기
+
+        if (allDiaries.length > 0) {
+          // 남길 일기가 없으므로 빈 배열([])을 전달하여 모든 파일 삭제
+          deleteDiaryFiles(allDiaries, []).catch(console.error);
+        }
+      },
+
+      // 🔥 설정 초기화 (테마, 잠금, 알람 등을 기본값으로)
+      resetSettings: () =>
+        set({
+          isLockEnabled: false,
+          pinCode: null,
+          isBiometricEnabled: false,
+          language: 'system',
+          theme: 'light',
+          isAlarmEnabled: false,
+          alarmTime: defaultAlarmTime,
+          diaryFontSize: 3,
+          diaryFontFamily: 'NanumSquareRound',
+          calendarStartMonday: false,
+          alwaysShowDate: false,
+          startupScreen: 'diary',
+        }),
     }),
     {
       name: 'diary-storage',

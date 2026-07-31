@@ -1,48 +1,40 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Modal, StyleSheet, Animated, Dimensions } from 'react-native';
+import { router } from 'expo-router'; // 🔥 라우팅을 위해 추가
 import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
 import AppText from '@/components/atoms/AppText';
-// 💡 BackIcon 임포트 추가 (경로는 기존 설정에 맞게 유지)
+import CustomSwitch from '@/components/common/CustomSwitch';
 import {
-  FolderIcon,
-  TrashIcon,
-  PinIcon,
-  PinUnsetIcon,
-  LockIcon,
-  CopyIcon,
+  DayOnIcon,
+  ZoomInIcon,
+  FolderIcon, // 카테고리 관리용 임의 아이콘
+  SettingIcon,
+  ClockIcon,
+  ZoomOutIcon,
+  CalendarIcon, // 루틴 관리용 임의 아이콘
 } from '@/assets/icons';
 
-interface MemoOptionsBottomSheetProps {
+// 스토어 임포트
+import { useChecklistStore } from '@/store/useChecklistStore';
+
+interface ChecklistSettingsModalProps {
   visible: boolean;
   onClose: () => void;
-  memo: {
-    id: string;
-    title: string;
-    isPinned: boolean;
-    isLocked: boolean;
-  } | null;
-  onTogglePin: () => void;
-  onToggleLock: () => void;
-  onDuplicate: () => void;
-  onDelete: () => void;
-  onMove: () => void;
   isDark: boolean;
 }
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-export default function MemoOptionsBottomSheet({
+export default function ChecklistSettingsModal({
   visible,
   onClose,
-  memo,
-  onTogglePin,
-  onToggleLock,
-  onDuplicate,
-  onDelete,
-  onMove,
   isDark,
-}: MemoOptionsBottomSheetProps) {
+}: ChecklistSettingsModalProps) {
   const slideY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+
+  // 스토어에서 직접 설정값과 변경 함수를 가져옵니다.
+  const { showDateText, setShowDateText, isWeekView, setIsWeekView } =
+    useChecklistStore();
 
   useEffect(() => {
     if (visible) {
@@ -67,6 +59,7 @@ export default function MemoOptionsBottomSheet({
     });
   };
 
+  // 🔥 모달 닫기 애니메이션 후 특정 액션(페이지 이동 등)을 실행하는 함수
   const handleAction = (action: () => void) => {
     Animated.timing(slideY, {
       toValue: SCREEN_HEIGHT,
@@ -77,8 +70,6 @@ export default function MemoOptionsBottomSheet({
       onClose();
     });
   };
-
-  if (!memo) return null;
 
   return (
     <Modal
@@ -102,11 +93,13 @@ export default function MemoOptionsBottomSheet({
           <AppTouchableOpacity activeOpacity={1} style={{ width: '100%' }}>
             <View style={styles.dragHandle} />
 
-            {/* 🔥 최상단 가로형 메뉴 (이동, 삭제) */}
+            {/* 🔥 최상단 가로형 메뉴 (카테고리 관리, 루틴 관리) */}
             <View style={styles.topActionsContainer}>
               <AppTouchableOpacity
                 style={styles.topActionBtn}
-                onPress={() => handleAction(onMove)}
+                onPress={() =>
+                  handleAction(() => router.push('/category-settings'))
+                }
               >
                 <FolderIcon
                   width={24}
@@ -116,78 +109,97 @@ export default function MemoOptionsBottomSheet({
                 <AppText
                   style={[styles.topActionText, isDark && styles.darkText]}
                 >
-                  이동
+                  카테고리 관리
                 </AppText>
               </AppTouchableOpacity>
 
-              {/* 세로 구분선 (선택사항, 깔끔한 구분을 위해 추가) */}
+              {/* 세로 구분선 */}
               <View
                 style={[styles.verticalDivider, isDark && styles.darkDivider]}
               />
 
               <AppTouchableOpacity
                 style={styles.topActionBtn}
-                onPress={() => handleAction(onDelete)}
+                onPress={() =>
+                  handleAction(() => router.push('/routine-settings'))
+                }
               >
-                <TrashIcon width={24} height={24} color="#FF6262" />
-                <AppText style={styles.deleteText}>삭제</AppText>
+                <ClockIcon
+                  width={24}
+                  height={24}
+                  color={isDark ? '#ffffff' : '#111111'}
+                />
+                <AppText
+                  style={[styles.topActionText, isDark && styles.darkText]}
+                >
+                  루틴 관리
+                </AppText>
               </AppTouchableOpacity>
             </View>
 
-            {/* 🔥 상단 메뉴 아래 구분선 */}
+            {/* 상단 메뉴 아래 가로 구분선 */}
             <View style={[styles.divider, isDark && styles.darkDivider]} />
 
-            {/* 나머지 세로형 메뉴들 */}
+            {/* 1. 날짜 표시하기 설정 (기존) */}
             <AppTouchableOpacity
-              style={styles.optionItem}
-              onPress={() => handleAction(onTogglePin)}
+              style={styles.settingItem}
+              activeOpacity={0.7}
+              onPress={() => setShowDateText(!showDateText)}
             >
-              {memo.isPinned ? (
-                <PinIcon
-                  width={24}
-                  height={24}
-                  color={isDark ? '#ffffff' : '#111111'}
-                />
-              ) : (
-                <PinUnsetIcon
-                  width={24}
-                  height={24}
-                  color={isDark ? '#ffffff' : '#111111'}
-                />
-              )}
-
-              <AppText style={[styles.optionText, isDark && styles.darkText]}>
-                {memo.isPinned ? '고정 해제' : '메모 고정'}
-              </AppText>
+              <View style={styles.settingLeft}>
+                <View style={styles.iconWrapper}>
+                  <CalendarIcon
+                    width={24}
+                    height={24}
+                    color={isDark ? '#777' : '#999'}
+                  />
+                </View>
+                <AppText
+                  style={[styles.settingTitle, isDark && styles.darkText]}
+                >
+                  날짜 표시
+                </AppText>
+              </View>
+              <CustomSwitch
+                value={showDateText}
+                onValueChange={(val) => setShowDateText(val)}
+                isDark={isDark}
+              />
             </AppTouchableOpacity>
 
+            {/* 2. 주간 달력 보기 설정 (기존) */}
             <AppTouchableOpacity
-              style={styles.optionItem}
-              onPress={() => handleAction(onToggleLock)}
+              style={styles.settingItem}
+              activeOpacity={0.7}
+              onPress={() => setIsWeekView(!isWeekView)}
             >
-              <LockIcon
-                width={24}
-                height={24}
-                color={isDark ? '#ffffff' : '#111111'}
+              <View style={styles.settingLeft}>
+                <View style={styles.iconWrapper}>
+                  {isWeekView ? (
+                    <ZoomOutIcon
+                      width={24}
+                      height={24}
+                      color={isDark ? '#777' : '#999'}
+                    />
+                  ) : (
+                    <ZoomInIcon
+                      width={24}
+                      height={24}
+                      color={isDark ? '#777' : '#999'}
+                    />
+                  )}
+                </View>
+                <AppText
+                  style={[styles.settingTitle, isDark && styles.darkText]}
+                >
+                  간략한 달력 보기
+                </AppText>
+              </View>
+              <CustomSwitch
+                value={isWeekView}
+                onValueChange={(val) => setIsWeekView(val)}
+                isDark={isDark}
               />
-
-              <AppText style={[styles.optionText, isDark && styles.darkText]}>
-                {memo.isLocked ? '잠금 해제' : '메모 잠금'}
-              </AppText>
-            </AppTouchableOpacity>
-
-            <AppTouchableOpacity
-              style={styles.optionItem}
-              onPress={() => handleAction(onDuplicate)}
-            >
-              <CopyIcon
-                width={24}
-                height={24}
-                color={isDark ? '#ffffff' : '#111111'}
-              />
-              <AppText style={[styles.optionText, isDark && styles.darkText]}>
-                메모 복제
-              </AppText>
             </AppTouchableOpacity>
           </AppTouchableOpacity>
         </Animated.View>
@@ -226,7 +238,8 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: 10,
   },
-  /* 🔥 상단 가로형 메뉴 스타일 */
+
+  // 🔥 추가된 최상단 가로형 메뉴 스타일
   topActionsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -241,40 +254,46 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   topActionText: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#111',
     fontWeight: '500',
   },
-  /* 🔥 세로형 메뉴 스타일 (아이콘과 텍스트 정렬) */
-  optionItem: {
+  verticalDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: '#eee',
+  },
+
+  // 기존 설정 아이템 레이아웃 스타일
+  settingItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    gap: 16,
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    height: 52,
   },
-  optionText: {
-    fontSize: 14,
-    color: '#111',
+  settingLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  iconWrapper: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 24,
+  },
+  settingTitle: {
+    fontSize: 16,
+    color: '#333',
   },
   darkText: {
     color: '#fff',
-  },
-  deleteText: {
-    fontSize: 14,
-    color: '#FF6262',
-    fontWeight: 'bold',
   },
   divider: {
     height: 1,
     backgroundColor: '#eee',
     marginHorizontal: 20,
     marginBottom: 8,
-  },
-  verticalDivider: {
-    width: 1,
-    height: 24,
-    backgroundColor: '#eee',
   },
   darkDivider: {
     backgroundColor: '#333',

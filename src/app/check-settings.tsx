@@ -5,31 +5,33 @@ import AppText from '@/components/atoms/AppText';
 import { Stack, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDiaryStore } from '@/store/useDiaryStore';
+import { useMemoStore } from '@/store/useMemoStore';
 import {
   BackIcon,
   ArrowRightIcon,
-  BackupIcon,
-  PdfIcon,
-  BellIcon,
+  ClockIcon,
+  FolderIcon,
   CalendarIcon,
 } from '@/assets/icons';
 import SvgDashedLine from '@/components/ui/SvgDashedLine';
 
-export default function DiarySettingsScreen() {
-  const { theme, isAlarmEnabled, alarmTime } = useDiaryStore();
+export default function CheckSettingsScreen() {
+  const { theme } = useDiaryStore();
+  const { autoDeleteDays, memoStartupScreen } = useMemoStore();
 
   const systemColorScheme = useColorScheme();
   const isDark =
     theme === 'system' ? systemColorScheme === 'dark' : theme === 'dark';
 
-  const getAlarmText = () => {
-    if (!isAlarmEnabled) return '꺼짐';
-    const hours = alarmTime.getHours();
-    const minutes = alarmTime.getMinutes();
-    const ampm = hours >= 12 ? '오후' : '오전';
-    const formattedHours = hours % 12 || 12;
-    const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
-    return `${ampm} ${formattedHours}:${formattedMinutes}`;
+  const getMemoStartupText = () => {
+    if (memoStartupScreen === 'folder') return '폴더 목록';
+    if (memoStartupScreen === 'list') return '메모 목록';
+    return '마지막 접속 화면';
+  };
+
+  const getAutoDeleteText = () => {
+    if (autoDeleteDays === 0) return '꺼짐';
+    return `${autoDeleteDays}일`;
   };
 
   const SettingItem = ({ IconComponent, title, onPress, rightText }: any) => (
@@ -85,7 +87,7 @@ export default function DiarySettingsScreen() {
           <AppText
             style={[styles.customHeaderTitle, isDark && styles.darkText]}
           >
-            설정 - 일기장
+            설정 - 할 일 목록
           </AppText>
         </View>
         <View style={styles.rightIconsWrapper} />
@@ -96,14 +98,14 @@ export default function DiarySettingsScreen() {
         contentContainerStyle={{ paddingBottom: 40, paddingTop: 10 }}
       >
         <SettingItem
-          IconComponent={BackupIcon}
-          title="드라이브 백업 · 복원"
-          onPress={() => router.push('/backup-settings')}
+          IconComponent={FolderIcon}
+          title="카테고리 관리"
+          onPress={() => router.push('/category-settings')}
         />
         <SettingItem
-          IconComponent={PdfIcon}
-          title="PDF 저장"
-          onPress={() => router.push('/pdf-export')}
+          IconComponent={ClockIcon}
+          title="루틴 관리"
+          onPress={() => router.push('/routine-settings')}
         />
 
         <View style={styles.dividerWrapper}>
@@ -111,15 +113,9 @@ export default function DiarySettingsScreen() {
         </View>
 
         <SettingItem
-          IconComponent={BellIcon}
-          title="일기 알림"
-          rightText={getAlarmText()}
-          onPress={() => router.push('/alarm-settings')}
-        />
-        <SettingItem
           IconComponent={CalendarIcon}
           title="달력 설정"
-          onPress={() => router.push('/calendar-settings')}
+          onPress={() => router.push('/check-calendar-settings')}
         />
       </ScrollView>
     </SafeAreaView>

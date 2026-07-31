@@ -13,9 +13,12 @@ import {
   FontIcon,
   LanguageIcon,
   InfoIcon,
-  CalandarIcon,
+  CalendarIcon,
   DocumentIcon,
   ScreenIcon,
+  CheckListIcon,
+  ResetIcon,
+  DetailEditIcon,
 } from '../../assets/icons'; // DocumentIcon 추가 필요할 수 있음
 import SvgDashedLine from '@/components/ui/SvgDashedLine';
 
@@ -138,14 +141,19 @@ export default function SettingsScreen() {
       >
         {/* 💡 새로 만든 설정 카테고리 진입점 */}
         <SettingItem
-          IconComponent={CalandarIcon}
+          IconComponent={CalendarIcon}
           title="일기장"
           onPress={() => router.push('/diary-settings')}
         />
         <SettingItem
-          IconComponent={DocumentIcon}
+          IconComponent={DetailEditIcon}
           title="메모장"
           onPress={() => router.push('/memo-settings')}
+        />
+        <SettingItem
+          IconComponent={CheckListIcon}
+          title="할 일 목록"
+          onPress={() => router.push('/check-settings')}
         />
 
         <View style={styles.dividerWrapper}>
@@ -164,6 +172,11 @@ export default function SettingsScreen() {
           title="암호 잠금"
           rightText={getLockText()}
           onPress={() => router.push('/lock-settings')}
+        />
+        <SettingItem
+          IconComponent={ResetIcon}
+          title="초기화"
+          onPress={() => router.push('/reset-settings')}
         />
 
         <View style={styles.dividerWrapper}>

@@ -664,7 +664,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 5,
-    elevation: 16,
+    // elevation: 16,
   },
   memoCardDark: { backgroundColor: '#191919' },
   memoTextContainer: { flex: 1, justifyContent: 'flex-start', gap: 8 },

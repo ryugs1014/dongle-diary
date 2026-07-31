@@ -78,6 +78,9 @@ interface MemoStore {
   setGoogleAuth: (token: string | null, email: string | null) => void;
   setLastBackupDate: (date: string | null) => void;
   restoreMemoData: (memos: MemoEntry[], folders: FolderEntry[]) => void;
+
+  clearAllMemos: () => void; // 메모장 초기화
+  resetMemoSettings: () => void; // 🔥 메모 설정 초기화 함수 추가
 }
 
 // 💡 [핵심] 영구 삭제 시 실제 기기 용량을 비워주는 안전한 파일 삭제 함수
@@ -308,6 +311,24 @@ export const useMemoStore = create<MemoStore>()(
       setLastBackupDate: (date) => set({ lastBackupDate: date }),
       restoreMemoData: (newMemos, newFolders) =>
         set({ memos: newMemos, folders: newFolders }),
+
+      clearAllMemos: () => {
+        const state = get();
+        const allMemos = [...state.memos];
+
+        set({ memos: [], folders: [], activeFolderId: null });
+
+        if (allMemos.length > 0) {
+          deleteMemoFiles(allMemos, []).catch(console.error);
+        }
+      },
+
+      resetMemoSettings: () =>
+        set({
+          autoDeleteDays: 30, // 기본값 30일
+          memoStartupScreen: 'list', // 기본값 리스트 뷰
+          lastVisitedMemoScreen: 'list', // 방문 기록도 초기화
+        }),
     }),
     {
       name: 'memo-storage',

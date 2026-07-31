@@ -190,7 +190,7 @@ export default function MemoOptionMenu({
             style={[styles.menuItem, styles.lastMenuItem]}
             onPress={onDelete}
           >
-            <TrashIcon width={20} height={20} color="#FF3B30" />
+            <TrashIcon width={20} height={20} color="#FF6262" />
             <AppText style={styles.deleteText}>삭제</AppText>
           </AppTouchableOpacity>
         </View>
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
-    elevation: 16,
+    // elevation: 16,
     overflow: 'hidden',
   },
   darkMenuBox: { backgroundColor: '#1e1e1e' },
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
   },
   deleteText: {
     fontSize: 13,
-    color: '#FF3B30',
+    color: '#FF6262',
     fontWeight: 'bold',
   },
   divider: {

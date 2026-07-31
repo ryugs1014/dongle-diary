@@ -4,17 +4,42 @@ import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
 import AppText from '@/components/atoms/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Stack } from 'expo-router';
+import { useDiaryStore } from '@/store/useDiaryStore';
+import { useChecklistStore } from '@/store/useChecklistStore';
 import { BackIcon } from '@/assets/icons';
 import SvgDashedLine from '@/components/ui/SvgDashedLine';
-import RadioSettingItem from '@/components/common/RadioSettingItem';
-import { useDiaryStore } from '@/store/useDiaryStore';
+import CustomSwitch from '@/components/common/CustomSwitch';
 
-export default function StartupSettingsScreen() {
-  const { theme, startupScreen, setStartupScreen } = useDiaryStore();
-
+export default function ChecklistCalendarSettingsScreen() {
+  const { theme } = useDiaryStore();
   const systemColorScheme = useColorScheme();
   const isDark =
     theme === 'system' ? systemColorScheme === 'dark' : theme === 'dark';
+
+  // 🔥 설정 값들을 스토어에서 불러옵니다.
+  const { showDateText, setShowDateText, isWeekView, setIsWeekView } =
+    useChecklistStore();
+
+  const SettingItem = ({
+    title,
+    value,
+    onValueChange,
+  }: {
+    title: string;
+    value: boolean;
+    onValueChange: (val: boolean) => void;
+  }) => (
+    <View style={styles.settingItem}>
+      <AppText style={[styles.settingTitle, isDark && styles.darkText]}>
+        {title}
+      </AppText>
+      <CustomSwitch
+        value={value}
+        onValueChange={onValueChange}
+        isDark={isDark}
+      />
+    </View>
+  );
 
   return (
     <SafeAreaView
@@ -37,7 +62,7 @@ export default function StartupSettingsScreen() {
           <AppText
             style={[styles.customHeaderTitle, isDark && styles.darkText]}
           >
-            시작 화면
+            달력 설정
           </AppText>
         </View>
         <View style={styles.rightIconsWrapper} />
@@ -47,32 +72,16 @@ export default function StartupSettingsScreen() {
         style={styles.scrollWrapper}
         contentContainerStyle={{ paddingBottom: 40, paddingTop: 10 }}
       >
-        <RadioSettingItem
-          title="일기장"
-          isSelected={startupScreen === 'diary'}
-          onPress={() => setStartupScreen('diary')}
-          isDark={isDark}
+        <SettingItem
+          title="날짜 표시"
+          value={showDateText}
+          onValueChange={(val) => setShowDateText(val)}
         />
 
-        <RadioSettingItem
-          title="메모장"
-          isSelected={startupScreen === 'memo'}
-          onPress={() => setStartupScreen('memo')}
-          isDark={isDark}
-        />
-
-        <RadioSettingItem
-          title="할 일 목록"
-          isSelected={startupScreen === 'checklist'}
-          onPress={() => setStartupScreen('checklist')}
-          isDark={isDark}
-        />
-
-        <RadioSettingItem
-          title="마지막으로 접속한 화면"
-          isSelected={startupScreen === 'last_visited'}
-          onPress={() => setStartupScreen('last_visited')}
-          isDark={isDark}
+        <SettingItem
+          title="간략한 달력 보기"
+          value={isWeekView}
+          onValueChange={(val) => setIsWeekView(val)}
         />
 
         <View style={styles.dividerWrapper}>
@@ -80,7 +89,7 @@ export default function StartupSettingsScreen() {
         </View>
 
         <AppText style={[styles.infoText, isDark && styles.darkSubText]}>
-          앱을 처음 실행할 때 가장 먼저 보여질 화면을 선택합니다.
+          간략한 달력 보기는 할 일 목록에서 달력이 1주일 단위로 표시되요.
         </AppText>
       </ScrollView>
     </SafeAreaView>
@@ -118,13 +127,28 @@ const styles = StyleSheet.create({
   rightIconsWrapper: {
     flex: 1,
   },
+
   scrollWrapper: {
     paddingVertical: 10,
   },
+
+  settingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    height: 52,
+  },
+  settingTitle: {
+    fontSize: 16,
+    color: '#333',
+  },
+
   dividerWrapper: {
     paddingHorizontal: 20,
     paddingVertical: 10,
   },
+
   infoText: {
     marginTop: 15,
     marginBottom: 40,

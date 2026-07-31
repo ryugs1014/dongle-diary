@@ -167,7 +167,7 @@ export default function RootLayout() {
             setIsUnlocked(true);
             setCurrentInput('');
           } else {
-            setErrorMsg('비밀번호가 틀렸습니다.');
+            setErrorMsg('비밀번호가 틀렸어요');
             setCurrentInput('');
           }
         }, 200);
@@ -231,7 +231,24 @@ export default function RootLayout() {
               cardStyle: { backgroundColor: isDark ? '#111111' : '#FCFBFA' },
             }}
           >
-            <Stack.Screen name="index" />
+            <Stack.Screen
+              name="index"
+              options={{
+                animation: 'simple_push',
+              }}
+            />
+            <Stack.Screen
+              name="memo-list"
+              options={{
+                animation: 'simple_push',
+              }}
+            />
+            <Stack.Screen
+              name="check-list"
+              options={{
+                animation: 'simple_push',
+              }}
+            />
             <Stack.Screen name="emotion-select" />
             <Stack.Screen name="diary-list" />
             <Stack.Screen name="diary/[id]" />
@@ -377,7 +394,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
-    elevation: 5,
+    // elevation: 5,
   },
   lightToast: { backgroundColor: '#393939' },
   darkToast: { backgroundColor: '#202020' },

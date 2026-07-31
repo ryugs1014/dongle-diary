@@ -1,29 +1,31 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react'; // useCallback 추가
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   View,
   useColorScheme,
   StyleSheet,
   Modal,
   Pressable,
-  BackHandler, // BackHandler 추가
+  BackHandler,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, Stack, useFocusEffect } from 'expo-router'; // useFocusEffect 추가
+import { router, Stack, useFocusEffect } from 'expo-router';
 import PagerView from 'react-native-pager-view';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import MemoListView from '@/components/sections/MemoListView';
 import MemoFolderView from '@/components/sections/MemoFolderView';
 import { useDiaryStore } from '@/store/useDiaryStore';
-import { useMemoStore } from '@/store/useMemoStore'; // useMemoStore 추가
+import { useMemoStore } from '@/store/useMemoStore';
 import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
-import AppConfirmModal from '@/components/modals/AppConfirmModal'; // 모달 추가
+import AppConfirmModal from '@/components/modals/AppConfirmModal';
 import {
-  CalandarIcon,
+  CalendarIcon,
   DocumentIcon,
   MenuIcon,
   SearchIcon,
   SelectArrowIcon,
+  CheckListIcon,
+  DetailEditIcon,
 } from '@/assets/icons';
 import AppText from '@/components/atoms/AppText';
 
@@ -98,7 +100,7 @@ export default function MemoMainScreen() {
             style={styles.contentSelect}
             onPress={() => setMenuVisible(true)}
           >
-            <DocumentIcon
+            <DetailEditIcon
               width={28}
               height={28}
               color={isDark ? '#ffffff' : '#111111'}
@@ -170,7 +172,7 @@ export default function MemoMainScreen() {
                   router.replace('/');
                 }}
               >
-                <CalandarIcon
+                <CalendarIcon
                   width={24}
                   height={24}
                   color={isDark ? '#ffffff' : '#111111'}
@@ -181,16 +183,33 @@ export default function MemoMainScreen() {
               </AppTouchableOpacity>
 
               <AppTouchableOpacity
-                style={[styles.menuItem, styles.lastMenuItem]}
+                style={[styles.menuItem, isDark && styles.darkMenuItem]}
                 onPress={() => setMenuVisible(false)}
               >
-                <DocumentIcon
+                <DetailEditIcon
                   width={24}
                   height={24}
                   color={isDark ? '#ffffff' : '#111111'}
                 />
                 <AppText style={[styles.menuText, isDark && styles.darkText]}>
                   메모장
+                </AppText>
+              </AppTouchableOpacity>
+
+              <AppTouchableOpacity
+                style={[styles.menuItem, styles.lastMenuItem]}
+                onPress={() => {
+                  setMenuVisible(false);
+                  router.replace('/check-list');
+                }}
+              >
+                <CheckListIcon
+                  width={24}
+                  height={24}
+                  color={isDark ? '#ffffff' : '#111111'}
+                />
+                <AppText style={[styles.menuText, isDark && styles.darkText]}>
+                  할 일 목록
                 </AppText>
               </AppTouchableOpacity>
             </View>
@@ -201,7 +220,7 @@ export default function MemoMainScreen() {
         <AppConfirmModal
           visible={exitModalVisible}
           title={t('동글일기', 'Exit App')}
-          message={t('앱을 종료하시겠어요?', 'Are you sure you want to exit?')}
+          message={t('앱을 종료할까요?', 'Are you sure you want to exit?')}
           cancelText={t('취소', 'Cancel')}
           confirmText={t('종료', 'Exit')}
           confirmColor="#FF6F61"
@@ -256,7 +275,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
-    elevation: 16,
+    // elevation: 16,
   },
   darkMenuBox: { backgroundColor: '#1e1e1e' },
   menuItem: {
@@ -265,7 +284,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderBottomColor: '#f1f2f3',
     flexDirection: 'row',
-    gap: 4,
+    gap: 8,
   },
   lastMenuItem: {
     borderBottomWidth: 0,

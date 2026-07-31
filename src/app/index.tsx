@@ -8,17 +8,10 @@ import { useDiaryStore } from '../store/useDiaryStore';
 import CalendarView from '../components/sections/CalendarView';
 import DiaryListView from '../components/sections/DiaryListView';
 import AppConfirmModal from '@/components/modals/AppConfirmModal';
-import AppTouchableOpacity from '@/components/atoms/AppTouchableOpacity';
-import {
-  DocumentIcon,
-  MenuIcon,
-  SearchIcon,
-  SelectArrowIcon,
-} from '@/assets/icons';
 
 let hasCheckedDraftGlobal = false;
 
-let hasHandledStartupRedirect = false; // 전역 변수로 앱 실행 시 1회만 리다이렉트 되도록 방어
+let hasHandledStartupRedirect = false;
 
 export default function MainSwipeScreen() {
   const pagerRef = useRef<PagerView>(null);
@@ -45,20 +38,29 @@ export default function MainSwipeScreen() {
   const [draftAlertVisible, setDraftAlertVisible] = useState(false);
   // const hasCheckedDraft = useRef(false);
 
-  // 💡 시작 화면 리다이렉트 및 접속 기록 남기기
   useEffect(() => {
     // 앱이 처음 로드되었을 때 1회만 실행
     if (!hasHandledStartupRedirect) {
       hasHandledStartupRedirect = true;
 
+      // 💡 targetScreen의 타입을 명시적으로 AppScreen으로 지정하면 더 안전합니다.
       let targetScreen = 'diary';
       if (startupScreen === 'memo') targetScreen = 'memo';
+      else if (startupScreen === 'checklist')
+        targetScreen = 'checklist'; // 👈 할 일 목록 추가
       else if (startupScreen === 'last_visited')
         targetScreen = lastVisitedScreen;
 
       // 목표 화면이 메모장이면 즉시 메모장으로 이동
       if (targetScreen === 'memo') {
-        router.replace('/memo-list'); // 메모장 경로
+        router.replace('/memo-list');
+        return;
+      }
+
+      // 💡 목표 화면이 할 일 목록이면 즉시 할 일 목록으로 이동
+      if (targetScreen === 'checklist') {
+        // 프로젝트의 실제 할 일 목록 메인화면 라우트 경로로 변경해주세요 (예: '/checklist' 또는 '/checklist-main')
+        router.replace('/check-list');
         return;
       }
     }
@@ -156,7 +158,7 @@ export default function MainSwipeScreen() {
         visible={draftAlertVisible}
         title={t('작성 중인 일기', 'Draft Diary')}
         message={t(
-          '작성 중이던 일기가 있어요.\n이어서 작성하시겠어요?',
+          '작성 중이던 일기가 있어요.\n이어서 작성할까요?',
           'You have a saved draft.\nDo you want to continue writing?',
         )}
         cancelText={t('닫기', 'Close')}

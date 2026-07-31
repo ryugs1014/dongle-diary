@@ -425,6 +425,12 @@ export default function WriteScreen() {
     setTimeout(() => {
       if (router.canDismiss()) router.dismissAll();
       router.replace('/');
+      Toast.show({
+        type: 'success',
+        text1: '하루를 기록했어요',
+        position: 'top',
+        topOffset: 60,
+      });
     }, 100);
   };
 

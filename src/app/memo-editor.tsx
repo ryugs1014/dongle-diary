@@ -503,7 +503,7 @@ function MemoEditor({
           }
         } else {
           isPickingMediaRef.current = false;
-          Toast.show({ type: 'info', text1: '클립보드에 이미지가 없습니다.' });
+          Toast.show({ type: 'info', text1: '클립보드에 이미지가 없어요' });
         }
       } catch (error) {
         isPickingMediaRef.current = false;
@@ -773,7 +773,7 @@ function MemoEditor({
           if (currentMemoState?.isLocked) {
             Toast.show({
               type: 'error',
-              text1: '잠긴 메모는 삭제할 수 없습니다.',
+              text1: '잠긴 메모는 삭제할 수 없어요',
               position: 'top',
               topOffset: 60,
             });

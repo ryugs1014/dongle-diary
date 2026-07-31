@@ -8,7 +8,6 @@ import React, {
 import {
   View,
   StyleSheet,
-  Text,
   Modal,
   Pressable,
   useWindowDimensions,
@@ -21,13 +20,15 @@ import { router } from 'expo-router';
 import { CalendarList, LocaleConfig } from 'react-native-calendars';
 import { useDiaryStore } from '../../store/useDiaryStore';
 import {
-  CalandarIcon,
+  CalendarIcon,
   SelectArrowIcon,
   SearchIcon,
   MenuIcon,
   AddBigIcon,
   DraftPanIcon,
   DocumentIcon,
+  CheckListIcon,
+  DetailEditIcon,
 } from '@/assets/icons';
 import {
   EMOTION_IMAGE_MAP,
@@ -337,7 +338,7 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
           style={styles.contentSelect}
           onPress={() => setMenuVisible(true)}
         >
-          <CalandarIcon
+          <CalendarIcon
             width={28}
             height={28}
             color={isDark ? '#ffffff' : '#111111'}
@@ -482,7 +483,7 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
                 // 현재 달력 화면이므로 창만 닫습니다.
               }}
             >
-              <CalandarIcon
+              <CalendarIcon
                 width={24}
                 height={24}
                 color={isDark ? '#ffffff' : '#111111'}
@@ -494,7 +495,7 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
 
             {/* 3. 🟢 새로 추가: 메모 보기 */}
             <AppTouchableOpacity
-              style={[styles.menuItem, styles.lastMenuItem]} // 💡 여기에 lastMenuItem 적용
+              style={[styles.menuItem, isDark && styles.darkMenuItem]}
               onPress={() => {
                 setMenuVisible(false);
 
@@ -506,13 +507,29 @@ export default function CalendarView({ isDark, t }: CalendarViewProps) {
                 // router.push('/memo-list');
               }}
             >
-              <DocumentIcon
+              <DetailEditIcon
                 width={24}
                 height={24}
                 color={isDark ? '#ffffff' : '#111111'}
               />
               <AppText style={[styles.menuText, isDark && styles.darkText]}>
                 메모장
+              </AppText>
+            </AppTouchableOpacity>
+            <AppTouchableOpacity
+              style={[styles.menuItem, styles.lastMenuItem]}
+              onPress={() => {
+                setMenuVisible(false);
+                router.replace('/check-list');
+              }}
+            >
+              <CheckListIcon
+                width={24}
+                height={24}
+                color={isDark ? '#ffffff' : '#111111'}
+              />
+              <AppText style={[styles.menuText, isDark && styles.darkText]}>
+                할 일 목록
               </AppText>
             </AppTouchableOpacity>
           </View>
@@ -620,7 +637,7 @@ const styles = StyleSheet.create({
     height: 60,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 5,
+    // elevation: 5,
   },
 
   // Modal Styles
@@ -641,7 +658,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
-    elevation: 16,
+    // elevation: 16,
   },
   darkMenuBox: { backgroundColor: '#1e1e1e' },
   menuItem: {
@@ -650,7 +667,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderBottomColor: '#f1f2f3',
     flexDirection: 'row',
-    gap: 4,
+    gap: 8,
   },
   lastMenuItem: {
     borderBottomWidth: 0,
