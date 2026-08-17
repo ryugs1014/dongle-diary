@@ -3,6 +3,15 @@
 ```text
 동글일기는 사용자의 감정을 기록하고 일상을 관리할 수 있는 다기능 감성 일기장 및 메모 다이어리 프로젝트입니다.
 ```
+<br />
+
+```
+| 동글일기 Android Apk 다운로드
+```
+[Dongle Diary APK Demo](https://github.com/ryugs1014/dongle-diary/releases/tag/apk)
+(* iOS 버전은 Demo 지원이 불가합니다.)
+
+<br />
 
 ### 핵심 기능
 
